@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS juridico.usuarios (
   nombre        TEXT NOT NULL,
   email         TEXT UNIQUE,
   rol           juridico.rol_usuario NOT NULL DEFAULT 'USUARIO',
-  password_hash TEXT NOT NULL,      -- guarda hash, NO contraseña en texto
+  password_hash TEXT NOT NULL,      
   activo        BOOLEAN NOT NULL DEFAULT TRUE,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -209,16 +209,14 @@ SELECT 'exp_varios', id, numero, expediente, fecha_recibido, juzgado, actor, dem
   FROM juridico.exp_varios
 ;
 
--- =========================
--- 1) Catalogo de estados del caso
--- =========================
+
 CREATE TABLE IF NOT EXISTS juridico.estado_caso (
   id BIGSERIAL PRIMARY KEY,
-  clave TEXT NOT NULL UNIQUE,     -- EN_PROCESO, SIN_ASIGNAR, etc.
-  nombre TEXT NOT NULL            -- texto bonito para UI
+  clave TEXT NOT NULL UNIQUE,     
+  nombre TEXT NOT NULL           
 );
 
--- Insertar estados base (no duplica si ya existen)
+
 INSERT INTO juridico.estado_caso (clave, nombre) VALUES
   ('EN_PROCESO', 'En proceso'),
   ('SIN_ASIGNAR', 'Sin asignar'),
@@ -227,7 +225,7 @@ INSERT INTO juridico.estado_caso (clave, nombre) VALUES
   ('SIN_ACTIVIDAD', 'Sin actividad')
 ON CONFLICT (clave) DO NOTHING;
 
--- Helper: obtener el id de SIN_ASIGNAR (para default)
+
 DO $$
 DECLARE v_default_id BIGINT;
 BEGIN
@@ -235,9 +233,7 @@ BEGIN
   FROM juridico.estado_caso
   WHERE clave = 'SIN_ASIGNAR';
 
-  -- =========================
-  -- 2) Agregar columna estado_id + FK obligatoria a cada tabla de casos
-  -- =========================
+
 
   -- AMPAROS
   IF NOT EXISTS (
@@ -329,8 +325,7 @@ BEGIN
 
 END $$;
 
--- (Opcional) Si NO quieres que el default se aplique a registros futuros,
--- puedes quitarlo después (pero la columna seguirá siendo NOT NULL).
+
 ALTER TABLE juridico.amparos         ALTER COLUMN estado_id DROP DEFAULT;
 ALTER TABLE juridico.administrativos ALTER COLUMN estado_id DROP DEFAULT;
 ALTER TABLE juridico.laborales       ALTER COLUMN estado_id DROP DEFAULT;
@@ -345,5 +340,6 @@ FROM juridico.amparos a
 JOIN juridico.estado_caso e ON e.id = a.estado_id;
 
 SELECT current_database();
+
 
 SELECT * FROM juridico.estado_caso ORDER BY id;
