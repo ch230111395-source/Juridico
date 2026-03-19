@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Boceto Front — Sistema Jurídico (Claro / Minimalista)</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">SJ</div>
+        <div>
+          <h1>Sistema Jurídico</h1>
+          <p>Front (boceto) — tema claro</p>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Secciones">
+        <button class="active" data-view="v_dashboard"><span>Dashboard</span><span class="pill">Resumen</span></button>
+        <button data-view="v_login"><span>Login</span><span class="pill">1I</span></button>
+        <button data-view="v_casos"><span>Casos</span><span class="pill">1B</span></button>
+        <button data-view="v_usuarios"><span>Usuarios</span><span class="pill">1A/1T</span></button>
+        <button data-view="v_roles"><span>Roles & Permisos</span><span class="pill">1C</span></button>
+        <button data-view="v_recordatorios"><span>Recordatorios</span><span class="pill">1O</span></button>
+        <button data-view="v_admin"><span>Administración</span><span class="pill">1Q–1S</span></button>
+      </nav>
+
+      <div class="hint">
+        <b class="muted">Cambios aplicados:</b><br/>
+        • Tema claro (blanco + gris).<br/>
+        • Formularios “pesados” ahora van colapsados (menos saturación).<br/>
+        • Doble clic en un caso → abre detalle en panel lateral.<br/>
+        • Tipos de caso: al seleccionar uno, se ajusta listado y se prellenan campos base.
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="search">
+          <span class="muted">⌕</span>
+          <input placeholder="Búsqueda rápida (caso por nombre/ID, usuario, etc.) — Req. 1N" />
+        </div>
+        <div class="actions">
+          <button class="btn">Exportar</button>
+          <button class="btn primary" id="btnNuevoGlobal">Nuevo</button>
+        </div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <section id="v_dashboard" class="view">
+        <div class="grid">
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Panel general</h2>
+                <div class="sub">Casos: prioridad, estado, pendientes y archivados — Req. 1J, 1K, 1P</div>
+              </div>
+              <div class="row">
+                <span class="chip">Filtro: Hoy</span>
+                <span class="chip">Abogado: (Todos)</span>
+                <span class="chip">Estado: (Todos)</span>
+              </div>
+            </div>
+            <div class="bd">
+              <div class="kpis">
+                <div class="kpi"><div class="v">24</div><div class="l">Casos activos (1K)</div></div>
+                <div class="kpi"><div class="v">7</div><div class="l">Alta prioridad (1J)</div></div>
+                <div class="kpi"><div class="v">3</div><div class="l">Por reasignar (1H)</div></div>
+                <div class="kpi"><div class="v">12</div><div class="l">Recordatorios (1O)</div></div>
+              </div>
+              <div class="footerNote">Wireframe: aquí podrían ir gráficas simples o listas cortas.</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="hd">
+              <h2>Actividad reciente</h2>
+              <div class="sub">Historial de actividad/acciones — Req. 1G, 1L</div>
+            </div>
+            <div class="bd">
+              <div class="row" style="flex-direction:column; align-items:stretch; gap:10px;">
+                <div class="field">
+                  <div class="small">Hoy 09:14 · <span class="tag">CASO-1042</span></div>
+                  <div style="margin-top:6px;">Se agregó una nota (1D) y se adjuntó un documento (1M).</div>
+                </div>
+                <div class="field">
+                  <div class="small">Ayer 18:02 · <span class="tag">CASO-0998</span></div>
+                  <div style="margin-top:6px;">Reasignación (1H) · prioridad ajustada (1J).</div>
+                </div>
+                <div class="field">
+                  <div class="small">Ayer 11:40 · <span class="tag">USR-0007</span></div>
+                  <div style="margin-top:6px;">Actualización de usuario y permisos (1T, 1C).</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LOGIN -->
+      <section id="v_login" class="view active">
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h2>Acceso</h2>
+              <div class="sub"></div>
+            </div>
+            <span class="pill"></span>
+          </div>
+          <div class="bd">
+            <div class="fieldgrid">
+              <div class="field">
+              <label for="usuario">Usuario</label>
+              <div class="in">
+              <input type="text" id="usuario" placeholder="Ingresa tu usuario">
+            </div> 
+          </div> 
+               
+              <div class="field">
+                <label for="contrasena">Contraseña</label>
+                <div class="in">
+                  <input type="password" id="contrasena" placeholder="Ingresa tu contraseña">
+                </div>
+              </div>
+            </div>
+            <div class="rightActions">
+             <button class="btn primary" id="btnLogin">Ingresar</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CASOS -->
+      <section id="v_casos" class="view">
+        <div class="grid cols2">
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Casos</h2>
+                <div class="sub">Listado + filtros + doble clic para abrir detalle — Req. 1B, 1N</div>
+              </div>
+              <div class="row">
+                <select class="select" id="tipoCasoSelect" aria-label="Tipo de caso">
+                  <option value="Todos">Tipo: Todos</option>
+                  <option value="Mercantil">Mercantil</option>
+                  <option value="Amparo">Amparo</option>
+                  <option value="Laboral">Laboral</option>
+                  <option value="Civil">Civil</option>
+                  <option value="Penal">Penal</option>
+                  <option value="Administrativo">Administrativo</option>
+                  <option value="Agrario">Agrario</option>
+                </select>
+                <span class="chip">Prioridad (1J)</span>
+                <span class="chip">Estado (1K)</span>
+                <span class="chip">Archivados (1P)</span>
+              </div>
+            </div>
+
+            <div class="bd">
+              <details>
+                <summary>
+                  <span><b>+ Nuevo caso</b> <span class="muted">· formulario desplegable (menos saturación)</span></span>
+                  <span class="pill">1B / 1E</span>
+                </summary>
+
+                <div class="fieldgrid" id="nuevoCasoForm">
+                  <div class="field"><label>Tipo de caso (1E)</label><div class="in" id="pref_tipo"></div></div>
+                  <div class="field"><label>Prioridad (1J)</label><div class="in" id="pref_prioridad"></div></div>
+                  <div class="field"><label>Estado (1K)</label><div class="in" id="pref_estado"></div></div>
+                  <div class="field"><label>Asignado a (1F)</label><div class="in" id="pref_asignado"></div></div>
+                  <div class="field"><label>Nombre del caso</label><div class="in"></div></div>
+                  <div class="field"><label>Identificador / expediente</label><div class="in"></div></div>
+                  <div class="field"><label>Cliente / parte</label><div class="in"></div></div>
+                  <div class="field"><label>Descripción breve</label><div class="in textarea"></div></div>
+                </div>
+                <div class="rightActions">
+                  <button class="btn">Cancelar</button>
+                  <button class="btn primary">Guardar caso</button>
+                </div>
+              </details>
+
+              <div class="divider"></div>
+
+              <div class="small">Tip: <b>doble clic</b> en un renglón para abrir el detalle del caso.</div>
+
+              <div style="margin-top:10px; padding:0; border:1px solid var(--line); border-radius:14px; overflow:hidden;">
+                <table aria-label="Tabla de casos" id="tablaCasos">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nombre</th>
+                      <th>Tipo</th>
+                      <th>Prioridad</th>
+                      <th>Estado</th>
+                      <th>Asignado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="casosTbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Vista rápida</h2>
+                <div class="sub">Campos clave y acciones — Req. 1F, 1H, 1J, 1K, 1P</div>
+              </div>
+              <span class="pill">Wireframe</span>
+            </div>
+            <div class="bd">
+              <div class="row">
+                <span class="chip">Asignar</span>
+                <span class="chip">Reasignar</span>
+                <span class="chip">Archivar</span>
+                <span class="chip">Cambiar estado</span>
+              </div>
+              <div class="footerNote">El detalle completo se abre con doble clic (panel lateral).</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- USUARIOS -->
+      <section id="v_usuarios" class="view">
+        <div class="grid cols2">
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Usuarios</h2>
+                <div class="sub">Listado simple + botón para alta/edición (colapsado) — Req. 1A, 1T</div>
+              </div>
+              <button class="btn primary" id="btnUsuarioForm">+ Nuevo / Editar</button>
+            </div>
+            <div class="bd" style="padding:0">
+              <table aria-label="Tabla de usuarios" id="tablaUsuarios">
+                <thead><tr><th>ID</th><th>Nombre</th><th>Rol</th><th>Correo</th><th>Estado</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="tag">USR-0007</span></td><td>Abg. Andrea M.</td><td class="muted">Abogado</td><td class="muted">andrea@...</td><td>Activo</td></tr>
+                  <tr><td><span class="tag">USR-0012</span></td><td>Lic. Carlos R.</td><td class="muted">Administrador</td><td class="muted">carlos@...</td><td>Activo</td></tr>
+                  <tr><td><span class="tag">USR-0021</span></td><td>Paola S.</td><td class="muted">Auxiliar</td><td class="muted">paola@...</td><td>Inactivo</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Acciones</h2>
+                <div class="sub">Menos saturación: acciones separadas</div>
+              </div>
+              <span class="pill">Wireframe</span>
+            </div>
+            <div class="bd">
+              <details id="usuarioDetails">
+                <summary>
+                  <span><b>Formulario de usuario</b> <span class="muted">· desplegable</span></span>
+                  <span class="pill">1A / 1T</span>
+                </summary>
+                <div class="fieldgrid">
+                  <div class="field"><label>Nombre completo</label><div class="in"></div></div>
+                  <div class="field"><label>Correo</label><div class="in"></div></div>
+                  <div class="field"><label>Rol</label><div class="in"></div></div>
+                  <div class="field"><label>Estado (Activo/Inactivo)</label><div class="in"></div></div>
+                </div>
+                <div class="rightActions">
+                  <button class="btn">Restablecer contraseña</button>
+                  <button class="btn primary">Guardar usuario</button>
+                </div>
+              </details>
+
+              <div class="footerNote">La asignación de permisos específicos está en “Roles & Permisos” (1C).</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ROLES -->
+      <section id="v_roles" class="view">
+        <div class="grid cols2">
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Roles</h2>
+                <div class="sub">Listado limpio — Req. 1C</div>
+              </div>
+              <button class="btn primary" id="btnRolForm">+ Nuevo rol</button>
+            </div>
+            <div class="bd" style="padding:0">
+              <table aria-label="Tabla de roles">
+                <thead><tr><th>Rol</th><th>Descripción</th><th class="muted">Acciones</th></tr></thead>
+                <tbody>
+                  <tr><td>Administrador</td><td class="muted">Configura sistema y usuarios</td><td class="muted">Editar</td></tr>
+                  <tr><td>Abogado</td><td class="muted">Gestiona casos, documentos, notas</td><td class="muted">Editar</td></tr>
+                  <tr><td>Auxiliar</td><td class="muted">Apoya registro y carga de docs</td><td class="muted">Editar</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Permisos</h2>
+                <div class="sub">Sección separada (más legible) — Req. 1C</div>
+              </div>
+              <span class="pill">Rol: Abogado</span>
+            </div>
+            <div class="bd">
+              <details id="permDetails" open>
+                <summary>
+                  <span><b>Matriz de permisos</b> <span class="muted">· desplegable</span></span>
+                  <span class="pill">1C</span>
+                </summary>
+                <div class="fieldgrid">
+                  <div class="field"><label>Casos</label><div class="in"></div></div>
+                  <div class="field"><label>Documentos</label><div class="in"></div></div>
+                  <div class="field"><label>Usuarios</label><div class="in"></div></div>
+                  <div class="field"><label>Administración</label><div class="in"></div></div>
+                </div>
+                <div class="rightActions">
+                  <button class="btn primary">Guardar permisos</button>
+                </div>
+              </details>
+
+              <div class="footerNote">Wireframe: aquí podrían ir checkboxes por módulo y acción.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RECORDATORIOS -->
+      <section id="v_recordatorios" class="view">
+        <div class="grid cols2">
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Recordatorios automáticos</h2>
+                <div class="sub">Req. 1O</div>
+              </div>
+              <button class="btn primary">+ Nuevo</button>
+            </div>
+            <div class="bd">
+              <div class="row" style="flex-direction:column; align-items:stretch; gap:10px;">
+                <div class="field"><div class="small">Diario 08:00 · <span class="tag">CASO-1029</span></div><div style="margin-top:6px;">Revisar vencimientos próximos.</div></div>
+                <div class="field"><div class="small">Semanal · <span class="tag">General</span></div><div style="margin-top:6px;">Resumen por prioridad y estado (1J, 1K).</div></div>
+                <div class="field"><div class="small">Al crear caso · <span class="tag">Auto</span></div><div style="margin-top:6px;">Checklist por tipo (1E).</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Regla</h2>
+                <div class="sub">Wireframe de creación/edición</div>
+              </div>
+              <span class="pill">Borrador</span>
+            </div>
+            <div class="bd">
+              <details>
+                <summary>
+                  <span><b>Configurar</b> <span class="muted">· desplegable</span></span>
+                  <span class="pill">1O</span>
+                </summary>
+                <div class="fieldgrid">
+                  <div class="field"><label>Nombre</label><div class="in"></div></div>
+                  <div class="field"><label>Frecuencia</label><div class="in"></div></div>
+                  <div class="field"><label>Condición</label><div class="in"></div></div>
+                  <div class="field"><label>Destinatario(s)</label><div class="in"></div></div>
+                </div>
+                <div class="rightActions">
+                  <button class="btn">Probar</button>
+                  <button class="btn primary">Guardar</button>
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ADMIN -->
+      <section id="v_admin" class="view">
+        <div class="grid">
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Administración</h2>
+                <div class="sub">Respaldo y base de datos — Req. 1Q, 1R, 1S</div>
+              </div>
+              <span class="pill">Solo Admin</span>
+            </div>
+            <div class="bd">
+              <div class="kpis">
+                <div class="kpi"><div class="v">OK</div><div class="l">Respaldo diario (1Q)</div></div>
+                <div class="kpi"><div class="v">SQL</div><div class="l">BD creada (1R)</div></div>
+                <div class="kpi"><div class="v">⚙︎</div><div class="l">Gestión BD (1S)</div></div>
+                <div class="kpi"><div class="v">Logs</div><div class="l">Auditoría (1L)</div></div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="grid cols2">
+                <div class="card" style="box-shadow:none; border-color:var(--line);">
+                  <div class="hd"><h2>Respaldo</h2><div class="sub">Req. 1Q</div></div>
+                  <div class="bd">
+                    <div class="row">
+                      <span class="chip">Último respaldo: (placeholder)</span>
+                      <span class="chip">Retención: (placeholder)</span>
+                    </div>
+                    <div class="rightActions" style="padding:0; margin-top:10px;">
+                      <button class="btn">Generar</button>
+                      <button class="btn">Restaurar</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card" style="box-shadow:none; border-color:var(--line);">
+                  <div class="hd"><h2>Base de datos</h2><div class="sub">Req. 1S</div></div>
+                  <div class="bd">
+                    <div class="field"><label>Tareas administrativas</label><div class="in" style="height:110px"></div></div>
+                    <div class="rightActions" style="padding:0; margin-top:10px;">
+                      <button class="btn">Ver estado</button>
+                      <button class="btn">Mantenimiento</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="footerNote">“Creación de la base de datos” (1R) es backend; aquí sólo se muestra el estado en el Front.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Drawer: detalle de caso -->
+  <div class="drawerMask" id="drawerMask" role="dialog" aria-modal="true" aria-label="Detalle del caso">
+    <div class="drawer">
+      <div class="hd">
+        <div>
+          <div class="small">Detalle del caso</div>
+          <div style="margin-top:2px;"><b id="drawerTitle">CASO-0000</b> <span class="muted" id="drawerSubtitle">· (tipo)</span></div>
+        </div>
+        <button class="btn" id="btnCerrarDrawer">Cerrar</button>
+      </div>
+      <div class="bd">
+        <div class="row">
+          <span class="chip">Asignar (1F)</span>
+          <span class="chip">Reasignar (1H)</span>
+          <span class="chip">Cambiar estado (1K)</span>
+          <span class="chip">Archivar (1P)</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="fieldgrid" style="padding:0;">
+          <div class="field"><label>Tipo (1E)</label><div class="in" id="d_tipo"></div></div>
+          <div class="field"><label>Prioridad (1J)</label><div class="in" id="d_prioridad"></div></div>
+          <div class="field"><label>Estado (1K)</label><div class="in" id="d_estado"></div></div>
+          <div class="field"><label>Asignado a (1F)</label><div class="in" id="d_asignado"></div></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="card" style="box-shadow:none;">
+          <div class="hd"><h2>Notas del caso</h2><div class="sub">Notas específicas de este caso — Req. 1D</div></div>
+          <div class="bd">
+            <div class="field"><label>Nueva nota</label><div class="in textarea"></div></div>
+            <div class="rightActions" style="padding:0; margin-top:10px;">
+              <button class="btn primary">Guardar nota</button>
+            </div>
+            <div class="footerNote">Wireframe: aquí iría el listado de notas anteriores del caso.</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="card" style="box-shadow:none;">
+          <div class="hd"><h2>Documentos</h2><div class="sub">Carga/gestión — Req. 1M</div></div>
+          <div class="bd">
+            <div class="field"><label>Arrastra/selecciona archivos</label><div class="in" style="height:54px"></div></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="card" style="box-shadow:none;">
+          <div class="hd"><h2>Historial</h2><div class="sub">Actividad del caso — Req. 1G, 1L</div></div>
+          <div class="bd">
+            <div class="row" style="flex-direction:column; align-items:stretch; gap:10px;">
+              <div class="field"><div class="small">Hoy · Acción</div><div style="margin-top:6px;">Cambio de estado (1K).</div></div>
+              <div class="field"><div class="small">Ayer · Actividad</div><div style="margin-top:6px;">Asignación (1F).</div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    //Estado de sesión 
+    let autenticado = false;
+    // Navegación
+    const buttons = document.querySelectorAll('.nav button');
+    const views = document.querySelectorAll('.view');
+    buttons.forEach(b => b.addEventListener('click', () => {
+      const vista = b.dataset.view;
+
+  // 🚫 Bloqueo si no está autenticado
+     if(!autenticado && vista !== "v_login"){
+    alert("Debes iniciar sesión primero 🔒");
+    return;
+     }
+
+  buttons.forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+
+  views.forEach(v => v.classList.toggle('active', v.id === vista));
+  window.scrollTo({top:0, behavior:'smooth'});
+}));
+
+    // Datos placeholder de casos + "autorelleno" por tipo
+    const presets = {
+      "Mercantil": { prioridad:"Alta", estado:"En proceso", asignado:"Abg. A" },
+      "Amparo": { prioridad:"Media", estado:"Pendiente", asignado:"Abg. B" },
+      "Laboral": { prioridad:"Alta", estado:"Revisión", asignado:"Por reasignar" },
+      "Civil": { prioridad:"Media", estado:"En proceso", asignado:"Abg. C" },
+      "Penal": { prioridad:"Alta", estado:"Pendiente", asignado:"Abg. D" },
+      "Administrativo": { prioridad:"Media", estado:"En proceso", asignado:"Abg. E" },
+      "Agrario": { prioridad:"Media", estado:"Pendiente", asignado:"Abg. F" },
+      "Todos": { prioridad:"(auto)", estado:"(auto)", asignado:"(auto)" }
+    };
+
+    const casos = [
+      {id:"CASO-1042", nombre:"Juicio mercantil · “Proveedor X”", tipo:"Mercantil", prioridad:"Alta", estado:"En proceso", asignado:"Abg. A"},
+      {id:"CASO-1029", nombre:"Amparo indirecto · “Exp. 55/2026”", tipo:"Amparo", prioridad:"Media", estado:"Pendiente", asignado:"Abg. B"},
+      {id:"CASO-0998", nombre:"Laboral · “Despido injustificado”", tipo:"Laboral", prioridad:"Alta", estado:"Revisión", asignado:"Por reasignar"},
+      {id:"CASO-0977", nombre:"Civil · “Arrendamiento”", tipo:"Civil", prioridad:"Media", estado:"En proceso", asignado:"Abg. C"},
+      {id:"CASO-0901", nombre:"Penal · “Denuncia”", tipo:"Penal", prioridad:"Alta", estado:"Pendiente", asignado:"Abg. D"},
+    ];
+
+    const tipoSelect = document.getElementById('tipoCasoSelect');
+    const tbody = document.getElementById('casosTbody');
+
+    function renderTable() {
+      const t = tipoSelect.value;
+      const rows = casos.filter(c => (t === "Todos" ? true : c.tipo === t));
+      tbody.innerHTML = rows.map(c => `
+        <tr data-id="${c.id}">
+          <td><span class="tag">${c.id}</span></td>
+          <td>${c.nombre}</td>
+          <td class="muted">${c.tipo}</td>
+          <td>${c.prioridad}</td>
+          <td>${c.estado}</td>
+          <td class="muted">${c.asignado}</td>
+        </tr>
+      `).join('');
+
+      // Doble clic => abrir detalle
+      tbody.querySelectorAll('tr').forEach(tr => {
+        tr.addEventListener('dblclick', () => {
+          const id = tr.dataset.id;
+          const item = casos.find(x => x.id === id);
+          openDrawer(item);
+        });
+      });
+    }
+
+    function applyPreset(tipo) {
+      const p = presets[tipo] || presets["Todos"];
+      document.getElementById('pref_tipo').textContent = tipo === "Todos" ? "(selecciona un tipo)" : tipo;
+      document.getElementById('pref_prioridad').textContent = p.prioridad;
+      document.getElementById('pref_estado').textContent = p.estado;
+      document.getElementById('pref_asignado').textContent = p.asignado;
+    }
+
+    tipoSelect.addEventListener('change', () => {
+      renderTable();
+      // “Autorelleno” de campos base en el formulario
+      applyPreset(tipoSelect.value);
+    });
+
+    // Drawer
+    const mask = document.getElementById('drawerMask');
+    const closeBtn = document.getElementById('btnCerrarDrawer');
+
+    function openDrawer(item) {
+      if(!item) return;
+      document.getElementById('drawerTitle').textContent = item.id;
+      document.getElementById('drawerSubtitle').textContent = `· ${item.tipo}`;
+      document.getElementById('d_tipo').textContent = item.tipo;
+      document.getElementById('d_prioridad').textContent = item.prioridad;
+      document.getElementById('d_estado').textContent = item.estado;
+      document.getElementById('d_asignado').textContent = item.asignado;
+      mask.classList.add('show');
+    }
+    function closeDrawer() { mask.classList.remove('show'); }
+    closeBtn.addEventListener('click', closeDrawer);
+    mask.addEventListener('click', (e) => { if(e.target === mask) closeDrawer(); });
+    window.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeDrawer(); });
+
+    // Usuarios: abrir/cerrar details desde botón (menos saturación)
+    const btnUsuarioForm = document.getElementById('btnUsuarioForm');
+    const usuarioDetails = document.getElementById('usuarioDetails');
+    btnUsuarioForm.addEventListener('click', () => {
+      usuarioDetails.open = true;
+      usuarioDetails.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+
+    // Roles: abrir matriz de permisos y (si se desea) formulario
+    const btnRolForm = document.getElementById('btnRolForm');
+    const permDetails = document.getElementById('permDetails');
+    btnRolForm.addEventListener('click', () => {
+      permDetails.open = true;
+      permDetails.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+
+    // Inicializar
+    renderTable();
+    applyPreset(tipoSelect.value);
+    // 🔒 Ocultar sidebar al iniciar
+    document.getElementById("sidebar").classList.add("hidden");
+    
+   document.getElementById("btnLogin").addEventListener("click", login);
+
+async function login() {
+
+  const usuario = document.getElementById("usuario").value.trim();
+  const contrasena = document.getElementById("contrasena").value.trim();
+
+  if(usuario === "admin" && contrasena === "1234"){
+  autenticado = true;
+
+  alert("Acceso concedido (modo prueba) ✅");
+
+  // Mostrar dashboard
+  document.getElementById("v_login").classList.remove("active");
+  document.getElementById("v_dashboard").classList.add("active");
+
+  // Mostrar sidebar
+  document.getElementById("sidebar").classList.remove("hidden");
+
+  return; // 🚨 IMPORTANTE para no ir al fetch
+}
+  try {
+
+    const response = await fetch("http://localhost:8080/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        usuario: usuario,
+        contrasena: contrasena
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Error en el servidor");
+    }
+
+    const data = await response.json();
+
+    if(data.success){
+
+      autenticado = true;
+
+      alert("Acceso concedido ✅");
+
+      // Guardar sesión
+      localStorage.setItem("usuario", JSON.stringify(data.usuario));
+
+      // Limpiar campos
+      document.getElementById("usuario").value = "";
+      document.getElementById("contrasena").value = "";
+
+      // Cambiar vista
+      document.getElementById("v_login").classList.remove("active");
+      document.getElementById("v_dashboard").classList.add("active");
+
+      // 🔓 Mostrar sidebar
+  document.getElementById("sidebar").classList.remove("hidden");
+
+    } else {
+      alert(data.message || "Usuario o contraseña incorrectos ❌");
+    }
+
+  } catch(error){
+    console.error(error);
+    alert("Error al conectar con el servidor ⚠️");
+  }
+}
+
+// Enter
+document.getElementById("contrasena").addEventListener("keydown", function(e){
+  if(e.key === "Enter"){
+    login();
+  }
+});
+
+  </script>
+</body>
+</html>
