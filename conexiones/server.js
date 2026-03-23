@@ -3,16 +3,15 @@ const mysql = require('mysql2');
 const cors = require('cors');
 
 const app = express();
-
 app.use(cors()); 
 app.use(express.json());
 
 
 const db = mysql.createConnection({
-    host: '   ',
-    user: '   ',     
-    password: '   ', 
-    database: '   '     
+    host: '192.168.0.105',
+    user: 'admin_remoto',     
+    password: '1234', 
+    database: 'juridico'     
 });
 
 
