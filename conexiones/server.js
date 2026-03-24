@@ -8,9 +8,9 @@ app.use(express.json());
 
 
 const db = mysql.createConnection({
-    host: '192.168.0.105',
-    user: 'admin_remoto',     
-    password: '1234', 
+    host: '10.148.110.115',
+    user: 'jona',     
+    password: 'Jona12345', 
     database: 'juridico'     
 });
 
@@ -25,34 +25,42 @@ db.connect(err => {
 
 
 app.post('/api/login', (req, res) => {
-    
-    const { usuario, password } = req.body;
+  const { usuario, password } = req.body;
 
+  const sql = "SELECT * FROM usuarios WHERE username = ? AND password_hash = ?";
 
-    const sql = "SELECT * FROM usuarios WHERE nombre_usuario = ? AND contraseña = ?";
-    
-    db.query(sql, [usuario, password], (err, results) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: "Error interno del servidor" });
-        }
+  db.query(sql, [usuario, password], (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ success: false, mensaje: "Error interno del servidor" });
+    }
 
-    
-        if (results.length > 0) {
-            const usuarioEncontrado = results[0];
-            
+    if (results.length > 0) {
+      const usuarioEncontrado = results[0];
 
-            if(usuarioEncontrado.rol === 'admin') {
-                res.json({ success: true, mensaje: "¡Bienvenido Administrador!" });
-            } else {
-                res.status(403).json({ success: false, mensaje: "Acceso denegado. Solo administradores." });
-            }
-
-        } else {
-            
-            res.status(401).json({ success: false, mensaje: "Usuario o contraseña incorrectos" });
-        }
-    });
+      if (usuarioEncontrado.rol === 'ADMIN') {
+        return res.json({
+          success: true,
+          mensaje: "¡Bienvenido Administrador!",
+          usuario: {
+            id: usuarioEncontrado.id,
+            username: usuarioEncontrado.username,
+            rol: usuarioEncontrado.rol
+          }
+        });
+      } else {
+        return res.status(403).json({
+          success: false,
+          mensaje: "Acceso denegado. Solo administradores."
+        });
+      }
+    } else {
+      return res.status(401).json({
+        success: false,
+        mensaje: "Usuario o contraseña incorrectos"
+      });
+    }
+  });
 });
 
 
