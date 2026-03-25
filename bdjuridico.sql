@@ -143,9 +143,7 @@ CREATE TABLE exp_varios (
     FOREIGN KEY (estado_id) REFERENCES estado_caso(id)
 );
 
--- =====================
--- ÍNDICES
--- =====================
+
 CREATE INDEX idx_amparos_expediente ON amparos (expediente(100));
 CREATE INDEX idx_amparos_actor ON amparos (actor(100));
 
@@ -192,15 +190,10 @@ VALUES
 ('secretaria','Secretaria','secretaria@local','SECRETARIA', SHA2('Secre123!',256)),
 ('usuario1','Usuario 1','usuario1@local','USUARIO', SHA2('User123!',256));
 
--- =========================
--- Compañeros la parte de los TRIGGER queda 
--- pendiente para no tener problemas al momento de hacer pruebas
--- =========================
+
 
 DELIMITER $$
--- =========================
--- TRIGGER: SOLO 1 ADMIN (INSERT)
--- =========================
+
 CREATE TRIGGER validar_un_admin_insert
 BEFORE INSERT ON usuarios
 FOR EACH ROW
@@ -213,9 +206,7 @@ BEGIN
     END IF;
 END$$
 
--- =========================
--- TRIGGER: SOLO 1 ADMIN (UPDATE)
--- =========================
+
 CREATE TRIGGER validar_un_admin_update
 BEFORE UPDATE ON usuarios
 FOR EACH ROW
@@ -228,9 +219,7 @@ BEGIN
     END IF;
 END$$
 
--- =========================
--- TRIGGER: SOLO 1 SECRETARIA (INSERT)
--- =========================
+
 CREATE TRIGGER validar_una_secretaria_insert
 BEFORE INSERT ON usuarios
 FOR EACH ROW
@@ -243,9 +232,7 @@ BEGIN
     END IF;
 END$$
 
--- =========================
--- TRIGGER: SOLO 1 SECRETARIA (UPDATE)
--- =========================
+
 CREATE TRIGGER validar_una_secretaria_update
 BEFORE UPDATE ON usuarios
 FOR EACH ROW
