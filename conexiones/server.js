@@ -1,38 +1,50 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
+const crypto = require('crypto');
+require('dotenv').config();
+
 
 const app = express();
-app.use(cors()); 
+app.use(cors());
 app.use(express.json());
 
 
 const db = mysql.createConnection({
-    host: '10.148.110.115',
-    user: 'jona',     
-    password: 'Jona12345', 
-    database: 'juridico'     
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
 });
 
 
 db.connect(err => {
-    if (err) {
-        console.error('Error conectando a la base de datos:', err);
-        return;
-    }
-    console.log('¡Conectado exitosamente a MySQL!');
+  if (err) {
+    console.error('Error conectando a la base de datos:', err);
+    return;
+  }
+  console.log('¡Conectado exitosamente a MySQL!');
 });
 
 
 app.post('/api/login', (req, res) => {
   const { usuario, password } = req.body;
 
+  const passwordHash = crypto
+    .createHash('sha256')
+    .update(password)
+    .digest('hex');
+
   const sql = "SELECT * FROM usuarios WHERE username = ? AND password_hash = ?";
 
-  db.query(sql, [usuario, password], (err, results) => {
+  db.query(sql, [usuario, passwordHash], (err, results) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({ success: false, mensaje: "Error interno del servidor" });
+      return res.status(500).json({
+        success: false,
+        mensaje: "Error interno del servidor"
+      });
     }
 
     if (results.length > 0) {
@@ -66,5 +78,5 @@ app.post('/api/login', (req, res) => {
 
 const PORT = 3000;
 app.listen(PORT, () => {
-    console.log(`Servidor Backend corriendo y escuchando en http://localhost:${PORT}`);
+  console.log(`Servidor Backend corriendo y escuchando en http://localhost:${PORT}`);
 });

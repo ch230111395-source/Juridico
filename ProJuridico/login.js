@@ -15,7 +15,7 @@ async function login(event) {
     return;
   }
 
-  if (usuario === "admin" && contrasena === "1234") {
+  if (usuario === "administrador" && contrasena === "1234") {
     const usuarioDemo = {
       username: "admin",
       rol: "ADMIN"
