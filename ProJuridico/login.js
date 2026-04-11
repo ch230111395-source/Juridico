@@ -15,17 +15,17 @@ async function login(event) {
     return;
   }
 
-  if (usuario === "administrador" && contrasena === "1234") {
+/*  if (usuario === "administrador" && contrasena === "1234") {
     const usuarioDemo = {
       username: "admin",
       rol: "ADMIN"
     };
-
+                                                                      ---------Usuario de prueba
     localStorage.setItem("usuario", JSON.stringify(usuarioDemo));
     alert("Acceso concedido en modo de prueba.");
     window.location.href = "dashboard.html";
     return;
-  }
+  } */
 
   try {
     const response = await fetch("http://localhost:3000/api/login", {
