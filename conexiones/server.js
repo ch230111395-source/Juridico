@@ -50,10 +50,10 @@ app.post('/api/login', (req, res) => {
     if (results.length > 0) {
       const usuarioEncontrado = results[0];
 
-      if (usuarioEncontrado.rol === 'ADMIN') {
+      if (usuarioEncontrado.rol === 'ADMIN' || usuarioEncontrado.rol === 'ABOGADO' || usuarioEncontrado.rol === 'SECRETARIA') {
         return res.json({
           success: true,
-          mensaje: "¡Bienvenido Administrador!",
+          mensaje: "¡Bienvenido!",
           usuario: {
             id: usuarioEncontrado.id,
             username: usuarioEncontrado.username,
@@ -63,7 +63,7 @@ app.post('/api/login', (req, res) => {
       } else {
         return res.status(403).json({
           success: false,
-          mensaje: "Acceso denegado. Solo administradores."
+          mensaje: "Acceso denegado."
         });
       }
     } else {
