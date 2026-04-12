@@ -49,8 +49,9 @@ app.post('/api/login', (req, res) => {
 
     if (results.length > 0) {
       const usuarioEncontrado = results[0];
-
-      if (usuarioEncontrado.rol === 'ADMIN' || usuarioEncontrado.rol === 'ABOGADO' || usuarioEncontrado.rol === 'SECRETARIA') {
+      const rolesPermitidos = ["ADMIN","ABOGADO","SECRETARIA"];
+      
+      if (rolesPermitidos.includes(usuarioEncontrado.rol)) {
         return res.json({
           success: true,
           mensaje: "¡Bienvenido!",
