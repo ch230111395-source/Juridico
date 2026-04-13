@@ -77,12 +77,17 @@ function renderTable() {
 
 function applyPreset(tipo) {
   const preset = presets[tipo] || presets.Todos;
-  document.getElementById("pref_tipo").textContent = tipo === "Todos" ? "(selecciona un tipo)" : tipo;
-  document.getElementById("pref_prioridad").textContent = preset.prioridad;
-  document.getElementById("pref_estado").textContent = preset.estado;
-  document.getElementById("pref_asignado").textContent = preset.asignado;
-}
 
+  const elTipo = document.getElementById("pref_tipo");
+  const elPrioridad = document.getElementById("pref_prioridad");
+  const elEstado = document.getElementById("pref_estado");
+  const elAsignado = document.getElementById("pref_asignado");
+  if (!elTipo || !elPrioridad || !elEstado || !elAsignado) return; // ← Guard
+  elTipo.textContent = tipo === "Todos" ? "(selecciona un tipo)" : tipo;
+  elPrioridad.textContent = preset.prioridad;
+  elEstado.textContent = preset.estado;
+  elAsignado.textContent = preset.asignado;
+}
 function openDrawer(item) {
   if (!item) return;
 
