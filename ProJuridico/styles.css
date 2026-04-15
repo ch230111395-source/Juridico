@@ -1,3 +1,7 @@
+/* ═══════════════════════════════════════════
+   styles.css — Sistema Jurídico
+═══════════════════════════════════════════ */
+
 :root {
   --bg: #f5f7fb;
   --panel: #ffffff;
@@ -11,9 +15,7 @@
   --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -28,6 +30,7 @@ body {
   min-height: 100vh;
 }
 
+/* ── Sidebar ── */
 .sidebar {
   background: #111827;
   color: #fff;
@@ -66,6 +69,7 @@ body {
   padding: 12px 14px;
   border-radius: 10px;
   cursor: pointer;
+  font-size: 14px;
 }
 
 .nav button.active,
@@ -73,9 +77,8 @@ body {
   background: rgba(255, 255, 255, 0.12);
 }
 
-.main {
-  padding: 24px;
-}
+/* ── Main ── */
+.main { padding: 24px; }
 
 .topbar {
   display: flex;
@@ -90,23 +93,35 @@ body {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 10px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--panel);
 }
 
-.actions,
-.row,
-.rightActions {
+.search input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.08);
+}
+
+.actions, .row, .rightActions {
   display: flex;
   gap: 10px;
   align-items: center;
 }
 
+/* ── Botones ── */
 .btn {
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--panel);
   padding: 10px 16px;
   border-radius: 10px;
   cursor: pointer;
+  font-size: 14px;
+  color: var(--text);
 }
+
+.btn:hover { background: #f8fafc; }
 
 .btn.primary {
   background: var(--primary);
@@ -114,27 +129,22 @@ body {
   border-color: var(--primary);
 }
 
-.btn.primary:hover {
-  background: var(--primary-dark);
+.btn.primary:hover { background: var(--primary-dark); }
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.view {
-  display: none;
-}
+/* ── Vistas ── */
+.view { display: none; }
+.view.active { display: block; }
 
-.view.active {
-  display: block;
-}
+/* ── Grid ── */
+.grid { display: grid; gap: 20px; }
+.grid.cols2 { grid-template-columns: repeat(2, 1fr); }
 
-.grid {
-  display: grid;
-  gap: 20px;
-}
-
-.grid.cols2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
+/* ── Cards ── */
 .card {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -142,18 +152,14 @@ body {
   box-shadow: var(--shadow);
 }
 
-.hd,
-.bd {
-  padding: 18px;
-}
+.hd, .bd { padding: 18px; }
 
-.sub,
-.muted,
-.small,
-.footerNote {
+.sub, .muted, .small, .footerNote {
   color: var(--muted);
+  font-size: 13px;
 }
 
+/* ── KPIs ── */
 .kpis {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -167,22 +173,21 @@ body {
   padding: 16px;
 }
 
-.kpi .v {
-  font-size: 24px;
-  font-weight: bold;
-}
+.kpi .v { font-size: 24px; font-weight: bold; }
+.kpi .l { color: var(--muted); font-size: 13px; margin-top: 4px; }
 
-.tag,
-.chip,
-.pill {
+/* ── Chips, tags, pills ── */
+.tag, .chip, .pill {
   display: inline-flex;
   align-items: center;
   padding: 6px 10px;
   border-radius: 999px;
   background: var(--chip);
   font-size: 12px;
+  color: var(--primary);
 }
 
+/* ── Campos base ── */
 .fieldgrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -193,22 +198,36 @@ body {
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
 }
 
 .in,
 .select,
-.field input {
+.field input,
+.field select,
+.field textarea {
   width: 100%;
   min-height: 44px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
-  padding: 12px;
+  background: var(--panel);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
 }
 
-.textarea {
-  min-height: 100px;
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.08);
 }
+
+.field textarea { min-height: 100px; resize: vertical; }
+.textarea { min-height: 100px; }
 
 .divider {
   height: 1px;
@@ -216,52 +235,179 @@ body {
   margin: 18px 0;
 }
 
+/* ── Tabla ── */
 table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  background: var(--panel);
+  font-size: 14px;
 }
 
-th,
-td {
+th, td {
   padding: 14px;
   border-bottom: 1px solid var(--line);
   text-align: left;
 }
 
+th {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--muted);
+  background: #f8fafc;
+}
+
+tr:last-child td { border-bottom: none; }
+
+/* ── Details / summary ── */
+details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 0;
+  user-select: none;
+}
+
+details > summary::-webkit-details-marker { display: none; }
+details[open] > summary::before { content: '▾ '; }
+details:not([open]) > summary::before { content: '▸ '; }
+
+/* ── Drawer ── */
 .drawerMask {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.45);
   display: none;
   justify-content: flex-end;
+  z-index: 100;
 }
 
-.drawerMask.show {
-  display: flex;
-}
+.drawerMask.show { display: flex; }
 
 .drawer {
   width: 520px;
   max-width: 100%;
   height: 100%;
-  background: #fff;
+  background: var(--panel);
   overflow-y: auto;
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
 }
 
+/* ── Nota item ── */
+.nota-item { transition: box-shadow 0.15s; }
+.nota-item:hover { box-shadow: 0 2px 8px rgba(29, 78, 216, 0.07); }
+
+/* ═══════════════════════════════════════════════════════
+   FORMULARIO "NUEVO CASO"
+   Layout:
+     - Fila 1: selector Tipo de Caso centrado (ancho completo)
+     - Fila 2+: campos dinámicos en dos columnas
+     - Última fila: botones alineados a la derecha
+═══════════════════════════════════════════════════════ */
+
+#formNuevoCaso {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px 26px 20px;
+  margin-top: 12px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+/* Fila superior: tipo de caso centrado */
+#formNuevoCaso .form-tipo-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+#formNuevoCaso .form-tipo-row .field {
+  width: 260px;
+  text-align: center;
+}
+
+#formNuevoCaso .form-tipo-row .field label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+#formNuevoCaso .form-tipo-row .field select {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  text-align: center;
+  font-weight: 600;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+#formNuevoCaso .form-tipo-row .field select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.08);
+}
+
+/* Cuadrícula de campos dinámicos: dos columnas */
+#formNuevoCaso .fieldgrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 20px;
+}
+
+/* Etiquetas de los campos dinámicos */
+#formNuevoCaso .fieldgrid .field label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+/* Inputs y selects de los campos dinámicos */
+#formNuevoCaso .fieldgrid .field input,
+#formNuevoCaso .fieldgrid .field select,
+#formNuevoCaso .fieldgrid .field textarea {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+#formNuevoCaso .fieldgrid .field input:focus,
+#formNuevoCaso .fieldgrid .field select:focus,
+#formNuevoCaso .fieldgrid .field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.08);
+}
+
+/* Botones al final */
+#formNuevoCaso .rightActions {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+
+/* ═══════════════════════
+   RESPONSIVE
+═══════════════════════ */
 @media (max-width: 900px) {
-  .app {
-    grid-template-columns: 1fr;
-  }
+  .app { grid-template-columns: 1fr; }
 
   .grid.cols2,
   .fieldgrid,
-  .kpis {
-    grid-template-columns: 1fr;
-  }
+  .kpis { grid-template-columns: 1fr; }
 
-  .topbar {
-    flex-direction: column;
-  }
+  .topbar { flex-direction: column; }
+  .search input { width: 100%; }
+
+  #formNuevoCaso .fieldgrid { grid-template-columns: 1fr; }
+  #formNuevoCaso .form-tipo-row .field { width: 100%; }
 }

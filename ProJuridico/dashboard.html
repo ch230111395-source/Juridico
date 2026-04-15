@@ -41,6 +41,7 @@
         </div>
       </div>
 
+      <!-- ===== DASHBOARD ===== -->
       <section id="v_dashboard" class="view active">
         <div class="grid">
           <div class="card">
@@ -102,7 +103,8 @@
         </div>
       </section>
 
-     <section id="v_casos" class="view">
+      <!-- ===== CASOS ===== -->
+      <section id="v_casos" class="view">
         <div class="grid cols2">
           <div class="card">
             <div class="hd">
@@ -128,12 +130,16 @@
             </div>
 
             <div class="bd">
-              <details>
+              <!-- ── FORMULARIO NUEVO CASO ── -->
+              <details id="detallesNuevoCaso">
                 <summary>
                   <span><b>Nuevo caso</b></span>
                 </summary>
+
                 <form id="formNuevoCaso">
-                  <div class="fieldgrid">
+
+                  <!-- Fila 1: Tipo de caso centrado -->
+                  <div class="form-tipo-row">
                     <div class="field">
                       <label for="tipo_caso">Tipo de Caso</label>
                       <select id="tipo_caso" name="tipo_caso" onchange="mostrarCampos()">
@@ -147,14 +153,17 @@
                         <option value="varios">Varios</option>
                       </select>
                     </div>
-                    <div id="campos_relevantes"></div>
-
-                    <div class="rightActions">
-                      <button type="button" class="btn">Cancelar</button>
-                      <button type="submit" class="btn primary">Guardar</button>
-                    </div>
                   </div>
-                </form> </details>
+
+                  <!-- Fila 2+: campos dinámicos en dos columnas -->
+                  <div class="fieldgrid" id="campos_relevantes"></div>
+
+                  <div class="rightActions">
+                    <button type="button" class="btn" id="btnCancelarForm">Cancelar</button>
+                    <button type="submit" class="btn primary">Guardar</button>
+                  </div>
+                </form>
+              </details>
 
               <div class="divider"></div>
               <div class="small">Doble clic en un renglón para abrir el detalle del caso.</div>
@@ -171,7 +180,13 @@
                       <th>Asignado</th>
                     </tr>
                   </thead>
-                  <tbody id="casosTbody"></tbody>
+                  <tbody id="casosTbody">
+                    <tr>
+                      <td colspan="6" class="muted" style="text-align:center; padding: 24px;">
+                        Cargando casos...
+                      </td>
+                    </tr>
+                  </tbody>
                 </table>
               </div>
             </div>
@@ -197,318 +212,290 @@
           </div>
         </div>
       </section>
-  <section id="v_usuarios" class="view">
-    <div class="grid cols2">
-      <div class="card">
-        <div class="hd">
-          <div>
-            <h2>Usuarios</h2>
-            <div class="sub">Listado simple y formulario de alta o edición</div>
-          </div>
-          <button class="btn primary" id="btnUsuarioForm">Nuevo / Editar</button>
-        </div>
-        <div class="bd" style="padding: 0;">
-          <table aria-label="Tabla de usuarios" id="tablaUsuarios">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Rol</th>
-                <th>Correo</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><span class="tag">USR-0007</span></td>
-                <td>Abg. Andrea M.</td>
-                <td class="muted">Abogado</td>
-                <td class="muted">andrea@...</td>
-                <td>Activo</td>
-              </tr>
-              <tr>
-                <td><span class="tag">USR-0012</span></td>
-                <td>Lic. Carlos R.</td>
-                <td class="muted">Administrador</td>
-                <td class="muted">carlos@...</td>
-                <td>Activo</td>
-              </tr>
-              <tr>
-                <td><span class="tag">USR-0021</span></td>
-                <td>Paola S.</td>
-                <td class="muted">Auxiliar</td>
-                <td class="muted">paola@...</td>
-                <td>Inactivo</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
 
-      <div class="card">
-        <div class="hd">
-          <div>
-            <h2>Acciones</h2>
-            <div class="sub">Acciones separadas para mejor legibilidad</div>
-          </div>
-        </div>
-        <div class="bd">
-          <details id="usuarioDetails">
-            <summary>
-              <span><b>Formulario de usuario</b> <span class="muted">· desplegable</span></span>
-            </summary>
-            <div class="fieldgrid">
-              <div class="field"><label>Nombre completo</label>
-                <div class="in"></div>
+      <!-- ===== USUARIOS ===== -->
+      <section id="v_usuarios" class="view">
+        <div class="grid cols2">
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Usuarios</h2>
+                <div class="sub">Listado simple y formulario de alta o edición</div>
               </div>
-              <div class="field"><label>Correo</label>
-                <div class="in"></div>
-              </div>
-              <div class="field"><label>Rol</label>
-                <div class="in"></div>
-              </div>
-              <div class="field"><label>Estado</label>
-                <div class="in"></div>
-              </div>
+              <button class="btn primary" id="btnUsuarioForm">Nuevo / Editar</button>
             </div>
-            <div class="rightActions">
-              <button class="btn">Restablecer contraseña</button>
-              <button class="btn primary">Guardar usuario</button>
-            </div>
-          </details>
-
-          <div class="footerNote">La asignación de permisos específicos está en “Roles y Permisos”.</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="v_roles" class="view">
-    <div class="grid cols2">
-      <div class="card">
-        <div class="hd">
-          <div>
-            <h2>Roles</h2>
-            <div class="sub">Listado de roles</div>
-          </div>
-          <button class="btn primary" id="btnRolForm">Nuevo rol</button>
-        </div>
-        <div class="bd" style="padding: 0;">
-          <table aria-label="Tabla de roles">
-            <thead>
-              <tr>
-                <th>Rol</th>
-                <th>Descripción</th>
-                <th class="muted">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Administrador</td>
-                <td class="muted">Configura sistema y usuarios</td>
-                <td class="muted">Editar</td>
-              </tr>
-              <tr>
-                <td>Abogado</td>
-                <td class="muted">Gestiona casos, documentos y notas</td>
-                <td class="muted">Editar</td>
-              </tr>
-              <tr>
-                <td>Auxiliar</td>
-                <td class="muted">Apoya en el registro y carga de documentos</td>
-                <td class="muted">Editar</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="hd">
-          <div>
-            <h2>Permisos</h2>
-            <div class="sub">Sección separada para mayor claridad</div>
-          </div>
-          <span class="pill">Rol: Abogado</span>
-        </div>
-        <div class="bd">
-          <details id="permDetails" open>
-            <summary>
-              <span><b>Matriz de permisos</b> <span class="muted">· desplegable</span></span>
-            </summary>
-            <div class="fieldgrid">
-              <div class="field"><label>Casos</label>
-                <div class="in"></div>
-              </div>
-              <div class="field"><label>Documentos</label>
-                <div class="in"></div>
-              </div>
-              <div class="field"><label>Usuarios</label>
-                <div class="in"></div>
-              </div>
-              <div class="field"><label>Administración</label>
-                <div class="in"></div>
-              </div>
-            </div>
-            <div class="rightActions">
-              <button class="btn primary">Guardar permisos</button>
-            </div>
-          </details>
-
-          <div class="footerNote">Aquí podrían ir checkboxes por módulo y acción.</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="v_recordatorios" class="view">
-    <div class="grid cols2">
-      <div class="card">
-        <div class="hd">
-          <div>
-            <h2>Recordatorios automáticos</h2>
-            <div class="sub">Gestión de alertas y tareas programadas</div>
-          </div>
-          <button class="btn primary">Nuevo</button>
-        </div>
-        <div class="bd">
-          <div class="row" style="flex-direction: column; align-items: stretch; gap: 10px;">
-            <div class="field">
-              <div class="small">Diario 08:00 · <span class="tag">CASO-1029</span></div>
-              <div style="margin-top: 6px;">Revisar vencimientos próximos.</div>
-            </div>
-            <div class="field">
-              <div class="small">Semanal · <span class="tag">General</span></div>
-              <div style="margin-top: 6px;">Resumen por prioridad y estado.</div>
-            </div>
-            <div class="field">
-              <div class="small">Al crear caso · <span class="tag">Automático</span></div>
-              <div style="margin-top: 6px;">Checklist por tipo de caso.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="hd">
-          <div>
-            <h2>Regla</h2>
-            <div class="sub">Creación o edición de recordatorios</div>
-          </div>
-          <span class="pill">Borrador</span>
-        </div>
-        <div class="bd">
-          <details>
-            <summary>
-              <span><b>Configurar</b> <span class="muted">· desplegable</span></span>
-            </summary>
-            <div class="fieldgrid">
-              <div class="field"><label>Nombre</label>
-                <div class="in"></div>
-              </div>
-              <div class="field"><label>Frecuencia</label>
-                <div class="in"></div>
-              </div>
-              <div class="field"><label>Condición</label>
-                <div class="in"></div>
-              </div>
-              <div class="field"><label>Destinatarios</label>
-                <div class="in"></div>
-              </div>
-            </div>
-            <div class="rightActions">
-              <button class="btn">Probar</button>
-              <button class="btn primary">Guardar</button>
-            </div>
-          </details>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="v_admin" class="view">
-    <div class="grid">
-      <div class="card">
-        <div class="hd">
-          <div>
-            <h2>Administración</h2>
-            <div class="sub">Respaldo y base de datos</div>
-          </div>
-          <span class="pill">Solo administrador</span>
-        </div>
-        <div class="bd">
-          <div class="kpis">
-            <div class="kpi">
-              <div class="v">OK</div>
-              <div class="l">Respaldo diario</div>
-            </div>
-            <div class="kpi">
-              <div class="v">SQL</div>
-              <div class="l">Base de datos creada</div>
-            </div>
-            <div class="kpi">
-              <div class="v">⚙</div>
-              <div class="l">Gestión de base de datos</div>
-            </div>
-            <div class="kpi">
-              <div class="v">Logs</div>
-              <div class="l">Auditoría</div>
+            <div class="bd" style="padding: 0;">
+              <table aria-label="Tabla de usuarios" id="tablaUsuarios">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Rol</th>
+                    <th>Correo</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="tag">USR-0007</span></td>
+                    <td>Abg. Andrea M.</td>
+                    <td class="muted">Abogado</td>
+                    <td class="muted">andrea@...</td>
+                    <td>Activo</td>
+                  </tr>
+                  <tr>
+                    <td><span class="tag">USR-0012</span></td>
+                    <td>Lic. Carlos R.</td>
+                    <td class="muted">Administrador</td>
+                    <td class="muted">carlos@...</td>
+                    <td>Activo</td>
+                  </tr>
+                  <tr>
+                    <td><span class="tag">USR-0021</span></td>
+                    <td>Paola S.</td>
+                    <td class="muted">Auxiliar</td>
+                    <td class="muted">paola@...</td>
+                    <td>Inactivo</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <div class="divider"></div>
-
-          <div class="grid cols2">
-            <div class="card" style="box-shadow: none; border-color: var(--line);">
-              <div class="hd">
-                <h2>Respaldo</h2>
-                <div class="sub">Gestión de respaldos</div>
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Acciones</h2>
+                <div class="sub">Acciones separadas para mejor legibilidad</div>
               </div>
-              <div class="bd">
-                <div class="row">
-                  <span class="chip">Último respaldo: pendiente</span>
-                  <span class="chip">Retención: pendiente</span>
+            </div>
+            <div class="bd">
+              <details id="usuarioDetails">
+                <summary>
+                  <span><b>Formulario de usuario</b> <span class="muted">· desplegable</span></span>
+                </summary>
+                <div class="fieldgrid">
+                  <div class="field"><label>Nombre completo</label><div class="in"></div></div>
+                  <div class="field"><label>Correo</label><div class="in"></div></div>
+                  <div class="field"><label>Rol</label><div class="in"></div></div>
+                  <div class="field"><label>Estado</label><div class="in"></div></div>
                 </div>
-                <div class="rightActions" style="padding: 0; margin-top: 10px;">
-                  <button class="btn">Generar</button>
-                  <button class="btn">Restaurar</button>
+                <div class="rightActions">
+                  <button class="btn">Restablecer contraseña</button>
+                  <button class="btn primary">Guardar usuario</button>
                 </div>
-              </div>
+              </details>
+              <div class="footerNote">La asignación de permisos específicos está en "Roles y Permisos".</div>
             </div>
+          </div>
+        </div>
+      </section>
 
-            <div class="card" style="box-shadow: none; border-color: var(--line);">
-              <div class="hd">
-                <h2>Base de datos</h2>
-                <div class="sub">Administración</div>
+      <!-- ===== ROLES ===== -->
+      <section id="v_roles" class="view">
+        <div class="grid cols2">
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Roles</h2>
+                <div class="sub">Listado de roles</div>
               </div>
-              <div class="bd">
-                <div class="field"><label>Tareas administrativas</label>
-                  <div class="in" style="height: 110px;"></div>
+              <button class="btn primary" id="btnRolForm">Nuevo rol</button>
+            </div>
+            <div class="bd" style="padding: 0;">
+              <table aria-label="Tabla de roles">
+                <thead>
+                  <tr>
+                    <th>Rol</th>
+                    <th>Descripción</th>
+                    <th class="muted">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Administrador</td>
+                    <td class="muted">Configura sistema y usuarios</td>
+                    <td class="muted">Editar</td>
+                  </tr>
+                  <tr>
+                    <td>Abogado</td>
+                    <td class="muted">Gestiona casos, documentos y notas</td>
+                    <td class="muted">Editar</td>
+                  </tr>
+                  <tr>
+                    <td>Auxiliar</td>
+                    <td class="muted">Apoya en el registro y carga de documentos</td>
+                    <td class="muted">Editar</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Permisos</h2>
+                <div class="sub">Sección separada para mayor claridad</div>
+              </div>
+              <span class="pill">Rol: Abogado</span>
+            </div>
+            <div class="bd">
+              <details id="permDetails" open>
+                <summary>
+                  <span><b>Matriz de permisos</b> <span class="muted">· desplegable</span></span>
+                </summary>
+                <div class="fieldgrid">
+                  <div class="field"><label>Casos</label><div class="in"></div></div>
+                  <div class="field"><label>Documentos</label><div class="in"></div></div>
+                  <div class="field"><label>Usuarios</label><div class="in"></div></div>
+                  <div class="field"><label>Administración</label><div class="in"></div></div>
                 </div>
-                <div class="rightActions" style="padding: 0; margin-top: 10px;">
-                  <button class="btn">Ver estado</button>
-                  <button class="btn">Mantenimiento</button>
+                <div class="rightActions">
+                  <button class="btn primary">Guardar permisos</button>
+                </div>
+              </details>
+              <div class="footerNote">Aquí podrían ir checkboxes por módulo y acción.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== RECORDATORIOS ===== -->
+      <section id="v_recordatorios" class="view">
+        <div class="grid cols2">
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Recordatorios automáticos</h2>
+                <div class="sub">Gestión de alertas y tareas programadas</div>
+              </div>
+              <button class="btn primary">Nuevo</button>
+            </div>
+            <div class="bd">
+              <div class="row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                <div class="field">
+                  <div class="small">Diario 08:00 · <span class="tag">CASO-1029</span></div>
+                  <div style="margin-top: 6px;">Revisar vencimientos próximos.</div>
+                </div>
+                <div class="field">
+                  <div class="small">Semanal · <span class="tag">General</span></div>
+                  <div style="margin-top: 6px;">Resumen por prioridad y estado.</div>
+                </div>
+                <div class="field">
+                  <div class="small">Al crear caso · <span class="tag">Automático</span></div>
+                  <div style="margin-top: 6px;">Checklist por tipo de caso.</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="footerNote">La creación de la base de datos corresponde al backend; aquí solo se muestra su estado
-            en el frontend.</div>
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Regla</h2>
+                <div class="sub">Creación o edición de recordatorios</div>
+              </div>
+              <span class="pill">Borrador</span>
+            </div>
+            <div class="bd">
+              <details>
+                <summary>
+                  <span><b>Configurar</b> <span class="muted">· desplegable</span></span>
+                </summary>
+                <div class="fieldgrid">
+                  <div class="field"><label>Nombre</label><div class="in"></div></div>
+                  <div class="field"><label>Frecuencia</label><div class="in"></div></div>
+                  <div class="field"><label>Condición</label><div class="in"></div></div>
+                  <div class="field"><label>Destinatarios</label><div class="in"></div></div>
+                </div>
+                <div class="rightActions">
+                  <button class="btn">Probar</button>
+                  <button class="btn primary">Guardar</button>
+                </div>
+              </details>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </section>
-  </main>
+      </section>
+
+      <!-- ===== ADMINISTRACIÓN ===== -->
+      <section id="v_admin" class="view">
+        <div class="grid">
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Administración</h2>
+                <div class="sub">Respaldo y base de datos</div>
+              </div>
+              <span class="pill">Solo administrador</span>
+            </div>
+            <div class="bd">
+              <div class="kpis">
+                <div class="kpi"><div class="v">OK</div><div class="l">Respaldo diario</div></div>
+                <div class="kpi"><div class="v">SQL</div><div class="l">Base de datos creada</div></div>
+                <div class="kpi"><div class="v">⚙</div><div class="l">Gestión de base de datos</div></div>
+                <div class="kpi"><div class="v">Logs</div><div class="l">Auditoría</div></div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="grid cols2">
+                <div class="card" style="box-shadow: none; border-color: var(--line);">
+                  <div class="hd">
+                    <h2>Respaldo</h2>
+                    <div class="sub">Gestión de respaldos</div>
+                  </div>
+                  <div class="bd">
+                    <div class="row">
+                      <span class="chip">Último respaldo: pendiente</span>
+                      <span class="chip">Retención: pendiente</span>
+                    </div>
+                    <div class="rightActions" style="padding: 0; margin-top: 10px;">
+                      <button class="btn">Generar</button>
+                      <button class="btn">Restaurar</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card" style="box-shadow: none; border-color: var(--line);">
+                  <div class="hd">
+                    <h2>Base de datos</h2>
+                    <div class="sub">Administración</div>
+                  </div>
+                  <div class="bd">
+                    <div class="field">
+                      <label>Tareas administrativas</label>
+                      <div class="in" style="height: 110px;"></div>
+                    </div>
+                    <div class="rightActions" style="padding: 0; margin-top: 10px;">
+                      <button class="btn">Ver estado</button>
+                      <button class="btn">Mantenimiento</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="footerNote">
+                La creación de la base de datos corresponde al backend; aquí solo se muestra su estado en el frontend.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 
+  <!-- ===== DRAWER DETALLE DEL CASO ===== -->
   <div class="drawerMask" id="drawerMask" role="dialog" aria-modal="true" aria-label="Detalle del caso">
     <div class="drawer">
       <div class="hd">
         <div>
           <div class="small">Detalle del caso</div>
-          <div style="margin-top: 2px;"><b id="drawerTitle">CASO-0000</b> <span class="muted" id="drawerSubtitle">·
-              (tipo)</span></div>
+          <div style="margin-top: 2px;">
+            <b id="drawerTitle">CASO-0000</b>
+            <span class="muted" id="drawerSubtitle">· (tipo)</span>
+          </div>
         </div>
         <button class="btn" id="btnCerrarDrawer">Cerrar</button>
       </div>
@@ -523,47 +510,53 @@
         <div class="divider"></div>
 
         <div class="fieldgrid" style="padding: 0;">
-          <div class="field"><label>Tipo</label>
-            <div class="in" id="d_tipo"></div>
-          </div>
-          <div class="field"><label>Prioridad</label>
-            <div class="in" id="d_prioridad"></div>
-          </div>
-          <div class="field"><label>Estado</label>
-            <div class="in" id="d_estado"></div>
-          </div>
-          <div class="field"><label>Asignado a</label>
-            <div class="in" id="d_asignado"></div>
-          </div>
+          <div class="field"><label>Tipo</label><div class="in" id="d_tipo"></div></div>
+          <div class="field"><label>Prioridad</label><div class="in" id="d_prioridad"></div></div>
+          <div class="field"><label>Estado</label><div class="in" id="d_estado"></div></div>
+          <div class="field"><label>Asignado a</label><div class="in" id="d_asignado"></div></div>
         </div>
 
         <div class="divider"></div>
 
+        <!-- ── NOTAS DEL CASO (funcional) ── -->
         <div class="card" style="box-shadow: none;">
           <div class="hd">
             <h2>Notas del caso</h2>
             <div class="sub">Notas específicas del caso</div>
           </div>
           <div class="bd">
-            <div class="field"><label>Nueva nota</label>
-              <div class="in textarea"></div>
+            <div class="field">
+              <label for="inputNuevaNota">Nueva nota</label>
+              <textarea
+                id="inputNuevaNota"
+                class="in textarea"
+                placeholder="Escribe una nota sobre este caso..."
+                style="resize: vertical;"
+              ></textarea>
             </div>
             <div class="rightActions" style="padding: 0; margin-top: 10px;">
-              <button class="btn primary">Guardar nota</button>
+              <button class="btn" id="btnLimpiarNota">Limpiar</button>
+              <button class="btn primary" id="btnGuardarNota">Guardar nota</button>
             </div>
-            <div class="footerNote">Aquí iría el listado de notas anteriores del caso.</div>
+
+            <!-- Listado de notas cargadas desde BD -->
+            <div id="listaNotas" style="margin-top: 16px; display: flex; flex-direction: column; gap: 10px;">
+              <div class="small muted">Selecciona un caso para ver sus notas.</div>
+            </div>
           </div>
         </div>
 
         <div class="divider"></div>
 
+        <!-- ── DOCUMENTOS ── -->
         <div class="card" style="box-shadow: none;">
           <div class="hd">
             <h2>Documentos</h2>
             <div class="sub">Carga y gestión de archivos</div>
           </div>
           <div class="bd">
-            <div class="field"><label>Arrastra o selecciona archivos</label>
+            <div class="field">
+              <label>Arrastra o selecciona archivos</label>
               <div class="in" style="height: 54px;"></div>
             </div>
           </div>
@@ -571,198 +564,398 @@
 
         <div class="divider"></div>
 
+        <!-- ── HISTORIAL (dinámico) ── -->
         <div class="card" style="box-shadow: none;">
           <div class="hd">
             <h2>Historial</h2>
             <div class="sub">Actividad del caso</div>
           </div>
           <div class="bd">
-            <div class="row" style="flex-direction: column; align-items: stretch; gap: 10px;">
-              <div class="field">
-                <div class="small">Hoy · Acción</div>
-                <div style="margin-top: 6px;">Cambio de estado.</div>
-              </div>
-              <div class="field">
-                <div class="small">Ayer · Actividad</div>
-                <div style="margin-top: 6px;">Asignación realizada.</div>
-              </div>
+            <div id="listaHistorial" style="display: flex; flex-direction: column; gap: 10px;">
+              <div class="small muted">Sin actividad registrada.</div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- ===== SCRIPTS ===== -->
   <script>
-  const camposPorTipo = {
-    amparo: `
-      <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-      <div class="field"><label>Estado procesal</label>
-        <select name="estado_procesal">
-          <option value="en_proceso">En Proceso</option>
-          <option value="sin_asignar">Sin Asignar</option>
-          <option value="asignado">Asignado</option>
-          <option value="finalizado">Finalizado</option>
-          <option value="sin_actividad">Sin Actividad</option>
-        </select>
-      </div>
-      <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-      <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
-      <div class="field"><label>Abogado encargado</label><input type="text" name="abogado_encargado"></div>
-      <div class="field"><label>Actor</label><input type="text" name="actor"></div>
-      <div class="field"><label>Demandado</label><input type="text" name="demandado"></div>
-      <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>`,
 
-    administrativo: `
-      <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-      <div class="field"><label>Estado procesal</label>
-        <select name="estado_procesal">
-          <option value="en_proceso">En Proceso</option>
-          <option value="sin_asignar">Sin Asignar</option>
-          <option value="asignado">Asignado</option>
-          <option value="finalizado">Finalizado</option>
-          <option value="sin_actividad">Sin Actividad</option>
-        </select>
-      </div>
-      <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-      <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
-      <div class="field"><label>Sala</label><input type="text" name="sala"></div>
-      <div class="field"><label>Actor</label><input type="text" name="actor"></div>`,
+    /* ─────────────────────────────────────────
+       CAMPOS DINÁMICOS POR TIPO DE CASO
+    ───────────────────────────────────────── */
+    const camposPorTipo = {
+      amparo: `
+        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
+        <div class="field"><label>Estado procesal</label>
+          <select name="estado_procesal">
+            <option value="en_proceso">En Proceso</option>
+            <option value="sin_asignar">Sin Asignar</option>
+            <option value="asignado">Asignado</option>
+            <option value="finalizado">Finalizado</option>
+            <option value="sin_actividad">Sin Actividad</option>
+          </select>
+        </div>
+        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
+        <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
+        <div class="field"><label>Abogado encargado</label><input type="text" name="abogado_encargado"></div>
+        <div class="field"><label>Actor</label><input type="text" name="actor"></div>
+        <div class="field"><label>Demandado</label><input type="text" name="demandado"></div>
+        <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>`,
 
-    laboral: `
-      <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-      <div class="field"><label>Estado procesal</label>
-        <select name="estado_procesal">
-          <option value="en_proceso">En Proceso</option>
-          <option value="sin_asignar">Sin Asignar</option>
-          <option value="asignado">Asignado</option>
-          <option value="finalizado">Finalizado</option>
-          <option value="sin_actividad">Sin Actividad</option>
-        </select>
-      </div>
-      <div class="field"><label>Actor</label><input type="text" name="actor"></div>
-      <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
-      <div class="field"><label>Mesa</label><input type="text" name="mesa"></div>
-      <div class="field"><label>Número</label><input type="text" name="numero"></div>`,
+      administrativo: `
+        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
+        <div class="field"><label>Estado procesal</label>
+          <select name="estado_procesal">
+            <option value="en_proceso">En Proceso</option>
+            <option value="sin_asignar">Sin Asignar</option>
+            <option value="asignado">Asignado</option>
+            <option value="finalizado">Finalizado</option>
+            <option value="sin_actividad">Sin Actividad</option>
+          </select>
+        </div>
+        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
+        <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
+        <div class="field"><label>Sala</label><input type="text" name="sala"></div>
+        <div class="field"><label>Actor</label><input type="text" name="actor"></div>`,
 
-    civil: `
-      <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-      <div class="field"><label>Estado procesal</label>
-        <select name="estado_procesal">
-          <option value="en_proceso">En Proceso</option>
-          <option value="sin_asignar">Sin Asignar</option>
-          <option value="asignado">Asignado</option>
-          <option value="finalizado">Finalizado</option>
-          <option value="sin_actividad">Sin Actividad</option>
-        </select>
-      </div>
-      <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-      <div class="field"><label>Fecha de inicio</label><input type="date" name="fecha_emplazamiento"></div>
-      <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>
-      <div class="field"><label>Actor</label><input type="text" name="actor"></div>
-      <div class="field"><label>Demandado</label><input type="text" name="demandado"></div>`,
+      laboral: `
+        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
+        <div class="field"><label>Estado procesal</label>
+          <select name="estado_procesal">
+            <option value="en_proceso">En Proceso</option>
+            <option value="sin_asignar">Sin Asignar</option>
+            <option value="asignado">Asignado</option>
+            <option value="finalizado">Finalizado</option>
+            <option value="sin_actividad">Sin Actividad</option>
+          </select>
+        </div>
+        <div class="field"><label>Actor</label><input type="text" name="actor"></div>
+        <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
+        <div class="field"><label>Mesa</label><input type="text" name="mesa"></div>
+        <div class="field"><label>Número</label><input type="text" name="numero"></div>`,
 
-    mercantil: `
-      <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-      <div class="field"><label>Estado procesal</label>
-        <select name="estado_procesal">
-          <option value="en_proceso">En Proceso</option>
-          <option value="sin_asignar">Sin Asignar</option>
-          <option value="asignado">Asignado</option>
-          <option value="finalizado">Finalizado</option>
-          <option value="sin_actividad">Sin Actividad</option>
-        </select>
-      </div>
-      <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-      <div class="field"><label>Fecha</label><input type="date" name="fecha_emplazamiento"></div>
-      <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>
-      <div class="field"><label>Actor</label><input type="text" name="actor"></div>`,
+      civil: `
+        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
+        <div class="field"><label>Estado procesal</label>
+          <select name="estado_procesal">
+            <option value="en_proceso">En Proceso</option>
+            <option value="sin_asignar">Sin Asignar</option>
+            <option value="asignado">Asignado</option>
+            <option value="finalizado">Finalizado</option>
+            <option value="sin_actividad">Sin Actividad</option>
+          </select>
+        </div>
+        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
+        <div class="field"><label>Fecha de inicio</label><input type="date" name="fecha_emplazamiento"></div>
+        <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>
+        <div class="field"><label>Actor</label><input type="text" name="actor"></div>
+        <div class="field"><label>Demandado</label><input type="text" name="demandado"></div>`,
 
-    penal: `
-      <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-      <div class="field"><label>Estado procesal</label>
-        <select name="estado_procesal">
-          <option value="en_proceso">En Proceso</option>
-          <option value="sin_asignar">Sin Asignar</option>
-          <option value="asignado">Asignado</option>
-          <option value="finalizado">Finalizado</option>
-          <option value="sin_actividad">Sin Actividad</option>
-        </select>
-      </div>
-      <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-      <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>
-      <div class="field"><label>Actor</label><input type="text" name="actor"></div>
-      <div class="field"><label>Demandado</label><input type="text" name="demandado"></div>`,
+      mercantil: `
+        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
+        <div class="field"><label>Estado procesal</label>
+          <select name="estado_procesal">
+            <option value="en_proceso">En Proceso</option>
+            <option value="sin_asignar">Sin Asignar</option>
+            <option value="asignado">Asignado</option>
+            <option value="finalizado">Finalizado</option>
+            <option value="sin_actividad">Sin Actividad</option>
+          </select>
+        </div>
+        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
+        <div class="field"><label>Fecha</label><input type="date" name="fecha_emplazamiento"></div>
+        <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>
+        <div class="field"><label>Actor</label><input type="text" name="actor"></div>`,
 
-    agrario: `
-      <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-      <div class="field"><label>Estado procesal</label>
-        <select name="estado_procesal">
-          <option value="en_proceso">En Proceso</option>
-          <option value="sin_asignar">Sin Asignar</option>
-          <option value="asignado">Asignado</option>
-          <option value="finalizado">Finalizado</option>
-          <option value="sin_actividad">Sin Actividad</option>
-        </select>
-      </div>
-      <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-      <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
-      <div class="field"><label>Actor</label><input type="text" name="actor"></div>`,
+      penal: `
+        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
+        <div class="field"><label>Estado procesal</label>
+          <select name="estado_procesal">
+            <option value="en_proceso">En Proceso</option>
+            <option value="sin_asignar">Sin Asignar</option>
+            <option value="asignado">Asignado</option>
+            <option value="finalizado">Finalizado</option>
+            <option value="sin_actividad">Sin Actividad</option>
+          </select>
+        </div>
+        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
+        <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>
+        <div class="field"><label>Actor</label><input type="text" name="actor"></div>
+        <div class="field"><label>Demandado</label><input type="text" name="demandado"></div>`,
 
-    varios: `
-      <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-      <div class="field"><label>Estado procesal</label>
-        <select name="estado_procesal">
-          <option value="en_proceso">En Proceso</option>
-          <option value="sin_asignar">Sin Asignar</option>
-          <option value="asignado">Asignado</option>
-          <option value="finalizado">Finalizado</option>
-          <option value="sin_actividad">Sin Actividad</option>
-        </select>
-      </div>
-      <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-      <div class="field"><label>Fecha recibido</label><input type="date" name="fecha_emplazamiento"></div>`
-  };
+      agrario: `
+        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
+        <div class="field"><label>Estado procesal</label>
+          <select name="estado_procesal">
+            <option value="en_proceso">En Proceso</option>
+            <option value="sin_asignar">Sin Asignar</option>
+            <option value="asignado">Asignado</option>
+            <option value="finalizado">Finalizado</option>
+            <option value="sin_actividad">Sin Actividad</option>
+          </select>
+        </div>
+        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
+        <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
+        <div class="field"><label>Actor</label><input type="text" name="actor"></div>`,
 
-  function mostrarCampos() {
-    const tipo = document.getElementById('tipo_caso').value;
-    document.getElementById('campos_relevantes').innerHTML = camposPorTipo[tipo] || '';
-  }
+      varios: `
+        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
+        <div class="field"><label>Estado procesal</label>
+          <select name="estado_procesal">
+            <option value="en_proceso">En Proceso</option>
+            <option value="sin_asignar">Sin Asignar</option>
+            <option value="asignado">Asignado</option>
+            <option value="finalizado">Finalizado</option>
+            <option value="sin_actividad">Sin Actividad</option>
+          </select>
+        </div>
+        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
+        <div class="field"><label>Fecha recibido</label><input type="date" name="fecha_emplazamiento"></div>`
+    };
 
-  window.onload = mostrarCampos;
+    function mostrarCampos() {
+      const tipo = document.getElementById('tipo_caso').value;
+      document.getElementById('campos_relevantes').innerHTML = camposPorTipo[tipo] || '';
+    }
 
-  // ← AQUÍ está el fix del refresh: interceptamos el submit
-  document.getElementById('formNuevoCaso').addEventListener('submit', async (e) => {
-    e.preventDefault(); // Detiene el refresh
+    window.onload = mostrarCampos;
 
-    const form = e.target;
-    const data = { tipo_caso: document.getElementById('tipo_caso').value };
+    /* ─────────────────────────────────────────
+       GUARDAR NUEVO CASO
+    ───────────────────────────────────────── */
+    document.getElementById('formNuevoCaso').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = { tipo_caso: document.getElementById('tipo_caso').value };
+      form.querySelectorAll('[name]').forEach(el => { data[el.name] = el.value; });
 
-    // Recolecta todos los inputs y selects del formulario
-    form.querySelectorAll('[name]').forEach(el => {
-      data[el.name] = el.value;
+      try {
+        const res = await fetch('http://localhost:3000/api/nuevocaso', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert(`✅ Caso guardado con ID: ${result.id}`);
+          form.reset();
+          mostrarCampos();
+          document.getElementById('detallesNuevoCaso').removeAttribute('open');
+          cargarCasos(); // refresca la tabla automáticamente
+        } else {
+          alert(`❌ Error: ${result.mensaje}`);
+        }
+      } catch {
+        alert('❌ No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?');
+      }
     });
 
-    try {
-      const res = await fetch('http://localhost:3000/api/nuevocaso', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+    document.getElementById('btnCancelarForm').addEventListener('click', () => {
+      document.getElementById('formNuevoCaso').reset();
+      mostrarCampos();
+      document.getElementById('detallesNuevoCaso').removeAttribute('open');
+    });
 
-      const result = await res.json();
+    /* ─────────────────────────────────────────
+       CARGAR CASOS DESDE LA BASE DE DATOS
+    ───────────────────────────────────────── */
+    async function cargarCasos() {
+      const filtroTipo = document.getElementById('tipoCasoSelect').value;
+      const tbody = document.getElementById('casosTbody');
+      tbody.innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center; padding:20px;">Cargando...</td></tr>';
 
-      if (result.success) {
-        alert(`✅ Caso guardado con ID: ${result.id}`);
-        form.reset();
-        mostrarCampos(); // Limpia los campos dinámicos
-      } else {
-        alert(`❌ Error: ${result.mensaje}`);
+      try {
+        const res = await fetch(`http://localhost:3000/api/casos?tipo=${encodeURIComponent(filtroTipo)}`);
+        const data = await res.json();
+
+        if (!data.casos || data.casos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center; padding:24px;">Sin casos registrados.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = data.casos.map(c => `
+          <tr
+            style="cursor:pointer;"
+            ondblclick="abrirDrawer(${JSON.stringify(c).replace(/"/g, '&quot;')})"
+            onmouseenter="this.style.background='#f8fafc'"
+            onmouseleave="this.style.background=''"
+          >
+            <td><span class="tag">${escHtml(c.id_display || String(c.id))}</span></td>
+            <td>${escHtml(c.nombre || '—')}</td>
+            <td class="muted">${escHtml(c.tipo || '—')}</td>
+            <td>${badgePrioridad(c.prioridad)}</td>
+            <td>${escHtml(c.estado || '—')}</td>
+            <td class="muted">${escHtml(c.asignado || '—')}</td>
+          </tr>`).join('');
+      } catch {
+        tbody.innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center; padding:24px;">Error al cargar casos. Verifica la conexión con el servidor.</td></tr>';
       }
-    } catch (err) {
-      alert('❌ No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?');
     }
-  });
-</script>
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function badgePrioridad(p) {
+      const mapa = {
+        'Alta':  'background:#fee2e2; color:#991b1b;',
+        'Media': 'background:#fef9c3; color:#854d0e;',
+        'Baja':  'background:#dcfce7; color:#166534;'
+      };
+      const estilo = mapa[p] || '';
+      return `<span style="padding:3px 10px; border-radius:999px; font-size:12px; ${estilo}">${escHtml(p || '—')}</span>`;
+    }
+
+    document.getElementById('tipoCasoSelect').addEventListener('change', cargarCasos);
+    document.addEventListener('DOMContentLoaded', cargarCasos);
+
+    /* ─────────────────────────────────────────
+       DRAWER — ABRIR Y CERRAR
+    ───────────────────────────────────────── */
+    let casoActivoId = null;
+
+    function abrirDrawer(caso) {
+      casoActivoId = caso.id;
+
+      document.getElementById('drawerTitle').textContent   = caso.id_display || String(caso.id);
+      document.getElementById('drawerSubtitle').textContent = '· ' + (caso.tipo || '');
+      document.getElementById('d_tipo').textContent        = caso.tipo      || '—';
+      document.getElementById('d_prioridad').textContent   = caso.prioridad || '—';
+      document.getElementById('d_estado').textContent      = caso.estado    || '—';
+      document.getElementById('d_asignado').textContent    = caso.asignado  || '—';
+
+      document.getElementById('inputNuevaNota').value = '';
+      document.getElementById('drawerMask').classList.add('show');
+
+      cargarNotas(caso.id);
+      cargarHistorial(caso.id);
+    }
+
+    document.getElementById('btnCerrarDrawer').addEventListener('click', () => {
+      document.getElementById('drawerMask').classList.remove('show');
+      casoActivoId = null;
+    });
+
+    document.getElementById('drawerMask').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('drawerMask')) {
+        document.getElementById('drawerMask').classList.remove('show');
+        casoActivoId = null;
+      }
+    });
+
+    /* ─────────────────────────────────────────
+       NOTAS — CARGAR DESDE BD
+    ───────────────────────────────────────── */
+    async function cargarNotas(casoId) {
+      const lista = document.getElementById('listaNotas');
+      lista.innerHTML = '<div class="small muted">Cargando notas...</div>';
+
+      try {
+        const res  = await fetch(`http://localhost:3000/api/notas/${casoId}`);
+        const data = await res.json();
+
+        if (data.notas && data.notas.length > 0) {
+          lista.innerHTML = data.notas.map(n => `
+            <div class="nota-item" style="
+              background: #f8fafc;
+              border: 1px solid var(--line);
+              border-left: 3px solid var(--primary);
+              border-radius: 10px;
+              padding: 12px 14px;
+            ">
+              <div class="small" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>${escHtml(n.fecha || '')}</span>
+                <span class="tag">${escHtml(n.autor || 'Sistema')}</span>
+              </div>
+              <div style="margin-top: 8px; line-height: 1.5;">${escHtml(n.texto)}</div>
+            </div>`).join('');
+        } else {
+          lista.innerHTML = '<div class="small muted">Sin notas aún para este caso.</div>';
+        }
+      } catch {
+        lista.innerHTML = '<div class="small muted">No se pudieron cargar las notas.</div>';
+      }
+    }
+
+    /* ─────────────────────────────────────────
+       NOTAS — GUARDAR EN BD
+    ───────────────────────────────────────── */
+    document.getElementById('btnGuardarNota').addEventListener('click', async () => {
+      const texto = document.getElementById('inputNuevaNota').value.trim();
+      if (!texto) {
+        alert('Escribe una nota antes de guardar.');
+        return;
+      }
+      if (!casoActivoId) return;
+
+      const btn = document.getElementById('btnGuardarNota');
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+
+      try {
+        const res = await fetch('http://localhost:3000/api/notas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ caso_id: casoActivoId, texto })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          document.getElementById('inputNuevaNota').value = '';
+          await cargarNotas(casoActivoId);
+          await cargarHistorial(casoActivoId);
+        } else {
+          alert('❌ Error al guardar la nota: ' + (result.mensaje || ''));
+        }
+      } catch {
+        alert('❌ No se pudo conectar con el servidor.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Guardar nota';
+      }
+    });
+
+    document.getElementById('btnLimpiarNota').addEventListener('click', () => {
+      document.getElementById('inputNuevaNota').value = '';
+    });
+
+    /* ─────────────────────────────────────────
+       HISTORIAL — CARGAR DESDE BD
+    ───────────────────────────────────────── */
+    async function cargarHistorial(casoId) {
+      const contenedor = document.getElementById('listaHistorial');
+      contenedor.innerHTML = '<div class="small muted">Cargando historial...</div>';
+
+      try {
+        const res  = await fetch(`http://localhost:3000/api/historial/${casoId}`);
+        const data = await res.json();
+
+        if (data.historial && data.historial.length > 0) {
+          contenedor.innerHTML = data.historial.map(h => `
+            <div class="field">
+              <div class="small">
+                ${escHtml(h.fecha || '')} ·
+                <span class="tag">${escHtml(h.tipo || 'Actividad')}</span>
+              </div>
+              <div style="margin-top: 6px;">${escHtml(h.descripcion)}</div>
+            </div>`).join('');
+        } else {
+          contenedor.innerHTML = '<div class="small muted">Sin actividad registrada.</div>';
+        }
+      } catch {
+        contenedor.innerHTML = '<div class="small muted">No se pudo cargar el historial.</div>';
+      }
+    }
+
+  </script>
+
   <script src="app.js"></script>
 </body>
 
