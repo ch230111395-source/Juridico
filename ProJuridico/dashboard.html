@@ -123,22 +123,19 @@
                   <option value="Administrativo">Administrativo</option>
                   <option value="Agrario">Agrario</option>
                 </select>
-                <span class="chip">Prioridad</span>
-                <span class="chip">Estado</span>
-                <span class="chip">Archivados</span>
+                <!-- ✅ chips → botones -->
+                <button class="btn" id="btnFiltroPrioridad">Prioridad</button>
+                <button class="btn" id="btnFiltroEstado">Estado</button>
+                <button class="btn" id="btnFiltroArchivados">Archivados</button>
               </div>
             </div>
 
             <div class="bd">
-              <!-- ── FORMULARIO NUEVO CASO ── -->
               <details id="detallesNuevoCaso">
                 <summary>
                   <span><b>Nuevo caso</b></span>
                 </summary>
-
                 <form id="formNuevoCaso">
-
-                  <!-- Fila 1: Tipo de caso centrado -->
                   <div class="form-tipo-row">
                     <div class="field">
                       <label for="tipo_caso">Tipo de Caso</label>
@@ -154,10 +151,7 @@
                       </select>
                     </div>
                   </div>
-
-                  <!-- Fila 2+: campos dinámicos en dos columnas -->
                   <div class="fieldgrid" id="campos_relevantes"></div>
-
                   <div class="rightActions">
                     <button type="button" class="btn" id="btnCancelarForm">Cancelar</button>
                     <button type="submit" class="btn primary">Guardar</button>
@@ -201,11 +195,12 @@
               <span class="pill">Vista</span>
             </div>
             <div class="bd">
+              <!-- ✅ chips → botones -->
               <div class="row">
-                <span class="chip">Asignar</span>
-                <span class="chip">Reasignar</span>
-                <span class="chip">Archivar</span>
-                <span class="chip">Cambiar estado</span>
+                <button class="btn" id="btnAsignar">Asignar</button>
+                <button class="btn" id="btnReasignar">Reasignar</button>
+                <button class="btn" id="btnArchivar">Archivar</button>
+                <button class="btn primary" id="btnCambiarEstado">Cambiar estado</button>
               </div>
               <div class="footerNote">El detalle completo se abre con doble clic.</div>
             </div>
@@ -500,11 +495,12 @@
         <button class="btn" id="btnCerrarDrawer">Cerrar</button>
       </div>
       <div class="bd">
+        <!-- ✅ chips → botones -->
         <div class="row">
-          <span class="chip">Asignar</span>
-          <span class="chip">Reasignar</span>
-          <span class="chip">Cambiar estado</span>
-          <span class="chip">Archivar</span>
+          <button class="btn" id="drawerBtnAsignar">Asignar</button>
+          <button class="btn" id="drawerBtnReasignar">Reasignar</button>
+          <button class="btn primary" id="drawerBtnCambiarEstado">Cambiar estado</button>
+          <button class="btn" id="drawerBtnArchivar">Archivar</button>
         </div>
 
         <div class="divider"></div>
@@ -518,7 +514,7 @@
 
         <div class="divider"></div>
 
-        <!-- ── NOTAS DEL CASO (funcional) ── -->
+        <!-- ── NOTAS DEL CASO ── -->
         <div class="card" style="box-shadow: none;">
           <div class="hd">
             <h2>Notas del caso</h2>
@@ -538,8 +534,6 @@
               <button class="btn" id="btnLimpiarNota">Limpiar</button>
               <button class="btn primary" id="btnGuardarNota">Guardar nota</button>
             </div>
-
-            <!-- Listado de notas cargadas desde BD -->
             <div id="listaNotas" style="margin-top: 16px; display: flex; flex-direction: column; gap: 10px;">
               <div class="small muted">Selecciona un caso para ver sus notas.</div>
             </div>
@@ -564,7 +558,7 @@
 
         <div class="divider"></div>
 
-        <!-- ── HISTORIAL (dinámico) ── -->
+        <!-- ── HISTORIAL ── -->
         <div class="card" style="box-shadow: none;">
           <div class="hd">
             <h2>Historial</h2>
@@ -583,9 +577,6 @@
   <!-- ===== SCRIPTS ===== -->
   <script>
 
-    /* ─────────────────────────────────────────
-       CAMPOS DINÁMICOS POR TIPO DE CASO
-    ───────────────────────────────────────── */
     const camposPorTipo = {
       amparo: `
         <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
@@ -604,7 +595,6 @@
         <div class="field"><label>Actor</label><input type="text" name="actor"></div>
         <div class="field"><label>Demandado</label><input type="text" name="demandado"></div>
         <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>`,
-
       administrativo: `
         <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
         <div class="field"><label>Estado procesal</label>
@@ -620,7 +610,6 @@
         <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
         <div class="field"><label>Sala</label><input type="text" name="sala"></div>
         <div class="field"><label>Actor</label><input type="text" name="actor"></div>`,
-
       laboral: `
         <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
         <div class="field"><label>Estado procesal</label>
@@ -636,7 +625,6 @@
         <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
         <div class="field"><label>Mesa</label><input type="text" name="mesa"></div>
         <div class="field"><label>Número</label><input type="text" name="numero"></div>`,
-
       civil: `
         <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
         <div class="field"><label>Estado procesal</label>
@@ -653,7 +641,6 @@
         <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>
         <div class="field"><label>Actor</label><input type="text" name="actor"></div>
         <div class="field"><label>Demandado</label><input type="text" name="demandado"></div>`,
-
       mercantil: `
         <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
         <div class="field"><label>Estado procesal</label>
@@ -669,7 +656,6 @@
         <div class="field"><label>Fecha</label><input type="date" name="fecha_emplazamiento"></div>
         <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>
         <div class="field"><label>Actor</label><input type="text" name="actor"></div>`,
-
       penal: `
         <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
         <div class="field"><label>Estado procesal</label>
@@ -685,7 +671,6 @@
         <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>
         <div class="field"><label>Actor</label><input type="text" name="actor"></div>
         <div class="field"><label>Demandado</label><input type="text" name="demandado"></div>`,
-
       agrario: `
         <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
         <div class="field"><label>Estado procesal</label>
@@ -700,7 +685,6 @@
         <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
         <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
         <div class="field"><label>Actor</label><input type="text" name="actor"></div>`,
-
       varios: `
         <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
         <div class="field"><label>Estado procesal</label>
@@ -723,15 +707,11 @@
 
     window.onload = mostrarCampos;
 
-    /* ─────────────────────────────────────────
-       GUARDAR NUEVO CASO
-    ───────────────────────────────────────── */
     document.getElementById('formNuevoCaso').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.target;
       const data = { tipo_caso: document.getElementById('tipo_caso').value };
       form.querySelectorAll('[name]').forEach(el => { data[el.name] = el.value; });
-
       try {
         const res = await fetch('http://localhost:3000/api/nuevocaso', {
           method: 'POST',
@@ -744,7 +724,7 @@
           form.reset();
           mostrarCampos();
           document.getElementById('detallesNuevoCaso').removeAttribute('open');
-          cargarCasos(); // refresca la tabla automáticamente
+          cargarCasos();
         } else {
           alert(`❌ Error: ${result.mensaje}`);
         }
@@ -759,30 +739,22 @@
       document.getElementById('detallesNuevoCaso').removeAttribute('open');
     });
 
-    /* ─────────────────────────────────────────
-       CARGAR CASOS DESDE LA BASE DE DATOS
-    ───────────────────────────────────────── */
     async function cargarCasos() {
       const filtroTipo = document.getElementById('tipoCasoSelect').value;
       const tbody = document.getElementById('casosTbody');
       tbody.innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center; padding:20px;">Cargando...</td></tr>';
-
       try {
         const res = await fetch(`http://localhost:3000/api/casos?tipo=${encodeURIComponent(filtroTipo)}`);
         const data = await res.json();
-
         if (!data.casos || data.casos.length === 0) {
           tbody.innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center; padding:24px;">Sin casos registrados.</td></tr>';
           return;
         }
-
         tbody.innerHTML = data.casos.map(c => `
-          <tr
-            style="cursor:pointer;"
+          <tr style="cursor:pointer;"
             ondblclick="abrirDrawer(${JSON.stringify(c).replace(/"/g, '&quot;')})"
             onmouseenter="this.style.background='#f8fafc'"
-            onmouseleave="this.style.background=''"
-          >
+            onmouseleave="this.style.background=''">
             <td><span class="tag">${escHtml(c.id_display || String(c.id))}</span></td>
             <td>${escHtml(c.nombre || '—')}</td>
             <td class="muted">${escHtml(c.tipo || '—')}</td>
@@ -816,24 +788,18 @@
     document.getElementById('tipoCasoSelect').addEventListener('change', cargarCasos);
     document.addEventListener('DOMContentLoaded', cargarCasos);
 
-    /* ─────────────────────────────────────────
-       DRAWER — ABRIR Y CERRAR
-    ───────────────────────────────────────── */
     let casoActivoId = null;
 
     function abrirDrawer(caso) {
       casoActivoId = caso.id;
-
-      document.getElementById('drawerTitle').textContent   = caso.id_display || String(caso.id);
+      document.getElementById('drawerTitle').textContent    = caso.id_display || String(caso.id);
       document.getElementById('drawerSubtitle').textContent = '· ' + (caso.tipo || '');
-      document.getElementById('d_tipo').textContent        = caso.tipo      || '—';
-      document.getElementById('d_prioridad').textContent   = caso.prioridad || '—';
-      document.getElementById('d_estado').textContent      = caso.estado    || '—';
-      document.getElementById('d_asignado').textContent    = caso.asignado  || '—';
-
+      document.getElementById('d_tipo').textContent         = caso.tipo      || '—';
+      document.getElementById('d_prioridad').textContent    = caso.prioridad || '—';
+      document.getElementById('d_estado').textContent       = caso.estado    || '—';
+      document.getElementById('d_asignado').textContent     = caso.asignado  || '—';
       document.getElementById('inputNuevaNota').value = '';
       document.getElementById('drawerMask').classList.add('show');
-
       cargarNotas(caso.id);
       cargarHistorial(caso.id);
     }
@@ -850,26 +816,15 @@
       }
     });
 
-    /* ─────────────────────────────────────────
-       NOTAS — CARGAR DESDE BD
-    ───────────────────────────────────────── */
     async function cargarNotas(casoId) {
       const lista = document.getElementById('listaNotas');
       lista.innerHTML = '<div class="small muted">Cargando notas...</div>';
-
       try {
         const res  = await fetch(`http://localhost:3000/api/notas/${casoId}`);
         const data = await res.json();
-
         if (data.notas && data.notas.length > 0) {
           lista.innerHTML = data.notas.map(n => `
-            <div class="nota-item" style="
-              background: #f8fafc;
-              border: 1px solid var(--line);
-              border-left: 3px solid var(--primary);
-              border-radius: 10px;
-              padding: 12px 14px;
-            ">
+            <div class="nota-item" style="background:#f8fafc; border:1px solid var(--line); border-left:3px solid var(--primary); border-radius:10px; padding:12px 14px;">
               <div class="small" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>${escHtml(n.fecha || '')}</span>
                 <span class="tag">${escHtml(n.autor || 'Sistema')}</span>
@@ -884,21 +839,13 @@
       }
     }
 
-    /* ─────────────────────────────────────────
-       NOTAS — GUARDAR EN BD
-    ───────────────────────────────────────── */
     document.getElementById('btnGuardarNota').addEventListener('click', async () => {
       const texto = document.getElementById('inputNuevaNota').value.trim();
-      if (!texto) {
-        alert('Escribe una nota antes de guardar.');
-        return;
-      }
+      if (!texto) { alert('Escribe una nota antes de guardar.'); return; }
       if (!casoActivoId) return;
-
       const btn = document.getElementById('btnGuardarNota');
       btn.disabled = true;
       btn.textContent = 'Guardando...';
-
       try {
         const res = await fetch('http://localhost:3000/api/notas', {
           method: 'POST',
@@ -906,7 +853,6 @@
           body: JSON.stringify({ caso_id: casoActivoId, texto })
         });
         const result = await res.json();
-
         if (result.success) {
           document.getElementById('inputNuevaNota').value = '';
           await cargarNotas(casoActivoId);
@@ -926,24 +872,16 @@
       document.getElementById('inputNuevaNota').value = '';
     });
 
-    /* ─────────────────────────────────────────
-       HISTORIAL — CARGAR DESDE BD
-    ───────────────────────────────────────── */
     async function cargarHistorial(casoId) {
       const contenedor = document.getElementById('listaHistorial');
       contenedor.innerHTML = '<div class="small muted">Cargando historial...</div>';
-
       try {
         const res  = await fetch(`http://localhost:3000/api/historial/${casoId}`);
         const data = await res.json();
-
         if (data.historial && data.historial.length > 0) {
           contenedor.innerHTML = data.historial.map(h => `
             <div class="field">
-              <div class="small">
-                ${escHtml(h.fecha || '')} ·
-                <span class="tag">${escHtml(h.tipo || 'Actividad')}</span>
-              </div>
+              <div class="small">${escHtml(h.fecha || '')} · <span class="tag">${escHtml(h.tipo || 'Actividad')}</span></div>
               <div style="margin-top: 6px;">${escHtml(h.descripcion)}</div>
             </div>`).join('');
         } else {
