@@ -40,7 +40,7 @@ async function login(event) {
     });
 
     const data = await response.json();
-
+    
     if (!response.ok) {
       alert(data.mensaje || "No fue posible iniciar sesión.");
       return;

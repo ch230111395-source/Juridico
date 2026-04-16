@@ -166,7 +166,80 @@ app.post('/api/nuevocaso', (req, res) => {
     res.json({ success: true, mensaje: "¡Caso guardado!", id: result.insertId });
   });
 });
+//-----------------PRUEBA-------------------------
+app.get('/api/casos', (req, res) => {
+  const tipoRecibido = req.query.tipo;
 
+  let sql = "SELECT * FROM v_expedientes";
+  let params = [];
+
+  const mapaTipos = {
+    "Amparo": "amparos",
+    "Administrativo": "administrativos",
+    "Laboral": "laborales",
+    "Civil": "civiles",
+    "Mercantil": "mercantiles",
+    "Penal": "penales",
+    "Agrario": "agrarios",
+    "Varios": "exp_varios",
+
+    
+    "amparo": "amparos",
+    "administrativo": "administrativos",
+    "laboral": "laborales",
+    "civil": "civiles",
+    "mercantil": "mercantiles",
+    "penal": "penales",
+    "agrario": "agrarios",
+    "varios": "exp_varios"
+  };
+
+  if (tipoRecibido && tipoRecibido !== "Todos") {
+    const tipoBD = mapaTipos[tipoRecibido];
+
+    if (!tipoBD) {
+      return res.status(400).json({
+        success: false,
+        mensaje: "Tipo no válido"
+      });
+    }
+//-----------------PRUEBA-------------------------
+   sql += " WHERE tipo = CONVERT(? USING utf8mb4) COLLATE utf8mb4_0900_ai_ci";
+//-----------------PRUEBA-------------------------
+    params.push(tipoBD);
+  }
+
+  sql += " ORDER BY created_at DESC";
+
+  console.log("SQL:", sql);
+  console.log("PARAMS:", params);
+
+  db.query(sql, params, (err, results) => {
+    if (err) {
+      console.error("ERROR MYSQL:", err);
+      return res.status(500).json({
+        success: false,
+        mensaje: "Error al consultar casos"
+      });
+    }
+
+    const casos = results.map(caso => ({
+      id: caso.id,
+      id_display: `${caso.tipo.toUpperCase()}-${caso.id}`,
+      nombre: caso.asunto || caso.actor || caso.expediente || "Sin nombre",
+      tipo: caso.tipo,
+      prioridad: "Media",
+      estado: caso.estado_procesal || "—",
+      asignado: "Sin asignar"
+    }));
+
+    res.json({
+      success: true,
+      casos
+    });
+  });
+});
+//-----------------PRUEBA-------------------------
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Servidor Backend corriendo y escuchando en http://localhost:${PORT}`);
