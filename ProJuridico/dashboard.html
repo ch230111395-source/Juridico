@@ -546,12 +546,37 @@
         <div class="card" style="box-shadow: none;">
           <div class="hd">
             <h2>Documentos</h2>
-            <div class="sub">Carga y gestión de archivos</div>
+            <div class="sub">Carga y descarga de archivos del caso</div>
           </div>
           <div class="bd">
-            <div class="field">
-              <label>Arrastra o selecciona archivos</label>
-              <div class="in" style="height: 54px;"></div>
+            <!-- Zona drag & drop -->
+            <div id="zonaUpload"
+                 style="border:2px dashed var(--line); border-radius:12px; padding:18px 16px;
+                        text-align:center; cursor:pointer; transition:all 0.2s;">
+              <div class="small muted" style="margin-bottom:8px;">
+                Arrastra archivos aquí o haz clic para seleccionar
+              </div>
+              <input type="file" id="inputArchivo" multiple style="display:none"
+                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls">
+              <button type="button" class="btn" id="btnSeleccionarArchivo"
+                      style="font-size:13px; padding:8px 14px;">
+                Seleccionar archivos
+              </button>
+            </div>
+            <!-- Barra de progreso -->
+            <div id="uploadProgress" style="display:none; margin-top:10px;">
+              <div style="background:var(--line); border-radius:999px; height:6px;">
+                <div id="uploadBar"
+                     style="background:var(--primary); height:6px; border-radius:999px;
+                            width:0%; transition:width 0.3s;"></div>
+              </div>
+              <div id="uploadStatus" class="small muted"
+                   style="margin-top:4px; text-align:center;">Subiendo...</div>
+            </div>
+            <!-- Lista de documentos -->
+            <div id="listaDocumentos"
+                 style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+              <div class="small muted">Selecciona un caso para ver sus documentos.</div>
             </div>
           </div>
         </div>
@@ -574,327 +599,46 @@
     </div>
   </div>
 
-  <!-- ===== SCRIPTS ===== -->
-  <script>
 
-    const camposPorTipo = {
-      amparo: `
-        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-        <div class="field"><label>Estado procesal</label>
-          <select name="estado_procesal">
-            <option value="en_proceso">En Proceso</option>
-            <option value="sin_asignar">Sin Asignar</option>
-            <option value="asignado">Asignado</option>
-            <option value="finalizado">Finalizado</option>
-            <option value="sin_actividad">Sin Actividad</option>
-          </select>
-        </div>
-        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-        <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
-        <div class="field"><label>Abogado encargado</label><input type="text" name="abogado_encargado"></div>
-        <div class="field"><label>Actor</label><input type="text" name="actor"></div>
-        <div class="field"><label>Demandado</label><input type="text" name="demandado"></div>
-        <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>`,
-      administrativo: `
-        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-        <div class="field"><label>Estado procesal</label>
-          <select name="estado_procesal">
-            <option value="en_proceso">En Proceso</option>
-            <option value="sin_asignar">Sin Asignar</option>
-            <option value="asignado">Asignado</option>
-            <option value="finalizado">Finalizado</option>
-            <option value="sin_actividad">Sin Actividad</option>
-          </select>
-        </div>
-        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-        <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
-        <div class="field"><label>Sala</label><input type="text" name="sala"></div>
-        <div class="field"><label>Actor</label><input type="text" name="actor"></div>`,
-      laboral: `
-        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-        <div class="field"><label>Estado procesal</label>
-          <select name="estado_procesal">
-            <option value="en_proceso">En Proceso</option>
-            <option value="sin_asignar">Sin Asignar</option>
-            <option value="asignado">Asignado</option>
-            <option value="finalizado">Finalizado</option>
-            <option value="sin_actividad">Sin Actividad</option>
-          </select>
-        </div>
-        <div class="field"><label>Actor</label><input type="text" name="actor"></div>
-        <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
-        <div class="field"><label>Mesa</label><input type="text" name="mesa"></div>
-        <div class="field"><label>Número</label><input type="text" name="numero"></div>`,
-      civil: `
-        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-        <div class="field"><label>Estado procesal</label>
-          <select name="estado_procesal">
-            <option value="en_proceso">En Proceso</option>
-            <option value="sin_asignar">Sin Asignar</option>
-            <option value="asignado">Asignado</option>
-            <option value="finalizado">Finalizado</option>
-            <option value="sin_actividad">Sin Actividad</option>
-          </select>
-        </div>
-        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-        <div class="field"><label>Fecha de inicio</label><input type="date" name="fecha_emplazamiento"></div>
-        <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>
-        <div class="field"><label>Actor</label><input type="text" name="actor"></div>
-        <div class="field"><label>Demandado</label><input type="text" name="demandado"></div>`,
-      mercantil: `
-        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-        <div class="field"><label>Estado procesal</label>
-          <select name="estado_procesal">
-            <option value="en_proceso">En Proceso</option>
-            <option value="sin_asignar">Sin Asignar</option>
-            <option value="asignado">Asignado</option>
-            <option value="finalizado">Finalizado</option>
-            <option value="sin_actividad">Sin Actividad</option>
-          </select>
-        </div>
-        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-        <div class="field"><label>Fecha</label><input type="date" name="fecha_emplazamiento"></div>
-        <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>
-        <div class="field"><label>Actor</label><input type="text" name="actor"></div>`,
-      penal: `
-        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-        <div class="field"><label>Estado procesal</label>
-          <select name="estado_procesal">
-            <option value="en_proceso">En Proceso</option>
-            <option value="sin_asignar">Sin Asignar</option>
-            <option value="asignado">Asignado</option>
-            <option value="finalizado">Finalizado</option>
-            <option value="sin_actividad">Sin Actividad</option>
-          </select>
-        </div>
-        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-        <div class="field"><label>Juzgado</label><input type="text" name="juzgado"></div>
-        <div class="field"><label>Actor</label><input type="text" name="actor"></div>
-        <div class="field"><label>Demandado</label><input type="text" name="demandado"></div>`,
-      agrario: `
-        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-        <div class="field"><label>Estado procesal</label>
-          <select name="estado_procesal">
-            <option value="en_proceso">En Proceso</option>
-            <option value="sin_asignar">Sin Asignar</option>
-            <option value="asignado">Asignado</option>
-            <option value="finalizado">Finalizado</option>
-            <option value="sin_actividad">Sin Actividad</option>
-          </select>
-        </div>
-        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-        <div class="field"><label>Fecha de emplazamiento</label><input type="date" name="fecha_emplazamiento"></div>
-        <div class="field"><label>Actor</label><input type="text" name="actor"></div>`,
-      varios: `
-        <div class="field"><label>Expediente</label><input type="text" name="expediente"></div>
-        <div class="field"><label>Estado procesal</label>
-          <select name="estado_procesal">
-            <option value="en_proceso">En Proceso</option>
-            <option value="sin_asignar">Sin Asignar</option>
-            <option value="asignado">Asignado</option>
-            <option value="finalizado">Finalizado</option>
-            <option value="sin_actividad">Sin Actividad</option>
-          </select>
-        </div>
-        <div class="field"><label>Asunto</label><input type="text" name="asunto"></div>
-        <div class="field"><label>Fecha recibido</label><input type="date" name="fecha_emplazamiento"></div>`
-    };
+  <!-- MODAL PARA CREAR NUEVO CASO -->
+  <div id="modalMask" class="modalMask">
+    <div id="modalNuevoCaso" class="modalNuevoCaso">
+      <!-- HEADER DEL MODAL -->
+      <div class="modalHeader">
+        <h2>Nuevo Caso</h2>
+        <button type="button" class="closeBtn" id="btnCloseModal">✕</button>
+      </div>
 
-    function mostrarCampos() {
-      const tipo = document.getElementById('tipo_caso').value;
-      document.getElementById('campos_relevantes').innerHTML = camposPorTipo[tipo] || '';
-    }
-
-    window.onload = mostrarCampos;
-
-    document.getElementById('formNuevoCaso').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const form = e.target;
-      const data = { tipo_caso: document.getElementById('tipo_caso').value };
-      form.querySelectorAll('[name]').forEach(el => { data[el.name] = el.value; });
-      try {
-        const res = await fetch('http://localhost:3000/api/nuevocaso', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        const result = await res.json();
-        if (result.success) {
-          alert(`✅ Caso guardado con ID: ${result.id}`);
-          form.reset();
-          mostrarCampos();
-          document.getElementById('detallesNuevoCaso').removeAttribute('open');
-          cargarCasos();
-        } else {
-          alert(`❌ Error: ${result.mensaje}`);
-        }
-      } catch {
-        alert('❌ No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?');
-      }
-    });
-
-    document.getElementById('btnCancelarForm').addEventListener('click', () => {
-      document.getElementById('formNuevoCaso').reset();
-      mostrarCampos();
-      document.getElementById('detallesNuevoCaso').removeAttribute('open');
-    });
-
-    async function cargarCasos() {
-      const filtroTipo = document.getElementById('tipoCasoSelect').value;
-      const tbody = document.getElementById('casosTbody');
-      tbody.innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center; padding:20px;">Cargando...</td></tr>';
-      try {
-        const res = await fetch(`http://localhost:3000/api/casos?tipo=${encodeURIComponent(filtroTipo)}`);
-        const data = await res.json();
-        if (!data.casos || data.casos.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center; padding:24px;">Sin casos registrados.</td></tr>';
-          return;
-        }
-        tbody.innerHTML = data.casos.map(c => `
-          <tr style="cursor:pointer;"
-            ondblclick="abrirDrawer(${JSON.stringify(c).replace(/"/g, '&quot;')})"
-            onmouseenter="this.style.background='#f8fafc'"
-            onmouseleave="this.style.background=''">
-            <td><span class="tag">${escHtml(c.id_display || String(c.id))}</span></td>
-            <td>${escHtml(c.nombre || '—')}</td>
-            <td class="muted">${escHtml(c.tipo || '—')}</td>
-            <td>${badgePrioridad(c.prioridad)}</td>
-            <td>${escHtml(c.estado || '—')}</td>
-            <td class="muted">${escHtml(c.asignado || '—')}</td>
-          </tr>`).join('');
-      } catch {
-        tbody.innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center; padding:24px;">Error al cargar casos. Verifica la conexión con el servidor.</td></tr>';
-      }
-    }
-
-    function escHtml(str) {
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
-
-    function badgePrioridad(p) {
-      const mapa = {
-        'Alta':  'background:#fee2e2; color:#991b1b;',
-        'Media': 'background:#fef9c3; color:#854d0e;',
-        'Baja':  'background:#dcfce7; color:#166534;'
-      };
-      const estilo = mapa[p] || '';
-      return `<span style="padding:3px 10px; border-radius:999px; font-size:12px; ${estilo}">${escHtml(p || '—')}</span>`;
-    }
-
-    document.getElementById('tipoCasoSelect').addEventListener('change', cargarCasos);
-    document.addEventListener('DOMContentLoaded', cargarCasos);
-
-    let casoActivoId = null;
-
-    function abrirDrawer(caso) {
-      casoActivoId = caso.id;
-      document.getElementById('drawerTitle').textContent    = caso.id_display || String(caso.id);
-      document.getElementById('drawerSubtitle').textContent = '· ' + (caso.tipo || '');
-      document.getElementById('d_tipo').textContent         = caso.tipo      || '—';
-      document.getElementById('d_prioridad').textContent    = caso.prioridad || '—';
-      document.getElementById('d_estado').textContent       = caso.estado    || '—';
-      document.getElementById('d_asignado').textContent     = caso.asignado  || '—';
-      document.getElementById('inputNuevaNota').value = '';
-      document.getElementById('drawerMask').classList.add('show');
-      cargarNotas(caso.id);
-      cargarHistorial(caso.id);
-    }
-
-    document.getElementById('btnCerrarDrawer').addEventListener('click', () => {
-      document.getElementById('drawerMask').classList.remove('show');
-      casoActivoId = null;
-    });
-
-    document.getElementById('drawerMask').addEventListener('click', (e) => {
-      if (e.target === document.getElementById('drawerMask')) {
-        document.getElementById('drawerMask').classList.remove('show');
-        casoActivoId = null;
-      }
-    });
-
-    async function cargarNotas(casoId) {
-      const lista = document.getElementById('listaNotas');
-      lista.innerHTML = '<div class="small muted">Cargando notas...</div>';
-      try {
-        const res  = await fetch(`http://localhost:3000/api/notas/${casoId}`);
-        const data = await res.json();
-        if (data.notas && data.notas.length > 0) {
-          lista.innerHTML = data.notas.map(n => `
-            <div class="nota-item" style="background:#f8fafc; border:1px solid var(--line); border-left:3px solid var(--primary); border-radius:10px; padding:12px 14px;">
-              <div class="small" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>${escHtml(n.fecha || '')}</span>
-                <span class="tag">${escHtml(n.autor || 'Sistema')}</span>
-              </div>
-              <div style="margin-top: 8px; line-height: 1.5;">${escHtml(n.texto)}</div>
-            </div>`).join('');
-        } else {
-          lista.innerHTML = '<div class="small muted">Sin notas aún para este caso.</div>';
-        }
-      } catch {
-        lista.innerHTML = '<div class="small muted">No se pudieron cargar las notas.</div>';
-      }
-    }
-
-    document.getElementById('btnGuardarNota').addEventListener('click', async () => {
-      const texto = document.getElementById('inputNuevaNota').value.trim();
-      if (!texto) { alert('Escribe una nota antes de guardar.'); return; }
-      if (!casoActivoId) return;
-      const btn = document.getElementById('btnGuardarNota');
-      btn.disabled = true;
-      btn.textContent = 'Guardando...';
-      try {
-        const res = await fetch('http://localhost:3000/api/notas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ caso_id: casoActivoId, texto })
-        });
-        const result = await res.json();
-        if (result.success) {
-          document.getElementById('inputNuevaNota').value = '';
-          await cargarNotas(casoActivoId);
-          await cargarHistorial(casoActivoId);
-        } else {
-          alert('❌ Error al guardar la nota: ' + (result.mensaje || ''));
-        }
-      } catch {
-        alert('❌ No se pudo conectar con el servidor.');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Guardar nota';
-      }
-    });
-
-    document.getElementById('btnLimpiarNota').addEventListener('click', () => {
-      document.getElementById('inputNuevaNota').value = '';
-    });
-
-    async function cargarHistorial(casoId) {
-      const contenedor = document.getElementById('listaHistorial');
-      contenedor.innerHTML = '<div class="small muted">Cargando historial...</div>';
-      try {
-        const res  = await fetch(`http://localhost:3000/api/historial/${casoId}`);
-        const data = await res.json();
-        if (data.historial && data.historial.length > 0) {
-          contenedor.innerHTML = data.historial.map(h => `
+      <!-- BODY DEL MODAL -->
+      <div class="modalBody">
+        <form id="formNuevoCasoModal">
+          <div class="form-tipo-row">
             <div class="field">
-              <div class="small">${escHtml(h.fecha || '')} · <span class="tag">${escHtml(h.tipo || 'Actividad')}</span></div>
-              <div style="margin-top: 6px;">${escHtml(h.descripcion)}</div>
-            </div>`).join('');
-        } else {
-          contenedor.innerHTML = '<div class="small muted">Sin actividad registrada.</div>';
-        }
-      } catch {
-        contenedor.innerHTML = '<div class="small muted">No se pudo cargar el historial.</div>';
-      }
-    }
+              <label for="tipoSelectModal">Tipo de Caso</label>
+              <select id="tipoSelectModal" name="tipoSelectModal" required>
+                <option value="amparo">Amparo</option>
+                <option value="administrativo">Administrativo</option>
+                <option value="laboral">Laboral</option>
+                <option value="civil">Civil</option>
+                <option value="mercantil">Mercantil</option>
+                <option value="penal">Penal</option>
+                <option value="agrario">Agrario</option>
+                <option value="varios">Varios</option>
+              </select>
+            </div>
+          </div>
+          <div class="fieldgrid" id="camposRelevantesModal"></div>
+        </form>
+      </div>
 
-  </script>
+      <!-- FOOTER DEL MODAL -->
+      <div class="modalFooter">
+        <button type="button" id="btnCancelarModal" class="btn secondary">Cancelar</button>
+        <button type="submit" form="formNuevoCasoModal" class="btn primary">Guardar Caso</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
-
 </html>

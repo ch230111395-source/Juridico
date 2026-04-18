@@ -3,6 +3,28 @@ const mysql = require('mysql2');
 const cors = require('cors');
 const crypto = require('crypto');
 require('dotenv').config();
+const multer = require('multer');
+const path   = require('path');
+const fs     = require('fs');
+
+const carpetaUploads = path.join(__dirname, 'uploads');
+if (!fs.existsSync(carpetaUploads)) fs.mkdirSync(carpetaUploads);
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, carpetaUploads),
+  filename:    (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, Date.now() + '_' + Math.random().toString(36).slice(2) + ext);
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = /\.(pdf|doc|docx|jpg|jpeg|png|xlsx|xls)$/i.test(file.originalname);
+    ok ? cb(null, true) : cb(new Error('Tipo no permitido'));
+  }
+});
 
 
 const app = express();
@@ -240,6 +262,70 @@ app.get('/api/casos', (req, res) => {
   });
 });
 //-----------------PRUEBA-------------------------
+
+// ─────────────────────────────────────────
+// ENDPOINTS DE DOCUMENTOS
+// ─────────────────────────────────────────
+
+// GET  /api/documentos/:casoId  → lista
+app.get('/api/documentos/:casoId', (req, res) => {
+  const sql = `SELECT id, nombre_original, tamaño, subido_por,
+                      DATE_FORMAT(created_at,'%d/%m/%Y %H:%i') AS fecha
+               FROM documentos WHERE caso_id = ? ORDER BY created_at DESC`;
+  db.query(sql, [req.params.casoId], (err, rows) => {
+    if (err) return res.status(500).json({ success: false, mensaje: err.message });
+    res.json({ success: true, documentos: rows });
+  });
+});
+
+// POST /api/documentos/:casoId  → sube archivo
+app.post('/api/documentos/:casoId', upload.single('archivo'), (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, mensaje: 'Sin archivo' });
+  const sql = `INSERT INTO documentos
+               (caso_id, nombre_original, nombre_archivo, mimetype, tamaño, subido_por)
+               VALUES (?, ?, ?, ?, ?, ?)`;
+  db.query(sql,
+    [req.params.casoId, req.file.originalname, req.file.filename,
+     req.file.mimetype, req.file.size, req.body.subido_por || 'Sistema'],
+    (err, r) => {
+      if (err) return res.status(500).json({ success: false, mensaje: err.message });
+      res.json({ success: true, id: r.insertId });
+    }
+  );
+});
+
+// GET  /api/documentos/descargar/:docId  → descarga
+app.get('/api/documentos/descargar/:docId', (req, res) => {
+  db.query('SELECT nombre_original, nombre_archivo FROM documentos WHERE id = ?',
+    [req.params.docId], (err, rows) => {
+      if (err || !rows.length)
+        return res.status(404).json({ success: false, mensaje: 'No encontrado' });
+      const ruta = path.join(__dirname, 'uploads', rows[0].nombre_archivo);
+      if (!fs.existsSync(ruta))
+        return res.status(404).json({ success: false, mensaje: 'Archivo eliminado del servidor' });
+      res.download(ruta, rows[0].nombre_original);
+    });
+});
+
+// DELETE /api/documentos/:docId  → elimina
+app.delete('/api/documentos/:docId', (req, res) => {
+  db.query('SELECT nombre_archivo FROM documentos WHERE id = ?',
+    [req.params.docId], (err, rows) => {
+      if (err || !rows.length)
+        return res.status(404).json({ success: false, mensaje: 'No encontrado' });
+
+      // Borrar del disco
+      const ruta = path.join(__dirname, 'uploads', rows[0].nombre_archivo);
+      if (fs.existsSync(ruta)) fs.unlinkSync(ruta);
+
+      // Borrar de la BD
+      db.query('DELETE FROM documentos WHERE id = ?', [req.params.docId], err2 => {
+        if (err2) return res.status(500).json({ success: false, mensaje: err2.message });
+        res.json({ success: true });
+      });
+    });
+});
+
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Servidor Backend corriendo y escuchando en http://localhost:${PORT}`);
