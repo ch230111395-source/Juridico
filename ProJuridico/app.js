@@ -37,13 +37,105 @@ const presets = {
   Todos: { prioridad: "(auto)", estado: "(auto)", asignado: "(auto)" }
 };
 
-const casos = [
-  { id: "CASO-1042", nombre: "Juicio mercantil · Proveedor X", tipo: "Mercantil", prioridad: "Alta", estado: "En proceso", asignado: "Abg. A" },
-  { id: "CASO-1029", nombre: "Amparo indirecto · Exp. 55/2026", tipo: "Amparo", prioridad: "Media", estado: "Pendiente", asignado: "Abg. B" },
-  { id: "CASO-0998", nombre: "Laboral · Despido injustificado", tipo: "Laboral", prioridad: "Alta", estado: "Revisión", asignado: "Por reasignar" },
-  { id: "CASO-0977", nombre: "Civil · Arrendamiento", tipo: "Civil", prioridad: "Media", estado: "En proceso", asignado: "Abg. C" },
-  { id: "CASO-0901", nombre: "Penal · Denuncia", tipo: "Penal", prioridad: "Alta", estado: "Pendiente", asignado: "Abg. D" }
-];
+let casos = [];
+
+// Normaliza los datos que vienen de la BD al formato visual esperado
+function normalizarCaso(raw) {
+  // Capitaliza primera letra (ej: "mercantil" → "Mercantil")
+  const capitalizar = str => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+
+  // Mapeo de prioridades: convierte valores de BD a formato visual
+  const mapPrioridad = val => {
+    if (!val) return "Media";
+    const v = val.toLowerCase();
+    if (v === "alta" || v === "high") return "Alta";
+    if (v === "media" || v === "medium") return "Media";
+    if (v === "baja" || v === "low") return "Baja";
+    return capitalizar(val);
+  };
+
+  // Mapeo de estados: convierte snake_case o variantes a formato visual
+  const mapEstado = val => {
+    if (!val) return "Pendiente";
+    // Normalizar: minúsculas y sin guiones bajos para comparar
+    const v = val.toLowerCase().replace(/_/g, " ").trim();
+    if (v === "en proceso")  return "En proceso";
+    if (v === "pendiente")   return "Pendiente";
+    if (v === "revision" || v === "revisión") return "Revisión";
+    if (v === "cerrado" || v === "closed")    return "Cerrado";
+    if (v === "sin asignar") return "Sin asignar";
+    if (v === "activo" || v === "active")     return "Activo";
+    // Cualquier otro: reemplaza _ por espacio y capitaliza cada palabra
+    return val.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  // Mapeo de asignado: convierte snake_case a texto legible
+  const mapAsignado = val => {
+    if (!val) return "Sin asignar";
+    const v = val.toLowerCase().replace(/_/g, " ").trim();
+    if (v === "sin asignar" || v === "por asignar" || v === "por reasignar" || v === "sin asignar") {
+      return val.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    }
+    return val;
+  };
+
+  // Mapeo de tipo: normaliza plural/singular y capitaliza
+  // "penales" → "Penal", "mercantil" → "Mercantil", etc.
+  const mapTipo = val => {
+    if (!val) return "";
+    const v = val.toLowerCase().trim();
+    const tipoMap = {
+      "penales":        "Penal",
+      "penal":          "Penal",
+      "mercantiles":    "Mercantil",
+      "mercantil":      "Mercantil",
+      "amparos":        "Amparo",
+      "amparo":         "Amparo",
+      "laborales":      "Laboral",
+      "laboral":        "Laboral",
+      "civiles":        "Civil",
+      "civil":          "Civil",
+      "administrativos":"Administrativo",
+      "administrativo": "Administrativo",
+      "agrarios":       "Agrario",
+      "agrario":        "Agrario",
+      "varios":         "Varios"
+    };
+    return tipoMap[v] || capitalizar(val);
+  };
+
+  return {
+    // Reconstruye el ID visual: "PENAL-3" a partir del tipo y el id numérico de MySQL
+    id: (() => {
+      const num  = raw.id || raw._id || raw.caso_id || "";
+      const tipo = (raw.tipo || raw.tipo_caso || "").toUpperCase().replace(/ES$/, "").replace(/S$/, "").trim();
+      return tipo ? `${tipo}-${num}` : String(num);
+    })(),
+    nombre:   raw.nombre || raw.asunto || raw.nombre_caso || "",
+    tipo:     mapTipo(raw.tipo || raw.tipo_caso || ""),
+    prioridad: mapPrioridad(raw.prioridad),
+    estado:   mapEstado(raw.estado),
+    asignado: mapAsignado(raw.asignado || raw.abogado_asignado || ""),
+    // Guardamos el raw completo por si el drawer necesita más campos
+    _raw: raw
+  };
+}
+
+async function cargarCasos() {
+  try {
+    const response = await fetch("http://localhost:3000/api/casos");
+    if (!response.ok) throw new Error("Error al obtener casos");
+    const data = await response.json();
+    // La API puede devolver el array directo o envuelto en { casos: [...] } o { data: [...] }
+    const lista = Array.isArray(data) ? data : (data.casos || data.data || []);
+    casos = lista.map(normalizarCaso);
+  } catch (err) {
+    console.error("No se pudieron cargar los casos:", err);
+    casos = [];
+  }
+  renderTable();
+  if (tipoSelect) applyPreset(tipoSelect.value);
+}
 
 // ========== CAMPOS POR TIPO ==========
 const camposPorTipo = {
@@ -224,7 +316,7 @@ if (formNuevoCaso) {
       if (response.ok) {
         alert("Caso creado exitosamente");
         cerrarModalNuevoCaso();
-        renderTable();
+        cargarCasos(); // recarga datos frescos de la API
       } else {
         alert(data.message || "Error al crear el caso");
       }
@@ -311,7 +403,7 @@ if (formInline) {
         mostrarCampos();
         const details = document.getElementById("detallesNuevoCaso");
         if (details) details.open = false;
-        renderTable();
+        cargarCasos(); // recarga datos frescos de la API
       } else {
         alert(data.message || "Error al crear el caso");
       }
@@ -345,12 +437,19 @@ function renderTable() {
   const tipo = tipoSelect.value;
   const rows = casos.filter(caso => tipo === "Todos" || caso.tipo === tipo);
 
+  // Clases de color para prioridad (igual al diseño original)
+  const prioClase = {
+    "Alta":  "tag tag--alta",
+    "Media": "tag tag--media",
+    "Baja":  "tag tag--baja"
+  };
+
   tbody.innerHTML = rows.map(caso => `
     <tr data-id="${caso.id}">
       <td><span class="tag">${caso.id}</span></td>
       <td>${caso.nombre}</td>
       <td class="muted">${caso.tipo}</td>
-      <td>${caso.prioridad}</td>
+      <td><span class="${prioClase[caso.prioridad] || "tag"}">${caso.prioridad}</span></td>
       <td>${caso.estado}</td>
       <td class="muted">${caso.asignado}</td>
     </tr>
@@ -358,7 +457,7 @@ function renderTable() {
 
   tbody.querySelectorAll("tr").forEach(row => {
     row.addEventListener("dblclick", () => {
-      const item = casos.find(caso => caso.id === row.dataset.id);
+      const item = casos.find(caso => String(caso.id) === String(row.dataset.id));
       openDrawer(item);
     });
   });
@@ -437,7 +536,5 @@ if (btnLogout) {
   });
 }
 
-renderTable();
-if (tipoSelect) {
-  applyPreset(tipoSelect.value);
-}
+// Carga los casos desde la API y luego renderiza la tabla
+cargarCasos();

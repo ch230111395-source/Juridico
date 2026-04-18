@@ -187,6 +187,22 @@ body {
   color: var(--primary);
 }
 
+/* Prioridad */
+.tag--alta {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.tag--media {
+  background: #fef9c3;
+  color: #92400e;
+}
+
+.tag--baja {
+  background: #dcfce7;
+  color: #15803d;
+}
+
 /* ── Campos base ── */
 .fieldgrid {
   display: grid;
