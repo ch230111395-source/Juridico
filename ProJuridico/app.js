@@ -16,12 +16,13 @@ const btnRolForm = document.getElementById("btnRolForm");
 const permDetails = document.getElementById("permDetails");
 const btnLogout = document.getElementById("btnLogout");
 
-// ========== NUEVO: MODAL PARA CREAR CASOS ==========
+// ========== VARIABLES PARA MODAL ==========
 const btnNuevoGlobal = document.getElementById("btnNuevoGlobal");
 const modalNuevoCaso = document.getElementById("modalNuevoCaso");
 const modalMask = document.getElementById("modalMask");
 const formNuevoCaso = document.getElementById("formNuevoCasoModal");
 const btnCancelarModal = document.getElementById("btnCancelarModal");
+const btnCloseModal = document.getElementById("btnCloseModal");
 const tipoSelectModal = document.getElementById("tipoSelectModal");
 const camposRelevantesModal = document.getElementById("camposRelevantesModal");
 
@@ -44,7 +45,7 @@ const casos = [
   { id: "CASO-0901", nombre: "Penal · Denuncia", tipo: "Penal", prioridad: "Alta", estado: "Pendiente", asignado: "Abg. D" }
 ];
 
-// ========== DEFINICIÓN DE CAMPOS POR TIPO ==========
+// ========== CAMPOS POR TIPO ==========
 const camposPorTipo = {
   amparo: [
     { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
@@ -52,9 +53,7 @@ const camposPorTipo = {
     { id: "juzgado", label: "Juzgado", type: "text", required: true },
     { id: "actor", label: "Actor", type: "text", required: true },
     { id: "demandado", label: "Demandado", type: "text", required: true },
-    { id: "asunto", label: "Asunto", type: "textarea", required: true },
-    { id: "autoridad_responsable", label: "Autoridad Responsable", type: "text", required: false },
-    { id: "acto_reclamado", label: "Acto Reclamado", type: "textarea", required: false }
+    { id: "asunto", label: "Asunto", type: "textarea", required: true }
   ],
   administrativo: [
     { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
@@ -62,8 +61,7 @@ const camposPorTipo = {
     { id: "sala", label: "Sala", type: "text", required: true },
     { id: "actor", label: "Actor", type: "text", required: true },
     { id: "autoridad_demandada", label: "Autoridad Demandada", type: "text", required: true },
-    { id: "asunto", label: "Asunto", type: "textarea", required: true },
-    { id: "pretension", label: "Pretensión", type: "textarea", required: false }
+    { id: "asunto", label: "Asunto", type: "textarea", required: true }
   ],
   laboral: [
     { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
@@ -72,7 +70,6 @@ const camposPorTipo = {
     { id: "administracion", label: "Administración", type: "text", required: true },
     { id: "actor", label: "Actor (Demandante)", type: "text", required: true },
     { id: "area_departamento", label: "Área/Departamento", type: "text", required: true },
-    { id: "salario", label: "Salario en Litigio", type: "number", required: false },
     { id: "asunto", label: "Asunto", type: "textarea", required: true }
   ],
   civil: [
@@ -81,8 +78,7 @@ const camposPorTipo = {
     { id: "juzgado", label: "Juzgado", type: "text", required: true },
     { id: "actor", label: "Actor", type: "text", required: true },
     { id: "demandado", label: "Demandado", type: "text", required: true },
-    { id: "asunto", label: "Asunto", type: "textarea", required: true },
-    { id: "valor_litigio", label: "Valor en Litigio", type: "number", required: false }
+    { id: "asunto", label: "Asunto", type: "textarea", required: true }
   ],
   mercantil: [
     { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
@@ -90,8 +86,7 @@ const camposPorTipo = {
     { id: "juzgado", label: "Juzgado", type: "text", required: true },
     { id: "actor", label: "Actor", type: "text", required: true },
     { id: "demandado", label: "Demandado", type: "text", required: true },
-    { id: "asunto", label: "Asunto", type: "textarea", required: true },
-    { id: "valor_litigio", label: "Valor en Litigio", type: "number", required: false }
+    { id: "asunto", label: "Asunto", type: "textarea", required: true }
   ],
   penal: [
     { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
@@ -106,9 +101,7 @@ const camposPorTipo = {
     { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: true },
     { id: "juzgado", label: "Juzgado", type: "text", required: true },
     { id: "actor", label: "Actor", type: "text", required: true },
-    { id: "asunto", label: "Asunto", type: "textarea", required: true },
-    { id: "superficie_hectareas", label: "Superficie (Hectáreas)", type: "number", required: false },
-    { id: "ubicacion", label: "Ubicación", type: "textarea", required: false }
+    { id: "asunto", label: "Asunto", type: "textarea", required: true }
   ],
   varios: [
     { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
@@ -121,19 +114,22 @@ const camposPorTipo = {
 // ========== FUNCIONES PARA MODAL ==========
 
 function abrirModalNuevoCaso() {
+  if (!modalMask || !modalNuevoCaso) return;
   modalMask.classList.add("show");
   modalNuevoCaso.classList.add("show");
-  mostrarCamposModal("amparo"); // Tipo por defecto
+  mostrarCamposModal("amparo");
 }
 
 function cerrarModalNuevoCaso() {
+  if (!modalMask || !modalNuevoCaso) return;
   modalMask.classList.remove("show");
   modalNuevoCaso.classList.remove("show");
-  formNuevoCaso.reset();
-  camposRelevantesModal.innerHTML = "";
+  if (formNuevoCaso) formNuevoCaso.reset();
+  if (camposRelevantesModal) camposRelevantesModal.innerHTML = "";
 }
 
 function mostrarCamposModal(tipo) {
+  if (!camposRelevantesModal) return;
   const campos = camposPorTipo[tipo] || [];
   camposRelevantesModal.innerHTML = "";
 
@@ -164,24 +160,26 @@ function mostrarCamposModal(tipo) {
   });
 }
 
-// ========== EVENTO: BOTÓN NUEVO GLOBAL ==========
+// ========== EVENTOS PARA MODAL ==========
+
 if (btnNuevoGlobal) {
   btnNuevoGlobal.addEventListener("click", abrirModalNuevoCaso);
 }
 
-// ========== EVENTO: CAMBIAR TIPO EN MODAL ==========
 if (tipoSelectModal) {
   tipoSelectModal.addEventListener("change", (e) => {
     mostrarCamposModal(e.target.value);
   });
 }
 
-// ========== EVENTO: CANCELAR MODAL ==========
 if (btnCancelarModal) {
   btnCancelarModal.addEventListener("click", cerrarModalNuevoCaso);
 }
 
-// ========== EVENTO: CERRAR MODAL AL CLICKEAR MASK ==========
+if (btnCloseModal) {
+  btnCloseModal.addEventListener("click", cerrarModalNuevoCaso);
+}
+
 if (modalMask) {
   modalMask.addEventListener("click", (e) => {
     if (e.target === modalMask) {
@@ -190,14 +188,12 @@ if (modalMask) {
   });
 }
 
-// ========== EVENTO: CERRAR MODAL CON ESC ==========
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     cerrarModalNuevoCaso();
   }
 });
 
-// ========== EVENTO: SUBMIT FORMULARIO MODAL ==========
 if (formNuevoCaso) {
   formNuevoCaso.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -206,17 +202,15 @@ if (formNuevoCaso) {
     const formData = new FormData(formNuevoCaso);
     const datos = Object.fromEntries(formData);
 
-    // Crear objeto del caso
     const nuevoCase = {
       tipo: tipo,
       ...datos,
-      prioridad: "Media", // Por defecto
-      estado: "Pendiente", // Por defecto
+      prioridad: "Media",
+      estado: "Pendiente",
       asignado: "Por asignar"
     };
 
     try {
-      // Aquí va la llamada a la API para guardar
       const response = await fetch("http://localhost:3000/api/casos", {
         method: "POST",
         headers: {
@@ -230,7 +224,7 @@ if (formNuevoCaso) {
       if (response.ok) {
         alert("Caso creado exitosamente");
         cerrarModalNuevoCaso();
-        renderTable(); // Recargar tabla
+        renderTable();
       } else {
         alert(data.message || "Error al crear el caso");
       }
@@ -241,7 +235,94 @@ if (formNuevoCaso) {
   });
 }
 
-// ========== FUNCIONES ORIGINALES ==========
+
+// ========== FORMULARIO INLINE (pestaña Casos) ==========
+// Mismos campos que el modal pero para el <details> de la vista de casos
+
+function mostrarCampos() {
+  const tipo = document.getElementById("tipo_caso");
+  const contenedor = document.getElementById("campos_relevantes");
+  if (!tipo || !contenedor) return;
+
+  const campos = camposPorTipo[tipo.value] || [];
+  contenedor.innerHTML = "";
+
+  campos.forEach(campo => {
+    const fieldDiv = document.createElement("div");
+    fieldDiv.className = "field";
+
+    const label = document.createElement("label");
+    label.htmlFor = "inline_" + campo.id;
+    label.textContent = campo.label + (campo.required ? " *" : "");
+
+    let input;
+    if (campo.type === "textarea") {
+      input = document.createElement("textarea");
+    } else {
+      input = document.createElement("input");
+      input.type = campo.type;
+    }
+
+    input.id = "inline_" + campo.id;
+    input.name = campo.id;
+    input.required = campo.required;
+    input.placeholder = `Ingresa ${campo.label.toLowerCase()}`;
+
+    fieldDiv.appendChild(label);
+    fieldDiv.appendChild(input);
+    contenedor.appendChild(fieldDiv);
+  });
+}
+
+// Inicializar campos del formulario inline al cargar
+document.addEventListener("DOMContentLoaded", () => {
+  mostrarCampos();
+});
+
+// Botón cancelar del formulario inline
+const btnCancelarForm = document.getElementById("btnCancelarForm");
+if (btnCancelarForm) {
+  btnCancelarForm.addEventListener("click", () => {
+    const details = document.getElementById("detallesNuevoCaso");
+    if (details) details.open = false;
+  });
+}
+
+// Submit del formulario inline
+const formInline = document.getElementById("formNuevoCaso");
+if (formInline) {
+  formInline.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const tipo = document.getElementById("tipo_caso").value;
+    const formData = new FormData(formInline);
+    const datos = Object.fromEntries(formData);
+    const nuevoCase = { tipo, ...datos, prioridad: "Media", estado: "Pendiente", asignado: "Por asignar" };
+
+    try {
+      const response = await fetch("http://localhost:3000/api/casos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nuevoCase)
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert("Caso creado exitosamente");
+        formInline.reset();
+        mostrarCampos();
+        const details = document.getElementById("detallesNuevoCaso");
+        if (details) details.open = false;
+        renderTable();
+      } else {
+        alert(data.message || "Error al crear el caso");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al conectar con el servidor");
+    }
+  });
+}
+
+// ========== EVENTOS ORIGINALES ==========
 
 buttons.forEach(button => {
   button.addEventListener("click", () => {
@@ -291,7 +372,6 @@ function applyPreset(tipo) {
   const elEstado = document.getElementById("pref_estado");
   const elAsignado = document.getElementById("pref_asignado");
   if (!elTipo || !elPrioridad || !elEstado || !elAsignado) return;
-  
   elTipo.textContent = tipo === "Todos" ? "(selecciona un tipo)" : tipo;
   elPrioridad.textContent = preset.prioridad;
   elEstado.textContent = preset.estado;
