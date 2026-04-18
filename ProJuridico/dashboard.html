@@ -895,6 +895,52 @@
   </script>
 
   <script src="app.js"></script>
+
+   <div id="modalMask" class="modalMask"></div>
+ 
+<div id="modalNuevoCaso" class="modalNuevoCaso">
+  <!-- HEADER -->
+  <div class="modalHeader">
+    <h2>Nuevo Caso</h2>
+    <button type="button" class="closeBtn" id="btnCloseModal">✕</button>
+  </div>
+ 
+  <!-- BODY -->
+  <div class="modalBody">
+    <form id="formNuevoCasoModal">
+      <!-- Tipo de Caso (Selector Principal) -->
+      <div class="form-tipo-row">
+        <div class="field">
+          <label for="tipoSelectModal">Tipo de Caso</label>
+          <select id="tipoSelectModal" name="tipoSelectModal" required>
+            <option value="amparo">Amparo</option>
+            <option value="administrativo">Administrativo</option>
+            <option value="laboral">Laboral</option>
+            <option value="civil">Civil</option>
+            <option value="mercantil">Mercantil</option>
+            <option value="penal">Penal</option>
+            <option value="agrario">Agrario</option>
+            <option value="varios">Varios</option>
+          </select>
+        </div>
+      </div>
+ 
+      <!-- Campos dinámicos según tipo -->
+      <div class="fieldgrid" id="camposRelevantesModal"></div>
+    </form>
+  </div>
+ 
+  <!-- FOOTER -->
+  <div class="modalFooter">
+    <button type="button" id="btnCancelarModal" class="btn secondary">
+      Cancelar
+    </button>
+    <button type="submit" form="formNuevoCasoModal" class="btn primary">
+      Guardar Caso
+    </button>
+  </div>
+</div>
+
 </body>
 
 </html>
