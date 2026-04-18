@@ -296,11 +296,7 @@ if (modalMask) {
   });
 }
 
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    cerrarModalNuevoCaso();
-  }
-});
+// keydown unificado abajo
 
 if (formNuevoCaso) {
   formNuevoCaso.addEventListener("submit", async (e) => {
@@ -473,6 +469,8 @@ function openDrawer(item) {
   // Limpiar nota anterior y cargar notas del caso
   if (inputNuevaNota) inputNuevaNota.value = "";
   cargarNotas(casoActivoId);
+  cargarDocumentos(casoActivoId);
+  iniciarEventosUpload();
 
   mask.classList.add("show");
 }
@@ -498,8 +496,14 @@ if (mask) {
   });
 }
 
-window.addEventListener("keydown", event => {
-  if (event.key === "Escape") closeDrawer();
+window.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  // Cierra primero el modal si está abierto, sino el drawer
+  if (modalMask && modalMask.classList.contains("show")) {
+    cerrarModalNuevoCaso();
+  } else {
+    closeDrawer();
+  }
 });
 
 if (btnUsuarioForm && usuarioDetails) {
@@ -518,6 +522,8 @@ if (btnRolForm && permDetails) {
 
 if (btnLogout) {
   btnLogout.addEventListener("click", () => {
+    const confirmar = confirm("¿Deseas cerrar sesión?");
+    if (!confirmar) return;
     localStorage.removeItem("usuario");
     window.location.href = "index.html";
   });
@@ -592,3 +598,191 @@ if (btnLimpiarNota) {
 
 // Carga los casos desde la API y luego renderiza la tabla
 cargarCasos();
+
+// ========== DOCUMENTOS DEL CASO ==========
+
+let listaDocumentos    = document.getElementById("listaDocumentos");
+let zonaUpload         = document.getElementById("zonaUpload");
+let inputArchivo       = document.getElementById("inputArchivo");
+let btnSeleccionarArch = document.getElementById("btnSeleccionarArchivo");
+let uploadProgress     = document.getElementById("uploadProgress");
+let uploadBar          = document.getElementById("uploadBar");
+let uploadStatus       = document.getElementById("uploadStatus");
+
+function formatBytes(bytes) {
+  if (!bytes) return "";
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function iconoArchivo(nombre) {
+  const ext = (nombre || "").split(".").pop().toLowerCase();
+  return ({ pdf:"📄", doc:"📝", docx:"📝", jpg:"🖼️", jpeg:"🖼️",
+            png:"🖼️", xlsx:"📊", xls:"📊" })[ext] || "📎";
+}
+
+function renderDocumentos(docs) {
+  // Re-obtener por si el drawer se reconstruyó en el DOM
+  listaDocumentos = document.getElementById("listaDocumentos");
+  if (!listaDocumentos) return;
+
+  if (!docs || docs.length === 0) {
+    listaDocumentos.innerHTML = '<div class="small muted">Sin documentos adjuntos.</div>';
+    return;
+  }
+
+  listaDocumentos.innerHTML = docs.map(doc => `
+    <div style="display:flex; align-items:center; gap:10px; padding:10px 12px;
+                border:1px solid var(--line); border-radius:10px; background:var(--panel);">
+      <span style="font-size:20px;">${iconoArchivo(doc.nombre_original)}</span>
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:13px; font-weight:600; white-space:nowrap;
+                    overflow:hidden; text-overflow:ellipsis;"
+             title="${doc.nombre_original}">
+          ${doc.nombre_original}
+        </div>
+        <div class="small muted">
+          ${formatBytes(doc.tamaño)} · ${doc.subido_por || "Sistema"} · ${doc.fecha || ""}
+        </div>
+      </div>
+      <button class="btn"
+              style="padding:6px 12px; font-size:12px;"
+              onclick="descargarDocumento(${doc.id}, '${doc.nombre_original.replace(/'/g,"\'")}')">
+        ⬇ Descargar
+      </button>
+      <button class="btn"
+              style="padding:6px 12px; font-size:12px; color:#dc2626; border-color:#fecaca;"
+              onclick="eliminarDocumento(${doc.id})">
+        🗑
+      </button>
+    </div>
+  `).join("");
+}
+
+// Descarga usando fetch → no navega y no cierra el drawer
+async function descargarDocumento(docId, nombre) {
+  try {
+    const res  = await fetch(`http://localhost:3000/api/documentos/descargar/${docId}`);
+    if (!res.ok) { alert("No se pudo descargar el archivo."); return; }
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch {
+    alert("Error al descargar el archivo.");
+  }
+}
+
+// Elimina un documento previa confirmación
+async function eliminarDocumento(docId) {
+  if (!confirm("¿Eliminar este documento? Esta acción no se puede deshacer.")) return;
+  try {
+    const res  = await fetch(`http://localhost:3000/api/documentos/${docId}`, { method: "DELETE" });
+    const data = await res.json();
+    if (data.success) {
+      cargarDocumentos(casoActivoId);
+    } else {
+      alert("Error al eliminar: " + (data.mensaje || ""));
+    }
+  } catch {
+    alert("Error al conectar con el servidor.");
+  }
+}
+
+async function cargarDocumentos(casoId) {
+  listaDocumentos = document.getElementById("listaDocumentos");
+  if (!listaDocumentos) return;
+  listaDocumentos.innerHTML = '<div class="small muted">Cargando documentos...</div>';
+  try {
+    const res  = await fetch(`http://localhost:3000/api/documentos/${casoId}`);
+    const data = await res.json();
+    const docs = Array.isArray(data) ? data : (data.documentos || data.data || []);
+    renderDocumentos(docs);
+  } catch {
+    listaDocumentos.innerHTML = '<div class="small muted">No se pudieron cargar los documentos.</div>';
+  }
+}
+
+async function subirArchivos(archivos) {
+  if (!archivos || archivos.length === 0 || !casoActivoId) return;
+
+  uploadProgress = document.getElementById("uploadProgress");
+  uploadBar      = document.getElementById("uploadBar");
+  uploadStatus   = document.getElementById("uploadStatus");
+
+  if (uploadProgress) uploadProgress.style.display = "block";
+  if (uploadBar)      uploadBar.style.width = "0%";
+  if (uploadStatus)   uploadStatus.textContent = `Subiendo 0 de ${archivos.length}...`;
+
+  const usr = JSON.parse(localStorage.getItem("usuario") || "{}");
+  let subidos = 0;
+
+  for (const archivo of archivos) {
+    const fd = new FormData();
+    fd.append("archivo", archivo);
+    fd.append("subido_por", usr.username || usr.nombre || "Usuario");
+
+    try {
+      const res  = await fetch(`http://localhost:3000/api/documentos/${casoActivoId}`, {
+        method: "POST",
+        body: fd
+      });
+      const data = await res.json();
+      if (!data.success) alert("Error al subir " + archivo.name + ": " + (data.mensaje || ""));
+    } catch {
+      alert("Error de conexión al subir " + archivo.name);
+    }
+
+    subidos++;
+    const pct = Math.round((subidos / archivos.length) * 100);
+    if (uploadBar)    uploadBar.style.width = pct + "%";
+    if (uploadStatus) uploadStatus.textContent = `Subiendo ${subidos} de ${archivos.length}...`;
+  }
+
+  setTimeout(() => {
+    if (uploadProgress) uploadProgress.style.display = "none";
+  }, 800);
+  inputArchivo = document.getElementById("inputArchivo");
+  if (inputArchivo) inputArchivo.value = "";
+  cargarDocumentos(casoActivoId);
+}
+
+// Inicializar eventos de la zona de upload
+// (se llama también cada vez que se abre el drawer)
+function iniciarEventosUpload() {
+  zonaUpload         = document.getElementById("zonaUpload");
+  inputArchivo       = document.getElementById("inputArchivo");
+  btnSeleccionarArch = document.getElementById("btnSeleccionarArchivo");
+
+  if (btnSeleccionarArch) {
+    btnSeleccionarArch.onclick = () => { if (inputArchivo) inputArchivo.click(); };
+  }
+  if (inputArchivo) {
+    inputArchivo.onchange = () => {
+      if (inputArchivo.files.length > 0) subirArchivos(inputArchivo.files);
+    };
+  }
+  if (zonaUpload) {
+    zonaUpload.ondragover  = e => {
+      e.preventDefault();
+      zonaUpload.style.borderColor = "var(--primary)";
+      zonaUpload.style.background  = "var(--chip)";
+    };
+    zonaUpload.ondragleave = () => {
+      zonaUpload.style.borderColor = "var(--line)";
+      zonaUpload.style.background  = "";
+    };
+    zonaUpload.ondrop = e => {
+      e.preventDefault();
+      zonaUpload.style.borderColor = "var(--line)";
+      zonaUpload.style.background  = "";
+      if (e.dataTransfer.files.length > 0) subirArchivos(e.dataTransfer.files);
+    };
+  }
+}

@@ -546,12 +546,37 @@
         <div class="card" style="box-shadow: none;">
           <div class="hd">
             <h2>Documentos</h2>
-            <div class="sub">Carga y gestión de archivos</div>
+            <div class="sub">Carga y descarga de archivos del caso</div>
           </div>
           <div class="bd">
-            <div class="field">
-              <label>Arrastra o selecciona archivos</label>
-              <div class="in" style="height: 54px;"></div>
+            <!-- Zona drag & drop -->
+            <div id="zonaUpload"
+                 style="border:2px dashed var(--line); border-radius:12px; padding:18px 16px;
+                        text-align:center; cursor:pointer; transition:all 0.2s;">
+              <div class="small muted" style="margin-bottom:8px;">
+                Arrastra archivos aquí o haz clic para seleccionar
+              </div>
+              <input type="file" id="inputArchivo" multiple style="display:none"
+                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls">
+              <button type="button" class="btn" id="btnSeleccionarArchivo"
+                      style="font-size:13px; padding:8px 14px;">
+                Seleccionar archivos
+              </button>
+            </div>
+            <!-- Barra de progreso -->
+            <div id="uploadProgress" style="display:none; margin-top:10px;">
+              <div style="background:var(--line); border-radius:999px; height:6px;">
+                <div id="uploadBar"
+                     style="background:var(--primary); height:6px; border-radius:999px;
+                            width:0%; transition:width 0.3s;"></div>
+              </div>
+              <div id="uploadStatus" class="small muted"
+                   style="margin-top:4px; text-align:center;">Subiendo...</div>
+            </div>
+            <!-- Lista de documentos -->
+            <div id="listaDocumentos"
+                 style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+              <div class="small muted">Selecciona un caso para ver sus documentos.</div>
             </div>
           </div>
         </div>
