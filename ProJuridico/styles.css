@@ -187,22 +187,6 @@ body {
   color: var(--primary);
 }
 
-/* Prioridad */
-.tag--alta {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.tag--media {
-  background: #fef9c3;
-  color: #92400e;
-}
-
-.tag--baja {
-  background: #dcfce7;
-  color: #15803d;
-}
-
 /* ── Campos base ── */
 .fieldgrid {
   display: grid;
@@ -273,6 +257,15 @@ th {
 }
 
 tr:last-child td { border-bottom: none; }
+
+tbody tr {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+tbody tr:hover {
+  background: #f0f4ff;
+}
 
 /* ── Details / summary ── */
 details > summary {

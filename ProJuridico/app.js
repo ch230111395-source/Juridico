@@ -140,66 +140,75 @@ async function cargarCasos() {
 // ========== CAMPOS POR TIPO ==========
 const camposPorTipo = {
   amparo: [
-    { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
-    { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: true },
-    { id: "juzgado", label: "Juzgado", type: "text", required: true },
-    { id: "actor", label: "Actor", type: "text", required: true },
-    { id: "demandado", label: "Demandado", type: "text", required: true },
-    { id: "asunto", label: "Asunto", type: "textarea", required: true }
+    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
+    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
+    { id: "asunto", label: "Asunto", type: "text", required: false },
+    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
+    { id: "demandado", label: "Demandado", type: "text", required: false },
+    { id: "juzgado", label: "Juzgado", type: "text", required: false },
+    { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: false }
   ],
   administrativo: [
-    { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
-    { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: true },
-    { id: "sala", label: "Sala", type: "text", required: true },
-    { id: "actor", label: "Actor", type: "text", required: true },
-    { id: "autoridad_demandada", label: "Autoridad Demandada", type: "text", required: true },
-    { id: "asunto", label: "Asunto", type: "textarea", required: true }
+    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
+    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
+    { id: "asunto", label: "Asunto", type: "text", required: false },
+    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
+    { id: "autoridad_demandada", label: "Autoridad Demandada", type: "text", required: false },
+    { id: "sala", label: "Sala", type: "text", required: false },
+    { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: false }
   ],
   laboral: [
-    { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
-    { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: true },
-    { id: "mesa", label: "Mesa", type: "text", required: true },
-    { id: "administracion", label: "Administración", type: "text", required: true },
-    { id: "actor", label: "Actor (Demandante)", type: "text", required: true },
-    { id: "area_departamento", label: "Área/Departamento", type: "text", required: true },
-    { id: "asunto", label: "Asunto", type: "textarea", required: true }
+    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
+    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
+    { id: "asunto", label: "Asunto", type: "text", required: false },
+    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
+    { id: "actor", label: "Actor (Demandante)", type: "text", required: false },
+    { id: "area_departamento", label: "Área/Departamento", type: "text", required: false },
+    { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: false }
   ],
   civil: [
-    { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
-    { id: "fecha_inicio", label: "Fecha de Inicio", type: "date", required: true },
-    { id: "juzgado", label: "Juzgado", type: "text", required: true },
-    { id: "actor", label: "Actor", type: "text", required: true },
-    { id: "demandado", label: "Demandado", type: "text", required: true },
-    { id: "asunto", label: "Asunto", type: "textarea", required: true }
+    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
+    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
+    { id: "asunto", label: "Asunto", type: "text", required: false },
+    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
+    { id: "demandado", label: "Demandado", type: "text", required: false },
+    { id: "juzgado", label: "Juzgado", type: "text", required: false },
+    { id: "fecha_inicio", label: "Fecha de Inicio", type: "date", required: false }
   ],
   mercantil: [
-    { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
-    { id: "fecha_inicio", label: "Fecha de Inicio", type: "date", required: true },
-    { id: "juzgado", label: "Juzgado", type: "text", required: true },
-    { id: "actor", label: "Actor", type: "text", required: true },
-    { id: "demandado", label: "Demandado", type: "text", required: true },
-    { id: "asunto", label: "Asunto", type: "textarea", required: true }
+    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
+    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
+    { id: "asunto", label: "Asunto", type: "text", required: false },
+    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
+    { id: "demandado", label: "Demandado", type: "text", required: false },
+    { id: "juzgado", label: "Juzgado", type: "text", required: false },
+    { id: "fecha_inicio", label: "Fecha de Inicio", type: "date", required: false }
   ],
   penal: [
-    { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
-    { id: "año", label: "Año", type: "number", required: true },
-    { id: "juzgado", label: "Juzgado", type: "text", required: true },
-    { id: "actor", label: "Ministerio Público / Actor", type: "text", required: true },
-    { id: "demandado", label: "Imputado/Demandado", type: "text", required: true },
-    { id: "asunto", label: "Delito/Asunto", type: "textarea", required: true }
+    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
+    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
+    { id: "asunto", label: "Delito/Asunto", type: "text", required: false },
+    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
+    { id: "demandado", label: "Imputado/Demandado", type: "text", required: false },
+    { id: "juzgado", label: "Juzgado", type: "text", required: false },
+    { id: "año", label: "Año", type: "number", required: false }
   ],
   agrario: [
-    { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
-    { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: true },
-    { id: "juzgado", label: "Juzgado", type: "text", required: true },
-    { id: "actor", label: "Actor", type: "text", required: true },
-    { id: "asunto", label: "Asunto", type: "textarea", required: true }
+    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
+    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
+    { id: "asunto", label: "Asunto", type: "text", required: false },
+    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
+    { id: "demandado", label: "Demandado", type: "text", required: false },
+    { id: "juzgado", label: "Juzgado", type: "text", required: false },
+    { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: false }
   ],
   varios: [
-    { id: "numero_expediente", label: "Número de Expediente", type: "text", required: true },
-    { id: "fecha_recibido", label: "Fecha Recibido", type: "date", required: true },
-    { id: "actor", label: "Remitente/Actor", type: "text", required: true },
-    { id: "asunto", label: "Asunto General", type: "textarea", required: true }
+    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
+    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
+    { id: "asunto", label: "Asunto General", type: "text", required: false },
+    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
+    { id: "actor", label: "Remitente/Actor", type: "text", required: false },
+    { id: "fecha_recibido", label: "Fecha Recibido", type: "date", required: false }
   ]
 };
 
@@ -236,15 +245,24 @@ function mostrarCamposModal(tipo) {
     let input;
     if (campo.type === "textarea") {
       input = document.createElement("textarea");
+      input.placeholder = `Ingresa ${campo.label.toLowerCase()}`;
+    } else if (campo.type === "select") {
+      input = document.createElement("select");
+      (campo.options || []).forEach(opt => {
+        const o = document.createElement("option");
+        o.value = opt;
+        o.textContent = opt;
+        input.appendChild(o);
+      });
     } else {
       input = document.createElement("input");
       input.type = campo.type;
+      input.placeholder = `Ingresa ${campo.label.toLowerCase()}`;
     }
 
     input.id = campo.id;
     input.name = campo.id;
     input.required = campo.required;
-    input.placeholder = `Ingresa ${campo.label.toLowerCase()}`;
 
     fieldDiv.appendChild(label);
     fieldDiv.appendChild(input);
@@ -297,9 +315,9 @@ if (formNuevoCaso) {
     const nuevoCase = {
       tipo: tipo,
       ...datos,
-      prioridad: "Media",
-      estado: "Pendiente",
-      asignado: "Por asignar"
+      prioridad: datos.prioridad || "Media",
+      estado: datos.estado_procesal || "Pendiente",
+      asignado: datos.abogado_encargado || "Sin asignar"
     };
 
     try {
@@ -318,7 +336,7 @@ if (formNuevoCaso) {
         cerrarModalNuevoCaso();
         cargarCasos(); // recarga datos frescos de la API
       } else {
-        alert(data.message || "Error al crear el caso");
+        alert(data.mensaje || data.message || "Error al crear el caso");
       }
     } catch (error) {
       console.error("Error:", error);
@@ -350,15 +368,24 @@ function mostrarCampos() {
     let input;
     if (campo.type === "textarea") {
       input = document.createElement("textarea");
+      input.placeholder = `Ingresa ${campo.label.toLowerCase()}`;
+    } else if (campo.type === "select") {
+      input = document.createElement("select");
+      (campo.options || []).forEach(opt => {
+        const o = document.createElement("option");
+        o.value = opt;
+        o.textContent = opt;
+        input.appendChild(o);
+      });
     } else {
       input = document.createElement("input");
       input.type = campo.type;
+      input.placeholder = `Ingresa ${campo.label.toLowerCase()}`;
     }
 
     input.id = "inline_" + campo.id;
     input.name = campo.id;
     input.required = campo.required;
-    input.placeholder = `Ingresa ${campo.label.toLowerCase()}`;
 
     fieldDiv.appendChild(label);
     fieldDiv.appendChild(input);
@@ -388,7 +415,7 @@ if (formInline) {
     const tipo = document.getElementById("tipo_caso").value;
     const formData = new FormData(formInline);
     const datos = Object.fromEntries(formData);
-    const nuevoCase = { tipo, ...datos, prioridad: "Media", estado: "Pendiente", asignado: "Por asignar" };
+    const nuevoCase = { tipo, ...datos, prioridad: datos.prioridad || "Media", estado: datos.estado_procesal || "Pendiente", asignado: datos.abogado_encargado || "Sin asignar" };
 
     try {
       const response = await fetch("http://localhost:3000/api/casos", {
@@ -405,7 +432,7 @@ if (formInline) {
         if (details) details.open = false;
         cargarCasos(); // recarga datos frescos de la API
       } else {
-        alert(data.message || "Error al crear el caso");
+        alert(data.mensaje || data.message || "Error al crear el caso");
       }
     } catch (err) {
       console.error(err);
@@ -480,12 +507,19 @@ function applyPreset(tipo) {
 function openDrawer(item) {
   if (!item) return;
 
+  // Guardar el id numérico real para las llamadas a la API de notas
+  casoActivoId = item._raw ? (item._raw.id || item._raw._id || item._raw.caso_id) : item.id;
+
   document.getElementById("drawerTitle").textContent = item.id;
   document.getElementById("drawerSubtitle").textContent = `· ${item.tipo}`;
   document.getElementById("d_tipo").textContent = item.tipo;
   document.getElementById("d_prioridad").textContent = item.prioridad;
   document.getElementById("d_estado").textContent = item.estado;
   document.getElementById("d_asignado").textContent = item.asignado;
+
+  // Limpiar nota anterior y cargar notas del caso
+  if (inputNuevaNota) inputNuevaNota.value = "";
+  cargarNotas(casoActivoId);
 
   mask.classList.add("show");
 }
@@ -533,6 +567,73 @@ if (btnLogout) {
   btnLogout.addEventListener("click", () => {
     localStorage.removeItem("usuario");
     window.location.href = "index.html";
+  });
+}
+
+// ========== NOTAS DEL CASO ==========
+
+let casoActivoId = null;
+
+const btnGuardarNota = document.getElementById("btnGuardarNota");
+const btnLimpiarNota = document.getElementById("btnLimpiarNota");
+const inputNuevaNota = document.getElementById("inputNuevaNota");
+const listaNotas = document.getElementById("listaNotas");
+
+function renderNotas(notas) {
+  if (!listaNotas) return;
+  if (!notas || notas.length === 0) {
+    listaNotas.innerHTML = '<div class="small muted">Sin notas registradas.</div>';
+    return;
+  }
+  listaNotas.innerHTML = notas.map(n => `
+    <div class="nota-item card" style="box-shadow:none; padding: 12px 14px;">
+      <div class="small muted">${n.fecha || ""} · ${n.usuario || "Sistema"}</div>
+      <div style="margin-top:4px;">${n.texto || n.nota || n.contenido || ""}</div>
+    </div>
+  `).join("");
+}
+
+async function cargarNotas(casoId) {
+  if (!listaNotas) return;
+  listaNotas.innerHTML = '<div class="small muted">Cargando notas...</div>';
+  try {
+    const res = await fetch(`http://localhost:3000/api/casos/${casoId}/notas`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const notas = Array.isArray(data) ? data : (data.notas || data.data || []);
+    renderNotas(notas);
+  } catch {
+    listaNotas.innerHTML = '<div class="small muted">No se pudieron cargar las notas.</div>';
+  }
+}
+
+if (btnGuardarNota) {
+  btnGuardarNota.addEventListener("click", async () => {
+    if (!casoActivoId || !inputNuevaNota) return;
+    const texto = inputNuevaNota.value.trim();
+    if (!texto) return;
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/casos/${casoActivoId}/notas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto })
+      });
+      if (res.ok) {
+        inputNuevaNota.value = "";
+        cargarNotas(casoActivoId);
+      } else {
+        alert("Error al guardar la nota");
+      }
+    } catch {
+      alert("Error al conectar con el servidor");
+    }
+  });
+}
+
+if (btnLimpiarNota) {
+  btnLimpiarNota.addEventListener("click", () => {
+    if (inputNuevaNota) inputNuevaNota.value = "";
   });
 }
 
