@@ -32,10 +32,9 @@ body {
 
 /* ── Sidebar ── */
 .sidebar {
-  background: #ffffff;
-  color: var(--text);
+  background: #111827;
+  color: #fff;
   padding: 24px;
-  border-right: 1px solid var(--line);
 }
 
 .brand {
@@ -65,7 +64,7 @@ body {
 .nav button {
   border: 0;
   background: transparent;
-  color: var(--text);
+  color: #fff;
   text-align: left;
   padding: 12px 14px;
   border-radius: 10px;
@@ -75,8 +74,7 @@ body {
 
 .nav button.active,
 .nav button:hover {
-  background: var(--chip);
-  color: var(--primary);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* ── Main ── */
