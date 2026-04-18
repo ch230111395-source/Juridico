@@ -138,79 +138,113 @@ async function cargarCasos() {
 }
 
 // ========== CAMPOS POR TIPO ==========
+// Nombres de campos y valores exactos del backend (tomados del dashboard original)
 const camposPorTipo = {
   amparo: [
-    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
-    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
-    { id: "asunto", label: "Asunto", type: "text", required: false },
-    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
-    { id: "demandado", label: "Demandado", type: "text", required: false },
-    { id: "juzgado", label: "Juzgado", type: "text", required: false },
-    { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: false }
+    { name: "expediente",        label: "Expediente",              type: "text"   },
+    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
+      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
+    { name: "asunto",            label: "Asunto",                  type: "text"   },
+    { name: "fecha_emplazamiento",label:"Fecha de emplazamiento",  type: "date"   },
+    { name: "abogado_encargado", label: "Abogado encargado",       type: "text"   },
+    { name: "actor",             label: "Actor",                   type: "text"   },
+    { name: "demandado",         label: "Demandado",               type: "text"   },
+    { name: "juzgado",           label: "Juzgado",                 type: "text"   }
   ],
   administrativo: [
-    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
-    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
-    { id: "asunto", label: "Asunto", type: "text", required: false },
-    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
-    { id: "autoridad_demandada", label: "Autoridad Demandada", type: "text", required: false },
-    { id: "sala", label: "Sala", type: "text", required: false },
-    { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: false }
+    { name: "expediente",        label: "Expediente",              type: "text"   },
+    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
+      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
+    { name: "asunto",            label: "Asunto",                  type: "text"   },
+    { name: "fecha_emplazamiento",label:"Fecha de emplazamiento",  type: "date"   },
+    { name: "sala",              label: "Sala",                    type: "text"   },
+    { name: "actor",             label: "Actor",                   type: "text"   }
   ],
   laboral: [
-    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
-    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
-    { id: "asunto", label: "Asunto", type: "text", required: false },
-    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
-    { id: "actor", label: "Actor (Demandante)", type: "text", required: false },
-    { id: "area_departamento", label: "Área/Departamento", type: "text", required: false },
-    { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: false }
+    { name: "expediente",        label: "Expediente",              type: "text"   },
+    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
+      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
+    { name: "actor",             label: "Actor",                   type: "text"   },
+    { name: "fecha_emplazamiento",label:"Fecha de emplazamiento",  type: "date"   },
+    { name: "mesa",              label: "Mesa",                    type: "text"   },
+    { name: "numero",            label: "Número",                  type: "text"   }
   ],
   civil: [
-    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
-    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
-    { id: "asunto", label: "Asunto", type: "text", required: false },
-    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
-    { id: "demandado", label: "Demandado", type: "text", required: false },
-    { id: "juzgado", label: "Juzgado", type: "text", required: false },
-    { id: "fecha_inicio", label: "Fecha de Inicio", type: "date", required: false }
+    { name: "expediente",        label: "Expediente",              type: "text"   },
+    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
+      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
+    { name: "asunto",            label: "Asunto",                  type: "text"   },
+    { name: "fecha_emplazamiento",label:"Fecha de inicio",         type: "date"   },
+    { name: "juzgado",           label: "Juzgado",                 type: "text"   },
+    { name: "actor",             label: "Actor",                   type: "text"   },
+    { name: "demandado",         label: "Demandado",               type: "text"   }
   ],
   mercantil: [
-    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
-    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
-    { id: "asunto", label: "Asunto", type: "text", required: false },
-    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
-    { id: "demandado", label: "Demandado", type: "text", required: false },
-    { id: "juzgado", label: "Juzgado", type: "text", required: false },
-    { id: "fecha_inicio", label: "Fecha de Inicio", type: "date", required: false }
+    { name: "expediente",        label: "Expediente",              type: "text"   },
+    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
+      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
+    { name: "asunto",            label: "Asunto",                  type: "text"   },
+    { name: "fecha_emplazamiento",label:"Fecha",                   type: "date"   },
+    { name: "juzgado",           label: "Juzgado",                 type: "text"   },
+    { name: "actor",             label: "Actor",                   type: "text"   }
   ],
   penal: [
-    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
-    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
-    { id: "asunto", label: "Delito/Asunto", type: "text", required: false },
-    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
-    { id: "demandado", label: "Imputado/Demandado", type: "text", required: false },
-    { id: "juzgado", label: "Juzgado", type: "text", required: false },
-    { id: "año", label: "Año", type: "number", required: false }
+    { name: "expediente",        label: "Expediente",              type: "text"   },
+    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
+      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
+    { name: "asunto",            label: "Asunto",                  type: "text"   },
+    { name: "juzgado",           label: "Juzgado",                 type: "text"   },
+    { name: "actor",             label: "Actor",                   type: "text"   },
+    { name: "demandado",         label: "Demandado",               type: "text"   }
   ],
   agrario: [
-    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
-    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
-    { id: "asunto", label: "Asunto", type: "text", required: false },
-    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
-    { id: "demandado", label: "Demandado", type: "text", required: false },
-    { id: "juzgado", label: "Juzgado", type: "text", required: false },
-    { id: "fecha_emplazamiento", label: "Fecha de Emplazamiento", type: "date", required: false }
+    { name: "expediente",        label: "Expediente",              type: "text"   },
+    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
+      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
+    { name: "asunto",            label: "Asunto",                  type: "text"   },
+    { name: "fecha_emplazamiento",label:"Fecha de emplazamiento",  type: "date"   },
+    { name: "actor",             label: "Actor",                   type: "text"   }
   ],
   varios: [
-    { id: "numero_expediente", label: "Expediente", type: "text", required: true },
-    { id: "estado_procesal", label: "Estado Procesal", type: "select", options: ["En Proceso","Sin Asignar","Asignado","Finalizado","Sin Actividad"], required: false },
-    { id: "asunto", label: "Asunto General", type: "text", required: false },
-    { id: "abogado_encargado", label: "Abogado Encargado", type: "text", required: false },
-    { id: "actor", label: "Remitente/Actor", type: "text", required: false },
-    { id: "fecha_recibido", label: "Fecha Recibido", type: "date", required: false }
+    { name: "expediente",        label: "Expediente",              type: "text"   },
+    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
+      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
+    { name: "asunto",            label: "Asunto",                  type: "text"   },
+    { name: "fecha_emplazamiento",label:"Fecha recibido",          type: "date"   }
   ]
 };
+
+// Renderiza campos en cualquier contenedor, usando name= como atributo
+function renderCampos(campos, contenedor, idPrefix = "") {
+  contenedor.innerHTML = "";
+  campos.forEach(campo => {
+    const div = document.createElement("div");
+    div.className = "field";
+
+    const label = document.createElement("label");
+    label.textContent = campo.label;
+
+    let el;
+    if (campo.type === "select") {
+      el = document.createElement("select");
+      campo.options.forEach(([val, txt]) => {
+        const o = document.createElement("option");
+        o.value = val;
+        o.textContent = txt;
+        el.appendChild(o);
+      });
+    } else {
+      el = document.createElement("input");
+      el.type = campo.type;
+    }
+    el.name = campo.name;
+    if (idPrefix) el.id = idPrefix + campo.name;
+
+    div.appendChild(label);
+    div.appendChild(el);
+    contenedor.appendChild(div);
+  });
+}
 
 // ========== FUNCIONES PARA MODAL ==========
 
@@ -231,43 +265,7 @@ function cerrarModalNuevoCaso() {
 
 function mostrarCamposModal(tipo) {
   if (!camposRelevantesModal) return;
-  const campos = camposPorTipo[tipo] || [];
-  camposRelevantesModal.innerHTML = "";
-
-  campos.forEach(campo => {
-    const fieldDiv = document.createElement("div");
-    fieldDiv.className = "field";
-
-    const label = document.createElement("label");
-    label.htmlFor = campo.id;
-    label.textContent = campo.label + (campo.required ? " *" : "");
-
-    let input;
-    if (campo.type === "textarea") {
-      input = document.createElement("textarea");
-      input.placeholder = `Ingresa ${campo.label.toLowerCase()}`;
-    } else if (campo.type === "select") {
-      input = document.createElement("select");
-      (campo.options || []).forEach(opt => {
-        const o = document.createElement("option");
-        o.value = opt;
-        o.textContent = opt;
-        input.appendChild(o);
-      });
-    } else {
-      input = document.createElement("input");
-      input.type = campo.type;
-      input.placeholder = `Ingresa ${campo.label.toLowerCase()}`;
-    }
-
-    input.id = campo.id;
-    input.name = campo.id;
-    input.required = campo.required;
-
-    fieldDiv.appendChild(label);
-    fieldDiv.appendChild(input);
-    camposRelevantesModal.appendChild(fieldDiv);
-  });
+  renderCampos(camposPorTipo[tipo] || [], camposRelevantesModal);
 }
 
 // ========== EVENTOS PARA MODAL ==========
@@ -312,35 +310,26 @@ if (formNuevoCaso) {
     const formData = new FormData(formNuevoCaso);
     const datos = Object.fromEntries(formData);
 
-    const nuevoCase = {
-      tipo: tipo,
-      ...datos,
-      prioridad: datos.prioridad || "Media",
-      estado: datos.estado_procesal || "Pendiente",
-      asignado: datos.abogado_encargado || "Sin asignar"
-    };
+    // Payload con nombres exactos que espera el backend
+    const nuevoCase = { tipo_caso: tipo, ...datos };
 
     try {
-      const response = await fetch("http://localhost:3000/api/casos", {
+      const res = await fetch("http://localhost:3000/api/nuevocaso", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(nuevoCase)
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert("Caso creado exitosamente");
+      const result = await res.json();
+      if (result.success) {
+        alert("✅ Caso guardado con ID: " + result.id);
         cerrarModalNuevoCaso();
-        cargarCasos(); // recarga datos frescos de la API
+        cargarCasos();
       } else {
-        alert(data.mensaje || data.message || "Error al crear el caso");
+        alert("❌ Error: " + (result.mensaje || "No se pudo guardar el caso"));
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al conectar con el servidor");
+      alert("❌ No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?");
     }
   });
 }
@@ -350,47 +339,10 @@ if (formNuevoCaso) {
 // Mismos campos que el modal pero para el <details> de la vista de casos
 
 function mostrarCampos() {
-  const tipo = document.getElementById("tipo_caso");
+  const tipoEl = document.getElementById("tipo_caso");
   const contenedor = document.getElementById("campos_relevantes");
-  if (!tipo || !contenedor) return;
-
-  const campos = camposPorTipo[tipo.value] || [];
-  contenedor.innerHTML = "";
-
-  campos.forEach(campo => {
-    const fieldDiv = document.createElement("div");
-    fieldDiv.className = "field";
-
-    const label = document.createElement("label");
-    label.htmlFor = "inline_" + campo.id;
-    label.textContent = campo.label + (campo.required ? " *" : "");
-
-    let input;
-    if (campo.type === "textarea") {
-      input = document.createElement("textarea");
-      input.placeholder = `Ingresa ${campo.label.toLowerCase()}`;
-    } else if (campo.type === "select") {
-      input = document.createElement("select");
-      (campo.options || []).forEach(opt => {
-        const o = document.createElement("option");
-        o.value = opt;
-        o.textContent = opt;
-        input.appendChild(o);
-      });
-    } else {
-      input = document.createElement("input");
-      input.type = campo.type;
-      input.placeholder = `Ingresa ${campo.label.toLowerCase()}`;
-    }
-
-    input.id = "inline_" + campo.id;
-    input.name = campo.id;
-    input.required = campo.required;
-
-    fieldDiv.appendChild(label);
-    fieldDiv.appendChild(input);
-    contenedor.appendChild(fieldDiv);
-  });
+  if (!tipoEl || !contenedor) return;
+  renderCampos(camposPorTipo[tipoEl.value] || [], contenedor);
 }
 
 // Inicializar campos del formulario inline al cargar
@@ -415,28 +367,29 @@ if (formInline) {
     const tipo = document.getElementById("tipo_caso").value;
     const formData = new FormData(formInline);
     const datos = Object.fromEntries(formData);
-    const nuevoCase = { tipo, ...datos, prioridad: datos.prioridad || "Media", estado: datos.estado_procesal || "Pendiente", asignado: datos.abogado_encargado || "Sin asignar" };
+    // Payload con nombres exactos que espera el backend
+    const nuevoCase = { tipo_caso: tipo, ...datos };
 
     try {
-      const response = await fetch("http://localhost:3000/api/casos", {
+      const res = await fetch("http://localhost:3000/api/nuevocaso", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(nuevoCase)
       });
-      const data = await response.json();
-      if (response.ok) {
-        alert("Caso creado exitosamente");
+      const result = await res.json();
+      if (result.success) {
+        alert("✅ Caso guardado con ID: " + result.id);
         formInline.reset();
         mostrarCampos();
         const details = document.getElementById("detallesNuevoCaso");
         if (details) details.open = false;
-        cargarCasos(); // recarga datos frescos de la API
+        cargarCasos();
       } else {
-        alert(data.mensaje || data.message || "Error al crear el caso");
+        alert("❌ Error: " + (result.mensaje || "No se pudo guardar el caso"));
       }
     } catch (err) {
       console.error(err);
-      alert("Error al conectar con el servidor");
+      alert("❌ No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?");
     }
   });
 }
