@@ -102,11 +102,21 @@ app.post('/api/login', (req, res) => {
 // Agregar casos
 // Ruta para agregar un nuevo caso
 app.post('/api/nuevocaso', (req, res) => {
-  console.log(req);
+  console.log("BODY:", req.body);
   const { 
-    tipo_caso, expediente, estado_procesal, asunto, 
-    abogado_encargado, fecha_emplazamiento, juzgado, 
-    actor, demandado, sala, mesa, numero 
+    tipo_caso,
+  expediente,
+  estado_procesal,
+  asunto,
+  prioridad,
+  abogado_encargado,
+  fecha_emplazamiento,
+  juzgado,
+  actor,
+  demandado,
+  sala,
+  mesa,
+  numero
   } = req.body;
 
   let sql = "";
@@ -114,63 +124,65 @@ app.post('/api/nuevocaso', (req, res) => {
   const tipo = tipo_caso ? tipo_caso.toLowerCase() : '';
 
   // Mapeo exacto según tu bdjuridico.sql
+  // ----------------- Modificacion echa por Fer el 18 -------------------------
   switch (tipo) {
   case 'amparo':
     sql = `INSERT INTO amparos 
-      (expediente, estado_procesal, asunto, fecha_emplazamiento, abogado_encargado, actor, demandado, juzgado, estado_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`;
-    params = [expediente, estado_procesal, asunto, fecha_emplazamiento, abogado_encargado, actor, demandado, juzgado];
+      (expediente, estado_procesal, asunto, juzgado, actor, demandado, prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
+    params = [expediente, estado_procesal, asunto, juzgado, actor, demandado, prioridad];
     break;
 
   case 'administrativo':
     sql = `INSERT INTO administrativos 
-      (expediente, estado_procesal, asunto, fecha_emplazamiento, sala, actor, estado_id) 
-      VALUES (?, ?, ?, ?, ?, ?, 1)`;
-    params = [expediente, estado_procesal, asunto, fecha_emplazamiento, sala, actor];
+      (expediente, estado_procesal, asunto, fecha_emplazamiento, sala, actor, prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
+    params = [expediente, estado_procesal, asunto, fecha_emplazamiento, sala, actor, prioridad];
     break;
 
   case 'laboral':
     sql = `INSERT INTO laborales 
-      (expediente, estado_procesal, actor, emplazamiento, mesa, numero, estado_id) 
-      VALUES (?, ?, ?, ?, ?, ?, 1)`;
-    params = [expediente, estado_procesal, actor, fecha_emplazamiento, mesa, numero];
+      (expediente, estado_procesal, actor, emplazamiento, mesa, numero,prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
+    params = [expediente, estado_procesal, actor, fecha_emplazamiento, mesa, numero, prioridad];
     break;
 
   case 'civil':
     sql = `INSERT INTO civiles 
-      (expediente, estado_procesal, asunto, fecha_inicio, juzgado, actor, demandado, estado_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
-    params = [expediente, estado_procesal, asunto, fecha_emplazamiento, juzgado, actor, demandado];
+      (expediente, estado_procesal, asunto, fecha_inicio, juzgado, actor, demandado, prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`;
+    params = [expediente, estado_procesal, asunto, fecha_emplazamiento, juzgado, actor, demandado, prioridad];
     break;
 
   case 'mercantil':
     sql = `INSERT INTO mercantiles 
-      (expediente, estado_procesal, asunto, fecha, juzgado, actor, estado_id) 
-      VALUES (?, ?, ?, ?, ?, ?, 1)`;
-    params = [expediente, estado_procesal, asunto, fecha_emplazamiento, juzgado, actor];
+      (expediente, estado_procesal, asunto, fecha, juzgado, actor,prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
+    params = [expediente, estado_procesal, asunto, fecha_emplazamiento, juzgado, actor, prioridad];
     break;
 
   case 'penal':
     // ⚠️ penales NO tiene fecha_emplazamiento en tu schema
     sql = `INSERT INTO penales 
-      (expediente, estado_procesal, asunto, juzgado, actor, demandado, estado_id) 
-      VALUES (?, ?, ?, ?, ?, ?, 1)`;
-    params = [expediente, estado_procesal, asunto, juzgado, actor, demandado];
+     (expediente, estado_procesal, asunto, juzgado, actor, demandado, prioridad, estado_id) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
+
+    params = [expediente,estado_procesal,asunto,juzgado, actor,demandado,prioridad];
     break;
 
   case 'agrario':
     // ⚠️ agrarios NO tiene demandado en tu schema
     sql = `INSERT INTO agrarios 
-      (expediente, estado_procesal, asunto, fecha_emplazamiento, actor, estado_id) 
-      VALUES (?, ?, ?, ?, ?, 1)`;
-    params = [expediente, estado_procesal, asunto, fecha_emplazamiento, actor];
+      (expediente, estado_procesal, asunto, fecha_emplazamiento, actor, prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, 1)`;
+    params = [expediente, estado_procesal, asunto, fecha_emplazamiento, actor, prioridad];
     break;
 
   case 'varios':
     sql = `INSERT INTO exp_varios 
-      (expediente, estado_procesal, asunto, fecha_recibido, estado_id) 
-      VALUES (?, ?, ?, ?, 1)`;
-    params = [expediente, estado_procesal, asunto, fecha_emplazamiento];
+      (expediente, estado_procesal, asunto, fecha_recibido, prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, 1)`;
+    params = [expediente, estado_procesal, asunto, fecha_emplazamiento, prioridad];
     break;
 
   default:
@@ -244,13 +256,13 @@ app.get('/api/casos', (req, res) => {
         mensaje: "Error al consultar casos"
       });
     }
-
+   // ----------------- Modificacion echa por Fer el 18 -------------------------
     const casos = results.map(caso => ({
       id: caso.id,
       id_display: `${caso.tipo.toUpperCase()}-${caso.id}`,
       nombre: caso.asunto || caso.actor || caso.expediente || "Sin nombre",
       tipo: caso.tipo,
-      prioridad: "Media",
+      prioridad: caso.prioridad || "Media",
       estado: caso.estado_procesal || "—",
       asignado: "Sin asignar"
     }));
