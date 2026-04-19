@@ -278,6 +278,44 @@ app.get('/api/casos', (req, res) => {
     });
   });
 });
+
+// GET /api/usuarios → lista de usuarios
+app.get('/api/usuarios', (req, res) => {
+  const sql = `SELECT id, nombre, rol, email, activo FROM usuarios ORDER BY id ASC`;
+  db.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ success: false, mensaje: err.message });
+    res.json({ success: true, usuarios: results });
+  });
+});
+
+app.post('/api/usuarios', (req, res) => {
+  const { nombre, username, email, rol, password, activo } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ success: false, mensaje: "Usuario y contraseña son obligatorios." });
+  }
+
+  const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+
+  const sql = `INSERT INTO usuarios (nombre, username, email, rol, password_hash, activo) 
+               VALUES (?, ?, ?, ?, ?, ?)`;
+  const params = [nombre, username, email, rol || 'ABOGADO', passwordHash, activo ?? 1];
+
+  db.query(sql, params, (err, result) => {
+    if (err) {
+      // Detecta username o email duplicado
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ success: false, mensaje: "El usuario o correo ya existe." });
+      }
+      // Detecta triggers de ADMIN/SECRETARIA únicos
+      if (err.sqlState === '45000') {
+        return res.status(409).json({ success: false, mensaje: err.message });
+      }
+      return res.status(500).json({ success: false, mensaje: err.message });
+    }
+    res.json({ success: true, mensaje: "Usuario creado.", id: result.insertId });
+  });
+});
 //-----------------PRUEBA-------------------------
 
 // ─────────────────────────────────────────

@@ -793,4 +793,86 @@ function iniciarEventosUpload() {
       if (e.dataTransfer.files.length > 0) subirArchivos(e.dataTransfer.files);
     };
   }
+// ← aquí cierra iniciarEventosUpload correctamente
+}
+
+// ========== USUARIOS ==========
+async function cargarUsuarios() {
+  const tbody = document.getElementById("usuariosTbody");
+  if (!tbody) return;
+
+  try {
+    const res = await fetch("http://localhost:3000/api/usuarios");
+    const data = await res.json();
+
+    if (!data.success || !data.usuarios.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="muted" 
+        style="text-align:center; padding:24px;">Sin usuarios registrados.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.usuarios.map(u => `
+      <tr>
+        <td><span class="tag">USR-${String(u.id).padStart(4, "0")}</span></td>
+        <td>${u.nombre || "—"}</td>
+        <td class="muted">${u.rol || "—"}</td>
+        <td class="muted">${u.email || "—"}</td>
+        <td>${u.activo ? "Activo" : "Inactivo"}</td>
+      </tr>
+    `).join("");
+
+  } catch (err) {
+    console.error("Error cargando usuarios:", err);
+    tbody.innerHTML = `<tr><td colspan="5" class="muted" 
+      style="text-align:center; padding:24px;">Error al cargar usuarios.</td></tr>`;
+  }
+}
+
+cargarUsuarios();
+const formUsuario = document.getElementById("formUsuario");
+if (formUsuario) {
+  formUsuario.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const datos = {
+      nombre:   document.getElementById("usuario_nombre").value.trim(),
+      username: document.getElementById("usuario_username").value.trim(),
+      email:    document.getElementById("usuario_email").value.trim(),
+      rol:      document.getElementById("usuario_rol").value,
+      password: document.getElementById("usuario_password").value,
+      activo:   document.getElementById("usuario_activo").value
+    };
+
+    if (!datos.username || !datos.password) {
+      alert("Usuario y contraseña son obligatorios.");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:3000/api/usuarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datos)
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        alert("✅ Usuario creado correctamente.");
+        formUsuario.reset();
+        cargarUsuarios(); // refresca la tabla
+      } else {
+        alert("❌ " + result.mensaje);
+      }
+    } catch (err) {
+      alert("❌ No se pudo conectar con el servidor.");
+    }
+  });
+}
+
+// ── Botón limpiar ──
+const btnLimpiarUsuario = document.getElementById("btnLimpiarUsuario");
+if (btnLimpiarUsuario) {
+  btnLimpiarUsuario.addEventListener("click", () => {
+    document.getElementById("formUsuario").reset();
+  });
 }

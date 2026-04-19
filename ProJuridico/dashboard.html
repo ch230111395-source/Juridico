@@ -123,7 +123,7 @@
                   <option value="Administrativo">Administrativo</option>
                   <option value="Agrario">Agrario</option>
                 </select>
-                
+
                 <button class="btn" id="btnFiltroPrioridad">Prioridad</button>
                 <button class="btn" id="btnFiltroEstado">Estado</button>
                 <button class="btn" id="btnFiltroArchivados">Archivados</button>
@@ -150,15 +150,15 @@
                         <option value="varios">Varios</option>
                       </select>
                     </div>
-                     <!-- Modificación echa por Fer el 18 -->
-                  <div class="field">
-                     <label for="prioridad">Prioridad</label>
-                     <select id="prioridad" name="prioridad">
-                       <option value="Alta">Alta</option>
-                       <option value="Media" selected>Media</option>
-                       <option value="Baja">Baja</option>
-                     </select>
-                   </div>
+                    <!-- Modificación echa por Fer el 18 -->
+                    <div class="field">
+                      <label for="prioridad">Prioridad</label>
+                      <select id="prioridad" name="prioridad">
+                        <option value="Alta">Alta</option>
+                        <option value="Media" selected>Media</option>
+                        <option value="Baja">Baja</option>
+                      </select>
+                    </div>
                   </div>
                   <div class="fieldgrid" id="campos_relevantes"></div>
                   <div class="rightActions">
@@ -171,7 +171,8 @@
               <div class="divider"></div>
               <div class="small">Doble clic en un renglón para abrir el detalle del caso.</div>
 
-              <div style="margin-top: 10px; padding: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden;">
+              <div
+                style="margin-top: 10px; padding: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden;">
                 <table aria-label="Tabla de casos" id="tablaCasos">
                   <thead>
                     <tr>
@@ -204,7 +205,7 @@
               <span class="pill">Vista</span>
             </div>
             <div class="bd">
-              
+
               <div class="row">
                 <button class="btn" id="btnAsignar">Asignar</button>
                 <button class="btn" id="btnReasignar">Reasignar</button>
@@ -239,27 +240,11 @@
                     <th>Estado</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="usuariosTbody">
                   <tr>
-                    <td><span class="tag">USR-0007</span></td>
-                    <td>Abg. Andrea M.</td>
-                    <td class="muted">Abogado</td>
-                    <td class="muted">andrea@...</td>
-                    <td>Activo</td>
-                  </tr>
-                  <tr>
-                    <td><span class="tag">USR-0012</span></td>
-                    <td>Lic. Carlos R.</td>
-                    <td class="muted">Administrador</td>
-                    <td class="muted">carlos@...</td>
-                    <td>Activo</td>
-                  </tr>
-                  <tr>
-                    <td><span class="tag">USR-0021</span></td>
-                    <td>Paola S.</td>
-                    <td class="muted">Auxiliar</td>
-                    <td class="muted">paola@...</td>
-                    <td>Inactivo</td>
+                    <td colspan="5" class="muted" style="text-align:center; padding:24px;">
+                      Cargando usuarios...
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -270,7 +255,7 @@
             <div class="hd">
               <div>
                 <h2>Acciones</h2>
-                <div class="sub">Acciones separadas para mejor legibilidad</div>
+                <div class="sub">Alta o edición de usuario</div>
               </div>
             </div>
             <div class="bd">
@@ -278,18 +263,56 @@
                 <summary>
                   <span><b>Formulario de usuario</b> <span class="muted">· desplegable</span></span>
                 </summary>
-                <div class="fieldgrid">
-                  <div class="field"><label>Nombre completo</label><div class="in"></div></div>
-                  <div class="field"><label>Correo</label><div class="in"></div></div>
-                  <div class="field"><label>Rol</label><div class="in"></div></div>
-                  <div class="field"><label>Estado</label><div class="in"></div></div>
-                </div>
-                <div class="rightActions">
-                  <button class="btn">Restablecer contraseña</button>
-                  <button class="btn primary">Guardar usuario</button>
-                </div>
+
+                <form id="formUsuario">
+                  <!-- ID oculto para edición -->
+                  <input type="hidden" id="usuario_id" name="usuario_id">
+
+                  <div class="fieldgrid" style="margin-top: 12px;">
+                    <div class="field">
+                      <label for="usuario_nombre">Nombre completo</label>
+                      <input type="text" id="usuario_nombre" name="nombre" placeholder="Ej. Andrea Martínez">
+                    </div>
+                    <div class="field">
+                      <label for="usuario_username">Usuario</label>
+                      <input type="text" id="usuario_username" name="username" placeholder="Ej. amartinez">
+                    </div>
+                    <div class="field">
+                      <label for="usuario_email">Correo electrónico</label>
+                      <input type="email" id="usuario_email" name="email" placeholder="Ej. andrea@despacho.com">
+                    </div>
+                    <div class="field">
+                      <label for="usuario_rol">Rol</label>
+                      <select id="usuario_rol" name="rol">
+                        <option value="ADMIN">Administrador</option>
+                        <option value="ABOGADO" selected>Abogado</option>
+                        <option value="SECRETARIA">Secretaria</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="usuario_password">Contraseña</label>
+                      <input type="password" id="usuario_password" name="password"
+                        placeholder="Este campo es obligatorio">
+                    </div>
+                    <div class="field">
+                      <label for="usuario_activo">Estado</label>
+                      <select id="usuario_activo" name="activo">
+                        <option value="1" selected>Activo</option>
+                        <option value="0">Inactivo</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="rightActions" style="margin-top: 12px;">
+                    <button type="button" class="btn" id="btnLimpiarUsuario">Limpiar</button>
+                    <button type="submit" class="btn primary">Guardar usuario</button>
+                  </div>
+                </form>
               </details>
-              <div class="footerNote">La asignación de permisos específicos está en "Roles y Permisos".</div>
+
+           
+       
+            
             </div>
           </div>
         </div>
@@ -350,10 +373,18 @@
                   <span><b>Matriz de permisos</b> <span class="muted">· desplegable</span></span>
                 </summary>
                 <div class="fieldgrid">
-                  <div class="field"><label>Casos</label><div class="in"></div></div>
-                  <div class="field"><label>Documentos</label><div class="in"></div></div>
-                  <div class="field"><label>Usuarios</label><div class="in"></div></div>
-                  <div class="field"><label>Administración</label><div class="in"></div></div>
+                  <div class="field"><label>Casos</label>
+                    <div class="in"></div>
+                  </div>
+                  <div class="field"><label>Documentos</label>
+                    <div class="in"></div>
+                  </div>
+                  <div class="field"><label>Usuarios</label>
+                    <div class="in"></div>
+                  </div>
+                  <div class="field"><label>Administración</label>
+                    <div class="in"></div>
+                  </div>
                 </div>
                 <div class="rightActions">
                   <button class="btn primary">Guardar permisos</button>
@@ -408,10 +439,18 @@
                   <span><b>Configurar</b> <span class="muted">· desplegable</span></span>
                 </summary>
                 <div class="fieldgrid">
-                  <div class="field"><label>Nombre</label><div class="in"></div></div>
-                  <div class="field"><label>Frecuencia</label><div class="in"></div></div>
-                  <div class="field"><label>Condición</label><div class="in"></div></div>
-                  <div class="field"><label>Destinatarios</label><div class="in"></div></div>
+                  <div class="field"><label>Nombre</label>
+                    <div class="in"></div>
+                  </div>
+                  <div class="field"><label>Frecuencia</label>
+                    <div class="in"></div>
+                  </div>
+                  <div class="field"><label>Condición</label>
+                    <div class="in"></div>
+                  </div>
+                  <div class="field"><label>Destinatarios</label>
+                    <div class="in"></div>
+                  </div>
                 </div>
                 <div class="rightActions">
                   <button class="btn">Probar</button>
@@ -436,10 +475,22 @@
             </div>
             <div class="bd">
               <div class="kpis">
-                <div class="kpi"><div class="v">OK</div><div class="l">Respaldo diario</div></div>
-                <div class="kpi"><div class="v">SQL</div><div class="l">Base de datos creada</div></div>
-                <div class="kpi"><div class="v">⚙</div><div class="l">Gestión de base de datos</div></div>
-                <div class="kpi"><div class="v">Logs</div><div class="l">Auditoría</div></div>
+                <div class="kpi">
+                  <div class="v">OK</div>
+                  <div class="l">Respaldo diario</div>
+                </div>
+                <div class="kpi">
+                  <div class="v">SQL</div>
+                  <div class="l">Base de datos creada</div>
+                </div>
+                <div class="kpi">
+                  <div class="v">⚙</div>
+                  <div class="l">Gestión de base de datos</div>
+                </div>
+                <div class="kpi">
+                  <div class="v">Logs</div>
+                  <div class="l">Auditoría</div>
+                </div>
               </div>
 
               <div class="divider"></div>
@@ -504,7 +555,7 @@
         <button class="btn" id="btnCerrarDrawer">Cerrar</button>
       </div>
       <div class="bd">
-       
+
         <div class="row">
           <button class="btn" id="drawerBtnAsignar">Asignar</button>
           <button class="btn" id="drawerBtnReasignar">Reasignar</button>
@@ -515,10 +566,18 @@
         <div class="divider"></div>
 
         <div class="fieldgrid" style="padding: 0;">
-          <div class="field"><label>Tipo</label><div class="in" id="d_tipo"></div></div>
-          <div class="field"><label>Prioridad</label><div class="in" id="d_prioridad"></div></div>
-          <div class="field"><label>Estado</label><div class="in" id="d_estado"></div></div>
-          <div class="field"><label>Asignado a</label><div class="in" id="d_asignado"></div></div>
+          <div class="field"><label>Tipo</label>
+            <div class="in" id="d_tipo"></div>
+          </div>
+          <div class="field"><label>Prioridad</label>
+            <div class="in" id="d_prioridad"></div>
+          </div>
+          <div class="field"><label>Estado</label>
+            <div class="in" id="d_estado"></div>
+          </div>
+          <div class="field"><label>Asignado a</label>
+            <div class="in" id="d_asignado"></div>
+          </div>
         </div>
 
         <div class="divider"></div>
@@ -532,12 +591,8 @@
           <div class="bd">
             <div class="field">
               <label for="inputNuevaNota">Nueva nota</label>
-              <textarea
-                id="inputNuevaNota"
-                class="in textarea"
-                placeholder="Escribe una nota sobre este caso..."
-                style="resize: vertical;"
-              ></textarea>
+              <textarea id="inputNuevaNota" class="in textarea" placeholder="Escribe una nota sobre este caso..."
+                style="resize: vertical;"></textarea>
             </div>
             <div class="rightActions" style="padding: 0; margin-top: 10px;">
               <button class="btn" id="btnLimpiarNota">Limpiar</button>
@@ -559,32 +614,27 @@
           </div>
           <div class="bd">
             <!-- Zona drag & drop -->
-            <div id="zonaUpload"
-                 style="border:2px dashed var(--line); border-radius:12px; padding:18px 16px;
+            <div id="zonaUpload" style="border:2px dashed var(--line); border-radius:12px; padding:18px 16px;
                         text-align:center; cursor:pointer; transition:all 0.2s;">
               <div class="small muted" style="margin-bottom:8px;">
                 Arrastra archivos aquí o haz clic para seleccionar
               </div>
               <input type="file" id="inputArchivo" multiple style="display:none"
-                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls">
-              <button type="button" class="btn" id="btnSeleccionarArchivo"
-                      style="font-size:13px; padding:8px 14px;">
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls">
+              <button type="button" class="btn" id="btnSeleccionarArchivo" style="font-size:13px; padding:8px 14px;">
                 Seleccionar archivos
               </button>
             </div>
             <!-- Barra de progreso -->
             <div id="uploadProgress" style="display:none; margin-top:10px;">
               <div style="background:var(--line); border-radius:999px; height:6px;">
-                <div id="uploadBar"
-                     style="background:var(--primary); height:6px; border-radius:999px;
+                <div id="uploadBar" style="background:var(--primary); height:6px; border-radius:999px;
                             width:0%; transition:width 0.3s;"></div>
               </div>
-              <div id="uploadStatus" class="small muted"
-                   style="margin-top:4px; text-align:center;">Subiendo...</div>
+              <div id="uploadStatus" class="small muted" style="margin-top:4px; text-align:center;">Subiendo...</div>
             </div>
             <!-- Lista de documentos -->
-            <div id="listaDocumentos"
-                 style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+            <div id="listaDocumentos" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
               <div class="small muted">Selecciona un caso para ver sus documentos.</div>
             </div>
           </div>
@@ -640,7 +690,7 @@
         </form>
       </div>
 
-      
+
       <div class="modalFooter">
         <button type="button" id="btnCancelarModal" class="btn secondary">Cancelar</button>
         <button type="submit" form="formNuevoCasoModal" class="btn primary">Guardar Caso</button>
@@ -650,4 +700,5 @@
 
   <script src="app.js"></script>
 </body>
+
 </html>
