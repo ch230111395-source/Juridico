@@ -4,7 +4,8 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
-    "mysql2": "^3.20.0"
+    "mysql2": "^3.20.0",
+    "multer": "^2.1.1"
   },
   "name": "conexiones",
   "version": "1.0.0",
@@ -19,3 +20,5 @@
   "license": "ISC",
   "type": "commonjs"
 }
+
+

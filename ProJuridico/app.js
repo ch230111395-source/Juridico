@@ -79,8 +79,6 @@ function normalizarCaso(raw) {
     return val;
   };
 
-  // Mapeo de tipo: normaliza plural/singular y capitaliza
-  // "penales" → "Penal", "mercantil" → "Mercantil", etc.
   const mapTipo = val => {
     if (!val) return "";
     const v = val.toLowerCase().trim();
@@ -116,7 +114,7 @@ function normalizarCaso(raw) {
     prioridad: mapPrioridad(raw.prioridad),
     estado:   mapEstado(raw.estado),
     asignado: mapAsignado(raw.asignado || raw.abogado_asignado || ""),
-    // Guardamos el raw completo por si el drawer necesita más campos
+    
     _raw: raw
   };
 }
