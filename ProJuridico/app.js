@@ -38,13 +38,9 @@ const presets = {
 };
 
 let casos = [];
-
-// Normaliza los datos que vienen de la BD al formato visual esperado
 function normalizarCaso(raw) {
-  // Capitaliza primera letra (ej: "mercantil" → "Mercantil")
   const capitalizar = str => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
 
-  // Mapeo de prioridades: convierte valores de BD a formato visual
   const mapPrioridad = val => {
     if (!val) return "Media";
     const v = val.toLowerCase();
@@ -54,22 +50,18 @@ function normalizarCaso(raw) {
     return capitalizar(val);
   };
 
-  // Mapeo de estados: convierte snake_case o variantes a formato visual
   const mapEstado = val => {
     if (!val) return "Pendiente";
-    // Normalizar: minúsculas y sin guiones bajos para comparar
     const v = val.toLowerCase().replace(/_/g, " ").trim();
-    if (v === "en proceso")  return "En proceso";
-    if (v === "pendiente")   return "Pendiente";
+    if (v === "en proceso") return "En proceso";
+    if (v === "pendiente") return "Pendiente";
     if (v === "revision" || v === "revisión") return "Revisión";
-    if (v === "cerrado" || v === "closed")    return "Cerrado";
+    if (v === "cerrado" || v === "closed") return "Cerrado";
     if (v === "sin asignar") return "Sin asignar";
-    if (v === "activo" || v === "active")     return "Activo";
-    // Cualquier otro: reemplaza _ por espacio y capitaliza cada palabra
+    if (v === "activo" || v === "active") return "Activo";
     return val.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
   };
 
-  // Mapeo de asignado: convierte snake_case a texto legible
   const mapAsignado = val => {
     if (!val) return "Sin asignar";
     const v = val.toLowerCase().replace(/_/g, " ").trim();
@@ -83,136 +75,143 @@ function normalizarCaso(raw) {
     if (!val) return "";
     const v = val.toLowerCase().trim();
     const tipoMap = {
-      "penales":        "Penal",
-      "penal":          "Penal",
-      "mercantiles":    "Mercantil",
-      "mercantil":      "Mercantil",
-      "amparos":        "Amparo",
-      "amparo":         "Amparo",
-      "laborales":      "Laboral",
-      "laboral":        "Laboral",
-      "civiles":        "Civil",
-      "civil":          "Civil",
-      "administrativos":"Administrativo",
+      "penales": "Penal",
+      "penal": "Penal",
+      "mercantiles": "Mercantil",
+      "mercantil": "Mercantil",
+      "amparos": "Amparo",
+      "amparo": "Amparo",
+      "laborales": "Laboral",
+      "laboral": "Laboral",
+      "civiles": "Civil",
+      "civil": "Civil",
+      "administrativos": "Administrativo",
       "administrativo": "Administrativo",
-      "agrarios":       "Agrario",
-      "agrario":        "Agrario",
-      "varios":         "Varios"
+      "agrarios": "Agrario",
+      "agrario": "Agrario",
+      "varios": "Varios"
     };
     return tipoMap[v] || capitalizar(val);
   };
 
   return {
-    // Reconstruye el ID visual: "PENAL-3" a partir del tipo y el id numérico de MySQL
     id: (() => {
-      const num  = raw.id || raw._id || raw.caso_id || "";
+      const num = raw.id || raw._id || raw.caso_id || "";
       const tipo = (raw.tipo || raw.tipo_caso || "").toUpperCase().replace(/ES$/, "").replace(/S$/, "").trim();
       return tipo ? `${tipo}-${num}` : String(num);
     })(),
-    nombre:   raw.nombre || raw.asunto || raw.nombre_caso || "",
-    tipo:     mapTipo(raw.tipo || raw.tipo_caso || ""),
+    nombre: raw.nombre || raw.asunto || raw.nombre_caso || "",
+    tipo: mapTipo(raw.tipo || raw.tipo_caso || ""),
     prioridad: mapPrioridad(raw.prioridad),
-    estado:   mapEstado(raw.estado),
+    estado: mapEstado(raw.estado),
     asignado: mapAsignado(raw.asignado || raw.abogado_asignado || ""),
-    
     _raw: raw
   };
 }
 
-async function cargarCasos() {
-  try {
-    const response = await fetch("http://localhost:3000/api/casos");
-    if (!response.ok) throw new Error("Error al obtener casos");
-    const data = await response.json();
-    // La API puede devolver el array directo o envuelto en { casos: [...] } o { data: [...] }
-    const lista = Array.isArray(data) ? data : (data.casos || data.data || []);
-    casos = lista.map(normalizarCaso);
-  } catch (err) {
-    console.error("No se pudieron cargar los casos:", err);
-    casos = [];
+function cargarCasos() {
+  renderTable(1);
+  if (tipoSelect) {
+    tipoSelect.addEventListener("change", () => {
+      paginaActual = 1;
+      renderTable(1);
+      applyPreset(tipoSelect.value);
+    });
   }
-  renderTable();
-  if (tipoSelect) applyPreset(tipoSelect.value);
 }
 
 // ========== CAMPOS POR TIPO ==========
-// Nombres de campos y valores exactos del backend (tomados del dashboard original)
 const camposPorTipo = {
   amparo: [
-    { name: "expediente",        label: "Expediente",              type: "text"   },
-    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
-      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
-    { name: "asunto",            label: "Asunto",                  type: "text"   },
-    { name: "fecha_emplazamiento",label:"Fecha de emplazamiento",  type: "date"   },
-    { name: "abogado_encargado", label: "Abogado encargado",       type: "text"   },
-    { name: "actor",             label: "Actor",                   type: "text"   },
-    { name: "demandado",         label: "Demandado",               type: "text"   },
-    { name: "juzgado",           label: "Juzgado",                 type: "text"   }
+    { name: "expediente", label: "Expediente", type: "text" },
+    {
+      name: "estado_procesal", label: "Estado procesal", type: "select",
+      options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]]
+    },
+    { name: "asunto", label: "Asunto", type: "text" },
+    { name: "fecha_emplazamiento", label: "Fecha de emplazamiento", type: "date" },
+    { name: "abogado_encargado", label: "Abogado encargado", type: "text" },
+    { name: "actor", label: "Actor", type: "text" },
+    { name: "demandado", label: "Demandado", type: "text" },
+    { name: "juzgado", label: "Juzgado", type: "text" }
   ],
   administrativo: [
-    { name: "expediente",        label: "Expediente",              type: "text"   },
-    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
-      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
-    { name: "asunto",            label: "Asunto",                  type: "text"   },
-    { name: "fecha_emplazamiento",label:"Fecha de emplazamiento",  type: "date"   },
-    { name: "sala",              label: "Sala",                    type: "text"   },
-    { name: "actor",             label: "Actor",                   type: "text"   }
+    { name: "expediente", label: "Expediente", type: "text" },
+    {
+      name: "estado_procesal", label: "Estado procesal", type: "select",
+      options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]]
+    },
+    { name: "asunto", label: "Asunto", type: "text" },
+    { name: "fecha_emplazamiento", label: "Fecha de emplazamiento", type: "date" },
+    { name: "sala", label: "Sala", type: "text" },
+    { name: "actor", label: "Actor", type: "text" }
   ],
   laboral: [
-    { name: "expediente",        label: "Expediente",              type: "text"   },
-    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
-      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
-    { name: "actor",             label: "Actor",                   type: "text"   },
-    { name: "fecha_emplazamiento",label:"Fecha de emplazamiento",  type: "date"   },
-    { name: "mesa",              label: "Mesa",                    type: "text"   },
-    { name: "numero",            label: "Número",                  type: "text"   }
+    { name: "expediente", label: "Expediente", type: "text" },
+    {
+      name: "estado_procesal", label: "Estado procesal", type: "select",
+      options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]]
+    },
+    { name: "actor", label: "Actor", type: "text" },
+    { name: "fecha_emplazamiento", label: "Fecha de emplazamiento", type: "date" },
+    { name: "mesa", label: "Mesa", type: "text" },
+    { name: "numero", label: "Número", type: "text" }
   ],
   civil: [
-    { name: "expediente",        label: "Expediente",              type: "text"   },
-    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
-      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
-    { name: "asunto",            label: "Asunto",                  type: "text"   },
-    { name: "fecha_emplazamiento",label:"Fecha de inicio",         type: "date"   },
-    { name: "juzgado",           label: "Juzgado",                 type: "text"   },
-    { name: "actor",             label: "Actor",                   type: "text"   },
-    { name: "demandado",         label: "Demandado",               type: "text"   }
+    { name: "expediente", label: "Expediente", type: "text" },
+    {
+      name: "estado_procesal", label: "Estado procesal", type: "select",
+      options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]]
+    },
+    { name: "asunto", label: "Asunto", type: "text" },
+    { name: "fecha_emplazamiento", label: "Fecha de inicio", type: "date" },
+    { name: "juzgado", label: "Juzgado", type: "text" },
+    { name: "actor", label: "Actor", type: "text" },
+    { name: "demandado", label: "Demandado", type: "text" }
   ],
   mercantil: [
-    { name: "expediente",        label: "Expediente",              type: "text"   },
-    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
-      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
-    { name: "asunto",            label: "Asunto",                  type: "text"   },
-    { name: "fecha_emplazamiento",label:"Fecha",                   type: "date"   },
-    { name: "juzgado",           label: "Juzgado",                 type: "text"   },
-    { name: "actor",             label: "Actor",                   type: "text"   }
+    { name: "expediente", label: "Expediente", type: "text" },
+    {
+      name: "estado_procesal", label: "Estado procesal", type: "select",
+      options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]]
+    },
+    { name: "asunto", label: "Asunto", type: "text" },
+    { name: "fecha_emplazamiento", label: "Fecha", type: "date" },
+    { name: "juzgado", label: "Juzgado", type: "text" },
+    { name: "actor", label: "Actor", type: "text" }
   ],
   penal: [
-    { name: "expediente",        label: "Expediente",              type: "text"   },
-    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
-      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
-    { name: "asunto",            label: "Asunto",                  type: "text"   },
-    { name: "juzgado",           label: "Juzgado",                 type: "text"   },
-    { name: "actor",             label: "Actor",                   type: "text"   },
-    { name: "demandado",         label: "Demandado",               type: "text"   }
+    { name: "expediente", label: "Expediente", type: "text" },
+    {
+      name: "estado_procesal", label: "Estado procesal", type: "select",
+      options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]]
+    },
+    { name: "asunto", label: "Asunto", type: "text" },
+    { name: "juzgado", label: "Juzgado", type: "text" },
+    { name: "actor", label: "Actor", type: "text" },
+    { name: "demandado", label: "Demandado", type: "text" }
   ],
   agrario: [
-    { name: "expediente",        label: "Expediente",              type: "text"   },
-    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
-      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
-    { name: "asunto",            label: "Asunto",                  type: "text"   },
-    { name: "fecha_emplazamiento",label:"Fecha de emplazamiento",  type: "date"   },
-    { name: "actor",             label: "Actor",                   type: "text"   }
+    { name: "expediente", label: "Expediente", type: "text" },
+    {
+      name: "estado_procesal", label: "Estado procesal", type: "select",
+      options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]]
+    },
+    { name: "asunto", label: "Asunto", type: "text" },
+    { name: "fecha_emplazamiento", label: "Fecha de emplazamiento", type: "date" },
+    { name: "actor", label: "Actor", type: "text" }
   ],
   varios: [
-    { name: "expediente",        label: "Expediente",              type: "text"   },
-    { name: "estado_procesal",   label: "Estado procesal",         type: "select",
-      options: [["en_proceso","En Proceso"],["sin_asignar","Sin Asignar"],["asignado","Asignado"],["finalizado","Finalizado"],["sin_actividad","Sin Actividad"]] },
-    { name: "asunto",            label: "Asunto",                  type: "text"   },
-    { name: "fecha_emplazamiento",label:"Fecha recibido",          type: "date"   }
+    { name: "expediente", label: "Expediente", type: "text" },
+    {
+      name: "estado_procesal", label: "Estado procesal", type: "select",
+      options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]]
+    },
+    { name: "asunto", label: "Asunto", type: "text" },
+    { name: "fecha_emplazamiento", label: "Fecha recibido", type: "date" }
   ]
 };
 
-// Renderiza campos en cualquier contenedor, usando name= como atributo
 function renderCampos(campos, contenedor, idPrefix = "") {
   contenedor.innerHTML = "";
   campos.forEach(campo => {
@@ -243,9 +242,7 @@ function renderCampos(campos, contenedor, idPrefix = "") {
     contenedor.appendChild(div);
   });
 }
-
 // ========== FUNCIONES PARA MODAL ==========
-
 function abrirModalNuevoCaso() {
   if (!modalMask || !modalNuevoCaso) return;
   modalMask.classList.add("show");
@@ -294,8 +291,6 @@ if (modalMask) {
   });
 }
 
-// keydown unificado abajo
-
 if (formNuevoCaso) {
   formNuevoCaso.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -303,8 +298,6 @@ if (formNuevoCaso) {
     const tipo = tipoSelectModal.value;
     const formData = new FormData(formNuevoCaso);
     const datos = Object.fromEntries(formData);
-
-    // Payload con nombres exactos que espera el backend
     const nuevoCase = { tipo_caso: tipo, ...datos };
 
     try {
@@ -319,19 +312,15 @@ if (formNuevoCaso) {
         cerrarModalNuevoCaso();
         cargarCasos();
       } else {
-        alert("❌ Error: " + (result.mensaje || "No se pudo guardar el caso"));
+        alert("Error: " + (result.mensaje || "No se pudo guardar el caso"));
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("❌ No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?");
+      alert(" No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?");
     }
   });
 }
-
-
 // ========== FORMULARIO INLINE (pestaña Casos) ==========
-// Mismos campos que el modal pero para el <details> de la vista de casos
-
 function mostrarCampos() {
   const tipoEl = document.getElementById("tipo_caso");
   const contenedor = document.getElementById("campos_relevantes");
@@ -339,12 +328,10 @@ function mostrarCampos() {
   renderCampos(camposPorTipo[tipoEl.value] || [], contenedor);
 }
 
-// Inicializar campos del formulario inline al cargar
 document.addEventListener("DOMContentLoaded", () => {
   mostrarCampos();
 });
 
-// Botón cancelar del formulario inline
 const btnCancelarForm = document.getElementById("btnCancelarForm");
 if (btnCancelarForm) {
   btnCancelarForm.addEventListener("click", () => {
@@ -353,7 +340,6 @@ if (btnCancelarForm) {
   });
 }
 
-// Submit del formulario inline
 const formInline = document.getElementById("formNuevoCaso");
 if (formInline) {
   formInline.addEventListener("submit", async (e) => {
@@ -361,7 +347,6 @@ if (formInline) {
     const tipo = document.getElementById("tipo_caso").value;
     const formData = new FormData(formInline);
     const datos = Object.fromEntries(formData);
-    // Payload con nombres exactos que espera el backend
     const nuevoCase = { tipo_caso: tipo, ...datos };
 
     try {
@@ -379,17 +364,15 @@ if (formInline) {
         if (details) details.open = false;
         cargarCasos();
       } else {
-        alert("❌ Error: " + (result.mensaje || "No se pudo guardar el caso"));
+        alert("Error: " + (result.mensaje || "No se pudo guardar el caso"));
       }
     } catch (err) {
       console.error(err);
-      alert("❌ No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?");
+      alert("No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?");
     }
   });
 }
-
 // ========== EVENTOS ORIGINALES ==========
-
 buttons.forEach(button => {
   button.addEventListener("click", () => {
     const vista = button.dataset.view;
@@ -405,36 +388,75 @@ buttons.forEach(button => {
   });
 });
 
-function renderTable() {
-  if (!tipoSelect || !tbody) return;
+let paginaActual = 1;
+const LIMITE = 5;
 
-  const tipo = tipoSelect.value;
-  const rows = casos.filter(caso => tipo === "Todos" || caso.tipo === tipo);
+async function renderTable(pagina = 1) {
+  if (!tbody) return;
 
-  // Clases de color para prioridad (igual al diseño original)
-  const prioClase = {
-    "Alta":  "tag tag--alta",
-    "Media": "tag tag--media",
-    "Baja":  "tag tag--baja"
-  };
+  const tipo = tipoSelect ? tipoSelect.value : "Todos";
+  const url = `http://localhost:3000/api/casos?limite=${LIMITE}&pagina=${pagina}&tipo=${tipo}`;
 
-  tbody.innerHTML = rows.map(caso => `
-    <tr data-id="${caso.id}">
-      <td><span class="tag">${caso.id}</span></td>
-      <td>${caso.nombre}</td>
-      <td class="muted">${caso.tipo}</td>
-      <td><span class="${prioClase[caso.prioridad] || "tag"}">${caso.prioridad}</span></td>
-      <td>${caso.estado}</td>
-      <td class="muted">${caso.asignado}</td>
-    </tr>
-  `).join("");
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
 
-  tbody.querySelectorAll("tr").forEach(row => {
-    row.addEventListener("dblclick", () => {
-      const item = casos.find(caso => String(caso.id) === String(row.dataset.id));
-      openDrawer(item);
+    if (!data.success) return;
+
+    tbody.innerHTML = data.casos.map(caso => `
+      <tr data-id="${caso.id}" data-tipo="${caso.tipo}">
+        <td><span class="tag">${caso.id_display}</span></td>
+        <td>${caso.nombre}</td>
+        <td class="muted">${caso.tipo}</td>
+        <td>${caso.prioridad}</td>
+        <td>${caso.estado}</td>
+        <td class="muted">${caso.asignado}</td>
+      </tr>
+    `).join("");
+
+    tbody.querySelectorAll("tr").forEach(row => {
+      row.addEventListener("dblclick", () => {
+        openDrawer({ id: row.dataset.id, tipo: row.dataset.tipo });
+      });
     });
-  });
+
+    renderPaginacion(pagina, data.casos.length);
+
+  } catch (err) {
+    console.error("Error cargando casos:", err);
+  }
+}
+
+function renderPaginacion(pagina, cantidadActual) {
+  let paginacion = document.getElementById("paginacion");
+  if (!paginacion) {
+    paginacion = document.createElement("div");
+    paginacion.id = "paginacion";
+    paginacion.style.cssText = "display:flex; gap:8px; align-items:center; margin-top:12px; justify-content:flex-end;";
+    tbody.parentElement.parentElement.appendChild(paginacion);
+  }
+
+  const hayAnterior = pagina > 1;
+  const haySiguiente = cantidadActual === LIMITE;
+
+  paginacion.innerHTML = `
+    <button class="btn" id="btnAnterior" ${!hayAnterior ? "disabled" : ""}>← Anterior</button>
+    <span class="muted" style="font-size:13px;">Página ${pagina}</span>
+    <button class="btn" id="btnSiguiente" ${!haySiguiente ? "disabled" : ""}>Siguiente →</button>
+  `;
+
+  if (hayAnterior) {
+    document.getElementById("btnAnterior").addEventListener("click", () => {
+      paginaActual--;
+      renderTable(paginaActual);
+    });
+  }
+  if (haySiguiente) {
+    document.getElementById("btnSiguiente").addEventListener("click", () => {
+      paginaActual++;
+      renderTable(paginaActual);
+    });
+  }
 }
 
 function applyPreset(tipo) {
@@ -453,8 +475,6 @@ function applyPreset(tipo) {
 
 function openDrawer(item) {
   if (!item) return;
-
-  // Guardar el id numérico real para las llamadas a la API de notas
   casoActivoId = item._raw ? (item._raw.id || item._raw._id || item._raw.caso_id) : item.id;
 
   document.getElementById("drawerTitle").textContent = item.id;
@@ -464,7 +484,6 @@ function openDrawer(item) {
   document.getElementById("d_estado").textContent = item.estado;
   document.getElementById("d_asignado").textContent = item.asignado;
 
-  // Limpiar nota anterior y cargar notas del caso
   if (inputNuevaNota) inputNuevaNota.value = "";
   cargarNotas(casoActivoId);
   cargarDocumentos(casoActivoId);
@@ -479,7 +498,8 @@ function closeDrawer() {
 
 if (tipoSelect) {
   tipoSelect.addEventListener("change", () => {
-    renderTable();
+    paginaActual = 1;
+    renderTable(1);
     applyPreset(tipoSelect.value);
   });
 }
@@ -496,7 +516,6 @@ if (mask) {
 
 window.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  // Cierra primero el modal si está abierto, sino el drawer
   if (modalMask && modalMask.classList.contains("show")) {
     cerrarModalNuevoCaso();
   } else {
@@ -528,14 +547,12 @@ if (btnLogout) {
 }
 
 // ========== NOTAS DEL CASO ==========
-
 let casoActivoId = null;
 
 const btnGuardarNota = document.getElementById("btnGuardarNota");
 const btnLimpiarNota = document.getElementById("btnLimpiarNota");
 const inputNuevaNota = document.getElementById("inputNuevaNota");
 const listaNotas = document.getElementById("listaNotas");
-
 function renderNotas(notas) {
   if (!listaNotas) return;
   if (!notas || notas.length === 0) {
@@ -593,19 +610,15 @@ if (btnLimpiarNota) {
     if (inputNuevaNota) inputNuevaNota.value = "";
   });
 }
-
-// Carga los casos desde la API y luego renderiza la tabla
 cargarCasos();
-
 // ========== DOCUMENTOS DEL CASO ==========
-
-let listaDocumentos    = document.getElementById("listaDocumentos");
-let zonaUpload         = document.getElementById("zonaUpload");
-let inputArchivo       = document.getElementById("inputArchivo");
+let listaDocumentos = document.getElementById("listaDocumentos");
+let zonaUpload = document.getElementById("zonaUpload");
+let inputArchivo = document.getElementById("inputArchivo");
 let btnSeleccionarArch = document.getElementById("btnSeleccionarArchivo");
-let uploadProgress     = document.getElementById("uploadProgress");
-let uploadBar          = document.getElementById("uploadBar");
-let uploadStatus       = document.getElementById("uploadStatus");
+let uploadProgress = document.getElementById("uploadProgress");
+let uploadBar = document.getElementById("uploadBar");
+let uploadStatus = document.getElementById("uploadStatus");
 
 function formatBytes(bytes) {
   if (!bytes) return "";
@@ -616,12 +629,13 @@ function formatBytes(bytes) {
 
 function iconoArchivo(nombre) {
   const ext = (nombre || "").split(".").pop().toLowerCase();
-  return ({ pdf:"📄", doc:"📝", docx:"📝", jpg:"🖼️", jpeg:"🖼️",
-            png:"🖼️", xlsx:"📊", xls:"📊" })[ext] || "📎";
+  return ({
+    pdf: "📄", doc: "📝", docx: "📝", jpg: "🖼️", jpeg: "🖼️",
+    png: "🖼️", xlsx: "📊", xls: "📊"
+  })[ext] || "📎";
 }
 
 function renderDocumentos(docs) {
-  // Re-obtener por si el drawer se reconstruyó en el DOM
   listaDocumentos = document.getElementById("listaDocumentos");
   if (!listaDocumentos) return;
 
@@ -646,7 +660,7 @@ function renderDocumentos(docs) {
       </div>
       <button class="btn"
               style="padding:6px 12px; font-size:12px;"
-              onclick="descargarDocumento(${doc.id}, '${doc.nombre_original.replace(/'/g,"\'")}')">
+              onclick="descargarDocumento(${doc.id}, '${doc.nombre_original.replace(/'/g, "\'")}')">
         ⬇ Descargar
       </button>
       <button class="btn"
@@ -658,15 +672,14 @@ function renderDocumentos(docs) {
   `).join("");
 }
 
-// Descarga usando fetch → no navega y no cierra el drawer
 async function descargarDocumento(docId, nombre) {
   try {
-    const res  = await fetch(`http://localhost:3000/api/documentos/descargar/${docId}`);
+    const res = await fetch(`http://localhost:3000/api/documentos/descargar/${docId}`);
     if (!res.ok) { alert("No se pudo descargar el archivo."); return; }
     const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
     a.download = nombre;
     document.body.appendChild(a);
     a.click();
@@ -677,11 +690,10 @@ async function descargarDocumento(docId, nombre) {
   }
 }
 
-// Elimina un documento previa confirmación
 async function eliminarDocumento(docId) {
   if (!confirm("¿Eliminar este documento? Esta acción no se puede deshacer.")) return;
   try {
-    const res  = await fetch(`http://localhost:3000/api/documentos/${docId}`, { method: "DELETE" });
+    const res = await fetch(`http://localhost:3000/api/documentos/${docId}`, { method: "DELETE" });
     const data = await res.json();
     if (data.success) {
       cargarDocumentos(casoActivoId);
@@ -698,7 +710,7 @@ async function cargarDocumentos(casoId) {
   if (!listaDocumentos) return;
   listaDocumentos.innerHTML = '<div class="small muted">Cargando documentos...</div>';
   try {
-    const res  = await fetch(`http://localhost:3000/api/documentos/${casoId}`);
+    const res = await fetch(`http://localhost:3000/api/documentos/${casoId}`);
     const data = await res.json();
     const docs = Array.isArray(data) ? data : (data.documentos || data.data || []);
     renderDocumentos(docs);
@@ -711,12 +723,12 @@ async function subirArchivos(archivos) {
   if (!archivos || archivos.length === 0 || !casoActivoId) return;
 
   uploadProgress = document.getElementById("uploadProgress");
-  uploadBar      = document.getElementById("uploadBar");
-  uploadStatus   = document.getElementById("uploadStatus");
+  uploadBar = document.getElementById("uploadBar");
+  uploadStatus = document.getElementById("uploadStatus");
 
   if (uploadProgress) uploadProgress.style.display = "block";
-  if (uploadBar)      uploadBar.style.width = "0%";
-  if (uploadStatus)   uploadStatus.textContent = `Subiendo 0 de ${archivos.length}...`;
+  if (uploadBar) uploadBar.style.width = "0%";
+  if (uploadStatus) uploadStatus.textContent = `Subiendo 0 de ${archivos.length}...`;
 
   const usr = JSON.parse(localStorage.getItem("usuario") || "{}");
   let subidos = 0;
@@ -727,7 +739,7 @@ async function subirArchivos(archivos) {
     fd.append("subido_por", usr.username || usr.nombre || "Usuario");
 
     try {
-      const res  = await fetch(`http://localhost:3000/api/documentos/${casoActivoId}`, {
+      const res = await fetch(`http://localhost:3000/api/documentos/${casoActivoId}`, {
         method: "POST",
         body: fd
       });
@@ -739,7 +751,7 @@ async function subirArchivos(archivos) {
 
     subidos++;
     const pct = Math.round((subidos / archivos.length) * 100);
-    if (uploadBar)    uploadBar.style.width = pct + "%";
+    if (uploadBar) uploadBar.style.width = pct + "%";
     if (uploadStatus) uploadStatus.textContent = `Subiendo ${subidos} de ${archivos.length}...`;
   }
 
@@ -751,11 +763,9 @@ async function subirArchivos(archivos) {
   cargarDocumentos(casoActivoId);
 }
 
-// Inicializar eventos de la zona de upload
-// (se llama también cada vez que se abre el drawer)
 function iniciarEventosUpload() {
-  zonaUpload         = document.getElementById("zonaUpload");
-  inputArchivo       = document.getElementById("inputArchivo");
+  zonaUpload = document.getElementById("zonaUpload");
+  inputArchivo = document.getElementById("inputArchivo");
   btnSeleccionarArch = document.getElementById("btnSeleccionarArchivo");
 
   if (btnSeleccionarArch) {
@@ -767,19 +777,19 @@ function iniciarEventosUpload() {
     };
   }
   if (zonaUpload) {
-    zonaUpload.ondragover  = e => {
+    zonaUpload.ondragover = e => {
       e.preventDefault();
       zonaUpload.style.borderColor = "var(--primary)";
-      zonaUpload.style.background  = "var(--chip)";
+      zonaUpload.style.background = "var(--chip)";
     };
     zonaUpload.ondragleave = () => {
       zonaUpload.style.borderColor = "var(--line)";
-      zonaUpload.style.background  = "";
+      zonaUpload.style.background = "";
     };
     zonaUpload.ondrop = e => {
       e.preventDefault();
       zonaUpload.style.borderColor = "var(--line)";
-      zonaUpload.style.background  = "";
+      zonaUpload.style.background = "";
       if (e.dataTransfer.files.length > 0) subirArchivos(e.dataTransfer.files);
     };
   }
