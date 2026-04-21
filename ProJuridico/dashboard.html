@@ -22,7 +22,6 @@
         <button class="active" data-view="v_dashboard"><span>Dashboard</span></button>
         <button data-view="v_casos"><span>Casos</span></button>
         <button data-view="v_usuarios"><span>Usuarios</span></button>
-        <button data-view="v_roles"><span>Roles y Permisos</span></button>
         <button data-view="v_recordatorios"><span>Recordatorios</span></button>
         <button data-view="v_admin"><span>Administración</span></button>
         <button id="btnLogout"><span>Cerrar sesión</span></button>
@@ -110,7 +109,6 @@
             <div class="hd">
               <div>
                 <h2>Casos</h2>
-                <div class="sub">Listado y filtros</div>
               </div>
               <div class="row">
                 <select class="select" id="tipoCasoSelect" aria-label="Tipo de caso">
@@ -169,8 +167,6 @@
               </details>
 
               <div class="divider"></div>
-              <div class="small">Doble clic en un renglón para abrir el detalle del caso.</div>
-
               <div
                 style="margin-top: 10px; padding: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden;">
                 <table aria-label="Tabla de casos" id="tablaCasos">
@@ -200,7 +196,6 @@
             <div class="hd">
               <div>
                 <h2>Vista rápida</h2>
-                <div class="sub">Campos clave y acciones</div>
               </div>
               <span class="pill">Vista</span>
             </div>
@@ -212,190 +207,95 @@
                 <button class="btn" id="btnArchivar">Archivar</button>
                 <button class="btn primary" id="btnCambiarEstado">Cambiar estado</button>
               </div>
-              <div class="footerNote">El detalle completo se abre con doble clic.</div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- ===== USUARIOS ===== -->
-      <section id="v_usuarios" class="view">
-        <div class="grid cols2">
-          <div class="card">
-            <div class="hd">
-              <div>
-                <h2>Usuarios</h2>
-                <div class="sub">Listado simple y formulario de alta o edición</div>
-              </div>
-              <button class="btn primary" id="btnUsuarioForm">Nuevo / Editar</button>
-            </div>
-            <div class="bd" style="padding: 0;">
-              <table aria-label="Tabla de usuarios" id="tablaUsuarios">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Rol</th>
-                    <th>Correo</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody id="usuariosTbody">
-                  <tr>
-                    <td colspan="5" class="muted" style="text-align:center; padding:24px;">
-                      Cargando usuarios...
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+<!-- ===== USUARIOS ===== -->
+<section id="v_usuarios" class="view">
+  <div class="grid cols2">
+
+    <!-- TABLA DE USUARIOS -->
+    <div class="card">
+      <div class="hd">
+        <div><h2>Usuarios</h2></div>
+        <button class="btn primary" id="btnNuevoUsuario">+ Nuevo</button>
+      </div>
+      <div class="bd" style="padding: 0;">
+        <table aria-label="Tabla de usuarios" id="tablaUsuarios">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Rol</th>
+              <th>Correo</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="usuariosTbody">
+            <tr>
+              <td colspan="5" class="muted" style="text-align:center; padding:24px;">
+                Cargando usuarios...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="card">
+      <div class="hd">
+        <div>
+          <h2>Acciones</h2>
+          <div class="sub">Alta o edición de usuario</div>
+        </div>
+      </div>
+      <div class="bd">
+        <input type="hidden" id="usuario_id" name="usuario_id">
+        <div class="fieldgrid">
+          <div class="field">
+            <label for="usuario_nombre">Nombre completo</label>
+            <input type="text" id="usuario_nombre" name="nombre" placeholder="Ej. Andrea Martínez">
           </div>
-
-          <div class="card">
-            <div class="hd">
-              <div>
-                <h2>Acciones</h2>
-                <div class="sub">Alta o edición de usuario</div>
-              </div>
-            </div>
-            <div class="bd">
-              <details id="usuarioDetails">
-                <summary>
-                  <span><b>Formulario de usuario</b> <span class="muted">· desplegable</span></span>
-                </summary>
-
-                <form id="formUsuario">
-                  <!-- ID oculto para edición -->
-                  <input type="hidden" id="usuario_id" name="usuario_id">
-
-                  <div class="fieldgrid" style="margin-top: 12px;">
-                    <div class="field">
-                      <label for="usuario_nombre">Nombre completo</label>
-                      <input type="text" id="usuario_nombre" name="nombre" placeholder="Ej. Andrea Martínez">
-                    </div>
-                    <div class="field">
-                      <label for="usuario_username">Usuario</label>
-                      <input type="text" id="usuario_username" name="username" placeholder="Ej. amartinez">
-                    </div>
-                    <div class="field">
-                      <label for="usuario_email">Correo electrónico</label>
-                      <input type="email" id="usuario_email" name="email" placeholder="Ej. andrea@despacho.com">
-                    </div>
-                    <div class="field">
-                      <label for="usuario_rol">Rol</label>
-                      <select id="usuario_rol" name="rol">
-                        <option value="ADMIN">Administrador</option>
-                        <option value="ABOGADO" selected>Abogado</option>
-                        <option value="SECRETARIA">Secretaria</option>
-                      </select>
-                    </div>
-                    <div class="field">
-                      <label for="usuario_password">Contraseña</label>
-                      <input type="password" id="usuario_password" name="password"
-                        placeholder="Este campo es obligatorio">
-                    </div>
-                    <div class="field">
-                      <label for="usuario_activo">Estado</label>
-                      <select id="usuario_activo" name="activo">
-                        <option value="1" selected>Activo</option>
-                        <option value="0">Inactivo</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div class="rightActions" style="margin-top: 12px;">
-                    <button type="button" class="btn" id="btnLimpiarUsuario">Limpiar</button>
-                    <button type="submit" class="btn primary">Guardar usuario</button>
-                  </div>
-                </form>
-              </details>
-
-           
-       
-            
-            </div>
+          <div class="field">
+            <label for="usuario_username">Usuario</label>
+            <input type="text" id="usuario_username" name="username" placeholder="Ej. amartinez">
+          </div>
+          <div class="field">
+            <label for="usuario_email">Correo electrónico</label>
+            <input type="email" id="usuario_email" name="email" placeholder="Ej. andrea@despacho.com">
+          </div>
+          <div class="field">
+            <label for="usuario_rol">Rol</label>
+            <select id="usuario_rol" name="rol">
+              <option value="ADMIN">Administrador</option>
+              <option value="ABOGADO" selected>Abogado</option>
+              <option value="SECRETARIA">Secretaria</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="usuario_password">Contraseña</label>
+            <input type="password" id="usuario_password" name="password" placeholder="Este campo es obligatorio">
+          </div>
+          <div class="field">
+            <label for="usuario_activo">Estado</label>
+            <select id="usuario_activo" name="activo">
+              <option value="1" selected>Activo</option>
+              <option value="0">Inactivo</option>
+            </select>
           </div>
         </div>
-      </section>
-
-      <!-- ===== ROLES ===== -->
-      <section id="v_roles" class="view">
-        <div class="grid cols2">
-          <div class="card">
-            <div class="hd">
-              <div>
-                <h2>Roles</h2>
-                <div class="sub">Listado de roles</div>
-              </div>
-              <button class="btn primary" id="btnRolForm">Nuevo rol</button>
-            </div>
-            <div class="bd" style="padding: 0;">
-              <table aria-label="Tabla de roles">
-                <thead>
-                  <tr>
-                    <th>Rol</th>
-                    <th>Descripción</th>
-                    <th class="muted">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Administrador</td>
-                    <td class="muted">Configura sistema y usuarios</td>
-                    <td class="muted">Editar</td>
-                  </tr>
-                  <tr>
-                    <td>Abogado</td>
-                    <td class="muted">Gestiona casos, documentos y notas</td>
-                    <td class="muted">Editar</td>
-                  </tr>
-                  <tr>
-                    <td>Auxiliar</td>
-                    <td class="muted">Apoya en el registro y carga de documentos</td>
-                    <td class="muted">Editar</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="hd">
-              <div>
-                <h2>Permisos</h2>
-                <div class="sub">Sección separada para mayor claridad</div>
-              </div>
-              <span class="pill">Rol: Abogado</span>
-            </div>
-            <div class="bd">
-              <details id="permDetails" open>
-                <summary>
-                  <span><b>Matriz de permisos</b> <span class="muted">· desplegable</span></span>
-                </summary>
-                <div class="fieldgrid">
-                  <div class="field"><label>Casos</label>
-                    <div class="in"></div>
-                  </div>
-                  <div class="field"><label>Documentos</label>
-                    <div class="in"></div>
-                  </div>
-                  <div class="field"><label>Usuarios</label>
-                    <div class="in"></div>
-                  </div>
-                  <div class="field"><label>Administración</label>
-                    <div class="in"></div>
-                  </div>
-                </div>
-                <div class="rightActions">
-                  <button class="btn primary">Guardar permisos</button>
-                </div>
-              </details>
-              <div class="footerNote">Aquí podrían ir checkboxes por módulo y acción.</div>
-            </div>
-          </div>
+        <div class="rightActions" style="margin-top: 12px;">
+          <button type="button" class="btn" id="btnLimpiarUsuario">Limpiar</button>
+          <button type="button" class="btn primary" id="btnGuardarUsuario">Guardar usuario</button>
         </div>
-      </section>
+      </div>
+    </div>
 
+  </div>
+</section>
       <!-- ===== RECORDATORIOS ===== -->
       <section id="v_recordatorios" class="view">
         <div class="grid cols2">
@@ -403,7 +303,6 @@
             <div class="hd">
               <div>
                 <h2>Recordatorios automáticos</h2>
-                <div class="sub">Gestión de alertas y tareas programadas</div>
               </div>
               <button class="btn primary">Nuevo</button>
             </div>
