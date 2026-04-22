@@ -565,3 +565,12 @@ details:not([open]) > summary::before { content: '▸ '; }
   color: #fff;
   border: none;
 }
+
+/* Casos — tabla full width */
+#v_casos .card {
+  width: 100%;
+}
+
+#v_casos #tablaCasos {
+  width: 100%;
+}

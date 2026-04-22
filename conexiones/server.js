@@ -381,6 +381,35 @@ app.delete('/api/documentos/:docId', (req, res) => {
     });
 });
 
+
+// ─────────────────────────────────────────
+// ENDPOINTS DE NOTAS
+// ─────────────────────────────────────────
+
+// GET /api/casos/:id/notas → lista de notas
+app.get('/api/casos/:id/notas', (req, res) => {
+  const sql = `SELECT id, texto, usuario,
+                      DATE_FORMAT(created_at,'%d/%m/%Y %H:%i') AS fecha
+               FROM notas_caso WHERE caso_id = ? ORDER BY created_at DESC`;
+  db.query(sql, [req.params.id], (err, rows) => {
+    if (err) return res.status(500).json({ success: false, mensaje: err.message });
+    res.json({ success: true, notas: rows });
+  });
+});
+
+// POST /api/casos/:id/notas → guardar nota
+app.post('/api/casos/:id/notas', (req, res) => {
+  const { texto, usuario, tipo_caso } = req.body;
+  if (!texto || !texto.trim()) {
+    return res.status(400).json({ success: false, mensaje: 'El texto es obligatorio.' });
+  }
+  const sql = `INSERT INTO notas_caso (caso_id, tipo_caso, texto, usuario) VALUES (?, ?, ?, ?)`;
+  db.query(sql, [req.params.id, tipo_caso || 'general', texto.trim(), usuario || 'Sistema'], (err, result) => {
+    if (err) return res.status(500).json({ success: false, mensaje: err.message });
+    res.json({ success: true, id: result.insertId });
+  });
+});
+
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Servidor Backend corriendo y escuchando en http://localhost:${PORT}`);

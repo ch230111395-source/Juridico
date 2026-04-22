@@ -380,9 +380,20 @@ async function renderTable(pagina = 1) {
       </tr>
     `).join("");
     tbody.querySelectorAll("tr").forEach(row => {
-      row.addEventListener("dblclick", () => {
-        openDrawer({ id: row.dataset.id, tipo: row.dataset.tipo });
-      });
+
+     row.addEventListener("dblclick", () => {
+   const casoCompleto = data.casos.find(c => String(c.id) === row.dataset.id);
+   openDrawer({
+    id: casoCompleto.id_display,
+    tipo: casoCompleto.tipo,
+    prioridad: casoCompleto.prioridad,
+    estado: casoCompleto.estado,
+    asignado: casoCompleto.asignado,
+    _numId: String(casoCompleto.id)
+    });
+  });
+  
+
     });
     renderPaginacion(pagina, data.casos.length);
   } catch (err) {
@@ -434,7 +445,7 @@ function applyPreset(tipo) {
 
 function openDrawer(item) {
   if (!item) return;
-  casoActivoId = item._raw ? (item._raw.id || item._raw._id || item._raw.caso_id) : item.id;
+  casoActivoId = item._numId || (item._raw ? (item._raw.id || item._raw._id || item._raw.caso_id) : item.id);
   document.getElementById("drawerTitle").textContent = item.id;
   document.getElementById("drawerSubtitle").textContent = `· ${item.tipo}`;
   document.getElementById("d_tipo").textContent = item.tipo;
@@ -531,7 +542,7 @@ async function cargarNotas(casoId) {
     const res = await fetch(`http://localhost:3000/api/casos/${casoId}/notas`);
     if (!res.ok) throw new Error();
     const data = await res.json();
-    const notas = Array.isArray(data) ? data : (data.notas || data.data || []);
+    const notas = data.notas || [];
     renderNotas(notas);
   } catch {
     listaNotas.innerHTML = '<div class="small muted">No se pudieron cargar las notas.</div>';
@@ -544,11 +555,19 @@ if (btnGuardarNota) {
     const texto = inputNuevaNota.value.trim();
     if (!texto) return;
     try {
-      const res = await fetch(`http://localhost:3000/api/casos/${casoActivoId}/notas`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ texto })
-      });
+
+
+     const usr = JSON.parse(localStorage.getItem("usuario") || "{}");
+    const res = await fetch(`http://localhost:3000/api/casos/${casoActivoId}/notas`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+    texto, 
+    usuario: usr.username || usr.nombre || "Sistema",
+    tipo_caso: document.getElementById("drawerSubtitle")?.textContent?.replace("· ", "").trim() || "general"
+  })
+});
+
       if (res.ok) {
         inputNuevaNota.value = "";
         cargarNotas(casoActivoId);
