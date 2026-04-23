@@ -424,7 +424,7 @@ function normalizarCaso(raw) {
     tipoDb: normalizarTipoCasoDb(raw.tipo_db || raw.tipo || raw.tipo_caso),
     prioridad: mapPrioridad(raw.prioridad),
     estado: mapEstado(raw.estado || raw.estado_procesal),
-    asignado: mapAsignado(raw.asignado || raw.abogado_asignado || ""),
+    asignado: mapAsignado(raw.nombre_abogado || raw.asignado || raw.abogado_asignado || raw.abogado_encargado ||""),
     _numId: String(raw.id || raw._id || raw.caso_id || ""),
     _raw: raw
   };
@@ -448,7 +448,8 @@ const camposPorTipo = {
     { name: "estado_procesal", label: "Estado procesal", type: "select", options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]] },
     { name: "asunto", label: "Asunto", type: "text" },
     { name: "fecha_emplazamiento", label: "Fecha de emplazamiento", type: "date" },
-    { name: "abogado_encargado", label: "Abogado encargado", type: "text" },
+    // ------Cambio echo por Fernando------
+    { name: "abogado_encargado", label: "Abogado encargado", type: "select-abogados" },
     { name: "actor", label: "Actor", type: "text" },
     { name: "demandado", label: "Demandado", type: "text" },
     { name: "juzgado", label: "Juzgado", type: "text" }
@@ -457,6 +458,7 @@ const camposPorTipo = {
     { name: "expediente", label: "Expediente", type: "text" },
     { name: "estado_procesal", label: "Estado procesal", type: "select", options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]] },
     { name: "asunto", label: "Asunto", type: "text" },
+    { name: "abogado_encargado", label: "Abogado encargado", type: "select-abogados" },
     { name: "fecha_emplazamiento", label: "Fecha de emplazamiento", type: "date" },
     { name: "sala", label: "Sala", type: "text" },
     { name: "actor", label: "Actor", type: "text" }
@@ -465,6 +467,7 @@ const camposPorTipo = {
     { name: "expediente", label: "Expediente", type: "text" },
     { name: "estado_procesal", label: "Estado procesal", type: "select", options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]] },
     { name: "actor", label: "Actor", type: "text" },
+    { name: "abogado_encargado", label: "Abogado encargado", type: "select-abogados" },
     { name: "fecha_emplazamiento", label: "Fecha de emplazamiento", type: "date" },
     { name: "mesa", label: "Mesa", type: "text" },
     { name: "numero", label: "Número", type: "text" }
@@ -473,6 +476,7 @@ const camposPorTipo = {
     { name: "expediente", label: "Expediente", type: "text" },
     { name: "estado_procesal", label: "Estado procesal", type: "select", options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]] },
     { name: "asunto", label: "Asunto", type: "text" },
+    { name: "abogado_encargado", label: "Abogado encargado", type: "select-abogados" },
     { name: "fecha_emplazamiento", label: "Fecha de inicio", type: "date" },
     { name: "juzgado", label: "Juzgado", type: "text" },
     { name: "actor", label: "Actor", type: "text" },
@@ -482,6 +486,7 @@ const camposPorTipo = {
     { name: "expediente", label: "Expediente", type: "text" },
     { name: "estado_procesal", label: "Estado procesal", type: "select", options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]] },
     { name: "asunto", label: "Asunto", type: "text" },
+    { name: "abogado_encargado", label: "Abogado encargado", type: "select-abogados" },
     { name: "fecha_emplazamiento", label: "Fecha", type: "date" },
     { name: "juzgado", label: "Juzgado", type: "text" },
     { name: "actor", label: "Actor", type: "text" }
@@ -490,6 +495,7 @@ const camposPorTipo = {
     { name: "expediente", label: "Expediente", type: "text" },
     { name: "estado_procesal", label: "Estado procesal", type: "select", options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]] },
     { name: "asunto", label: "Asunto", type: "text" },
+    { name: "abogado_encargado", label: "Abogado encargado", type: "select-abogados" },
     { name: "juzgado", label: "Juzgado", type: "text" },
     { name: "actor", label: "Actor", type: "text" },
     { name: "demandado", label: "Demandado", type: "text" }
@@ -498,6 +504,7 @@ const camposPorTipo = {
     { name: "expediente", label: "Expediente", type: "text" },
     { name: "estado_procesal", label: "Estado procesal", type: "select", options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]] },
     { name: "asunto", label: "Asunto", type: "text" },
+    { name: "abogado_encargado", label: "Abogado encargado", type: "select-abogados" },
     { name: "fecha_emplazamiento", label: "Fecha de emplazamiento", type: "date" },
     { name: "actor", label: "Actor", type: "text" }
   ],
@@ -505,32 +512,78 @@ const camposPorTipo = {
     { name: "expediente", label: "Expediente", type: "text" },
     { name: "estado_procesal", label: "Estado procesal", type: "select", options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]] },
     { name: "asunto", label: "Asunto", type: "text" },
+    { name: "abogado_encargado", label: "Abogado encargado", type: "select-abogados" },
     { name: "fecha_emplazamiento", label: "Fecha recibido", type: "date" }
   ]
 };
-
-function renderCampos(campos, contenedor, idPrefix = "") {
+//-------Cambio echo por Fer-----------
+async function renderCampos(campos, contenedor, idPrefix = "") {
   contenedor.innerHTML = "";
+
+  let abogados = [];
+
+  const necesitaAbogados = campos.some(c => c.type === "select-abogados");
+
+  if (necesitaAbogados) {
+    try {
+      const res = await fetch("http://localhost:3000/api/usuarios");
+      const data = await res.json();
+
+      if (data.success) {
+        abogados = data.usuarios.filter(
+          u => u.rol?.toUpperCase() === "ABOGADO"
+        );
+      }
+    } catch (error) {
+      console.error("Error cargando abogados:", error);
+    }
+  }
+
   campos.forEach(campo => {
     const div = document.createElement("div");
     div.className = "field";
+
     const label = document.createElement("label");
     label.textContent = campo.label;
+
     let el;
+
     if (campo.type === "select") {
       el = document.createElement("select");
+
       campo.options.forEach(([val, txt]) => {
         const o = document.createElement("option");
         o.value = val;
         o.textContent = txt;
         el.appendChild(o);
       });
+
+    } else if (campo.type === "select-abogados") {
+      el = document.createElement("select");
+
+      const opcionDefault = document.createElement("option");
+      opcionDefault.value = "";
+      opcionDefault.textContent = "Seleccione abogado";
+      el.appendChild(opcionDefault);
+
+      abogados.forEach(abogado => {
+        const option = document.createElement("option");
+        option.value = abogado.id;
+        option.textContent = abogado.nombre;
+        el.appendChild(option);
+      });
+
     } else {
       el = document.createElement("input");
       el.type = campo.type;
     }
+
     el.name = campo.name;
-    if (idPrefix) el.id = idPrefix + campo.name;
+
+    if (idPrefix) {
+      el.id = idPrefix + campo.name;
+    }
+
     div.appendChild(label);
     div.appendChild(el);
     contenedor.appendChild(div);
@@ -769,7 +822,7 @@ buttons.forEach(button => {
 let paginaActual = 1;
 const LIMITE = 5;
 
-async function renderTable(pagina = 1) {
+async function renderTable(pagina = 1) { 
   if (!tbody) return;
   const tipo = tipoSelect ? tipoSelect.value : "Todos";
   const params = new URLSearchParams({

@@ -130,7 +130,7 @@ app.post('/api/login', (req, res) => {
 // Agregar casos
 // Ruta para agregar un nuevo caso
 app.post('/api/nuevocaso', (req, res) => {
-  console.log("BODY:", req.body);
+  //console.log("BODY:", req.body);
   const {
     tipo_caso,
     expediente,
@@ -156,61 +156,61 @@ app.post('/api/nuevocaso', (req, res) => {
   switch (tipo) {
     case 'amparo':
       sql = `INSERT INTO amparos 
-      (expediente, estado_procesal, asunto, juzgado, actor, demandado, prioridad, estado_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, asunto, juzgado, actor, demandado, prioridad];
+      (expediente, fecha_emplazamiento, estado_procesal, asunto, juzgado, actor, demandado, abogado_encargado, prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`;
+      params = [expediente, fecha_emplazamiento, estado_procesal, asunto, juzgado, actor, demandado, abogado_encargado, prioridad];
       break;
 
     case 'administrativo':
       sql = `INSERT INTO administrativos 
-      (expediente, estado_procesal, asunto, fecha_emplazamiento, sala, actor, prioridad, estado_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, sala, actor, prioridad];
+      (expediente, estado_procesal, asunto, fecha_emplazamiento, sala, actor, abogado_encargado, prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`;
+      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, sala, actor, abogado_encargado, prioridad];
       break;
 
     case 'laboral':
       sql = `INSERT INTO laborales 
-      (expediente, estado_procesal, actor, emplazamiento, mesa, numero,prioridad, estado_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, actor, fecha_emplazamiento, mesa, numero, prioridad];
+      (expediente, estado_procesal, actor, emplazamiento, mesa, numero, abogado_encargado, prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`;
+      params = [expediente, estado_procesal, actor, fecha_emplazamiento, mesa, numero, abogado_encargado, prioridad];
       break;
 
     case 'civil':
       sql = `INSERT INTO civiles 
-      (expediente, estado_procesal, asunto, fecha_inicio, juzgado, actor, demandado, prioridad, estado_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, juzgado, actor, demandado, prioridad];
+      (expediente, estado_procesal, asunto, fecha_inicio, juzgado, actor, demandado, abogado_encargado, prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`;
+      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, juzgado, actor, demandado, abogado_encargado, prioridad];
       break;
 
     case 'mercantil':
       sql = `INSERT INTO mercantiles 
-      (expediente, estado_procesal, asunto, fecha, juzgado, actor,prioridad, estado_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, juzgado, actor, prioridad];
+      (expediente, estado_procesal, asunto, fecha, juzgado, actor, abogado_encargado, prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`;
+      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, juzgado, actor, abogado_encargado, prioridad];
       break;
 
     case 'penal':
       // ⚠️ penales NO tiene fecha_emplazamiento en tu schema
       sql = `INSERT INTO penales 
-     (expediente, estado_procesal, asunto, juzgado, actor, demandado, prioridad, estado_id) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
+     (expediente, estado_procesal, asunto, juzgado, actor, demandado, abogado_encargado, prioridad, estado_id) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`;
 
-      params = [expediente, estado_procesal, asunto, juzgado, actor, demandado, prioridad];
+      params = [expediente, estado_procesal, asunto, juzgado, actor, demandado, abogado_encargado, prioridad];
       break;
 
     case 'agrario':
       // ⚠️ agrarios NO tiene demandado en tu schema
       sql = `INSERT INTO agrarios 
-      (expediente, estado_procesal, asunto, fecha_emplazamiento, actor, prioridad, estado_id) 
-      VALUES (?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, actor, prioridad];
+      (expediente, estado_procesal, asunto, fecha_emplazamiento, actor, abogado_encargado, prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
+      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, actor, abogado_encargado, prioridad];
       break;
 
     case 'varios':
       sql = `INSERT INTO exp_varios 
-      (expediente, estado_procesal, asunto, fecha_recibido, prioridad, estado_id) 
-      VALUES (?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, prioridad];
+      (expediente, estado_procesal, asunto, fecha_recibido,abogado_encargado, prioridad, estado_id) 
+      VALUES (?, ?, ?, ?, ?, ?, 1)`;
+      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, abogado_encargado, prioridad];
       break;
 
     default:
@@ -289,7 +289,7 @@ app.get('/api/casos', (req, res) => {
       });
     }
     // ----------------- Modificacion echa por Fer el 18 -------------------------
-    const casos = results.map(caso => ({
+  const casos = results.map(caso => ({
       id: caso.id,
       id_display: `${caso.tipo.toUpperCase()}-${caso.id}`,
       nombre: caso.asunto || caso.actor || caso.expediente || "Sin nombre",
@@ -297,8 +297,8 @@ app.get('/api/casos', (req, res) => {
       tipo_db: normalizarTipoCaso(caso.tipo) || caso.tipo,
       prioridad: caso.prioridad || "Media",
       estado: caso.estado_procesal || "—",
-      asignado: "Sin asignar"
-    }));
+      asignado: caso.nombre_abogado || "Sin asignar"
+  }));
 
     res.json({
       success: true,
@@ -484,6 +484,52 @@ app.delete('/api/casos/:id/notas/:notaId', (req, res) => {
     res.json({ success: true });
   });
 });
+
+app.put('/api/casos/:tipo/:id/asignar', (req, res) => {
+  const { tipo, id } = req.params;
+  const { abogado_encargado } = req.body;
+
+  const mapaTablas = {
+    amparo: 'amparos',
+    administrativo: 'administrativos',
+    laboral: 'laborales',
+    civil: 'civiles',
+    mercantil: 'mercantiles',
+    penal: 'penales',
+    agrario: 'agrarios',
+    varios: 'exp_varios'
+  };
+
+  const tabla = mapaTablas[tipo];
+
+  if (!tabla) {
+    return res.status(400).json({
+      success: false,
+      mensaje: 'Tipo inválido'
+    });
+  }
+
+  const sql = `
+    UPDATE ${tabla}
+    SET abogado_encargado = ?
+    WHERE id = ?
+  `;
+
+  db.query(sql, [abogado_encargado, id], (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        mensaje: err.message
+      });
+    }
+
+    res.json({
+      success: true,
+      mensaje: 'Abogado asignado correctamente'
+    });
+  });
+});
+
 
 const PORT = 3000;
 app.listen(PORT, () => {
