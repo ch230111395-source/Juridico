@@ -20,6 +20,35 @@ const btnRolForm = document.getElementById("btnRolForm");
 const permDetails = document.getElementById("permDetails");
 const btnLogout = document.getElementById("btnLogout");
 
+// ── Búsqueda global ──
+const inputBusqueda = document.getElementById("inputBusqueda");
+let busquedaActual  = "";
+let debounceTimer   = null;
+
+if (inputBusqueda) {
+  inputBusqueda.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      const termino = inputBusqueda.value.trim();
+      // Solo busca si cambió el término
+      if (termino === busquedaActual) return;
+      busquedaActual = termino;
+      paginaActual   = 1;
+      renderTable(1);
+    }, 400);
+  });
+
+  // Limpiar con Escape dentro del input
+  inputBusqueda.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      inputBusqueda.value = "";
+      busquedaActual = "";
+      paginaActual   = 1;
+      renderTable(1);
+    }
+  });
+}
+
 // ========== VARIABLES PARA MODAL ==========
 const btnNuevoGlobal = document.getElementById("btnNuevoGlobal");
 const modalNuevoCaso = document.getElementById("modalNuevoCaso");
@@ -29,6 +58,299 @@ const btnCancelarModal = document.getElementById("btnCancelarModal");
 const btnCloseModal = document.getElementById("btnCloseModal");
 const tipoSelectModal = document.getElementById("tipoSelectModal");
 const camposRelevantesModal = document.getElementById("camposRelevantesModal");
+const btnNuevoUsuario = document.getElementById("btnNuevoUsuario");
+const modalUsuarioMask = document.getElementById("modalUsuarioMask");
+const modalNuevoUsuario = document.getElementById("modalNuevoUsuario");
+const formNuevoUsuario = document.getElementById("formNuevoUsuario");
+const btnCancelarUsuarioModal = document.getElementById("btnCancelarUsuarioModal");
+const btnCloseUsuarioModal = document.getElementById("btnCloseUsuarioModal");
+const btnLimpiarUsuario = document.getElementById("btnLimpiarUsuario");
+const btnGuardarUsuario = document.getElementById("btnGuardarUsuario");
+const inputUsuarioId = document.getElementById("usuario_id");
+const inputUsuarioNombre = document.getElementById("usuario_nombre");
+
+const STORAGE_KEYS = {
+  activeView: "projuridico.activeView",
+  activeCase: "projuridico.activeCase",
+  dashboardToast: "projuridico.dashboardToast",
+  loginToast: "projuridico.loginToast"
+};
+
+function guardarVistaActiva(vista) {
+  if (!vista) return;
+  sessionStorage.setItem(STORAGE_KEYS.activeView, vista);
+}
+
+function obtenerVistaActiva() {
+  return sessionStorage.getItem(STORAGE_KEYS.activeView);
+}
+
+function guardarCasoActivo(item) {
+  if (!item?._numId) return;
+  sessionStorage.setItem(STORAGE_KEYS.activeCase, JSON.stringify({
+    id: item.id,
+    tipo: item.tipo,
+    tipoDb: item.tipoDb || "",
+    prioridad: item.prioridad,
+    estado: item.estado,
+    asignado: item.asignado,
+    _numId: String(item._numId)
+  }));
+}
+
+function obtenerCasoActivoGuardado() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEYS.activeCase);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function limpiarCasoActivoGuardado() {
+  sessionStorage.removeItem(STORAGE_KEYS.activeCase);
+}
+
+function guardarToastPendiente(key, payload) {
+  if (!key || !payload?.message) return;
+  sessionStorage.setItem(key, JSON.stringify(payload));
+}
+
+function mostrarToastPendiente(key) {
+  if (!key) return;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return;
+    sessionStorage.removeItem(key);
+    const payload = JSON.parse(raw);
+    if (payload?.message) {
+      showToast(payload.message, payload.type || "info");
+    }
+  } catch {
+    sessionStorage.removeItem(key);
+  }
+}
+
+function setActiveView(vista, { scroll = true } = {}) {
+  if (!vista) return;
+  const existeVista = Array.from(views).some(view => view.id === vista);
+  if (!existeVista) return;
+
+  buttons.forEach(button => {
+    button.classList.toggle("active", button.dataset.view === vista);
+  });
+
+  views.forEach(view => {
+    view.classList.toggle("active", view.id === vista);
+  });
+
+  guardarVistaActiva(vista);
+
+  if (vista === "v_usuarios") cargarUsuarios();
+  if (scroll) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
+
+function normalizarTipoCasoDb(value) {
+  const limpio = String(value || "").trim().toLowerCase();
+  const mapa = {
+    administrativo: "administrativos",
+    administrativos: "administrativos",
+    agrario: "agrarios",
+    agrarios: "agrarios",
+    amparo: "amparos",
+    amparos: "amparos",
+    civil: "civiles",
+    civiles: "civiles",
+    laboral: "laborales",
+    laborales: "laborales",
+    mercantil: "mercantiles",
+    mercantiles: "mercantiles",
+    penal: "penales",
+    penales: "penales",
+    varios: "exp_varios",
+    "exp varios": "exp_varios",
+    exp_varios: "exp_varios"
+  };
+  return mapa[limpio] || "";
+}
+
+let toastContainer = null;
+let confirmDialogState = null;
+let confirmDialogElements = null;
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+
+function formatearTextoHtml(value) {
+  return escapeHtml(value).replace(/\n/g, "<br>");
+}
+
+function inferirTipoToast(message) {
+  const texto = String(message || "").toLowerCase();
+  if (texto.includes("✅") || texto.includes("guardado") || texto.includes("éxito") || texto.includes("exito")) {
+    return "success";
+  }
+  if (texto.includes("❌") || texto.includes("error") || texto.includes("no se pudo")) {
+    return "error";
+  }
+  return "info";
+}
+
+function obtenerToastContainer() {
+  if (toastContainer && document.body.contains(toastContainer)) return toastContainer;
+
+  toastContainer = document.createElement("div");
+  toastContainer.className = "toastContainer";
+  toastContainer.setAttribute("aria-live", "polite");
+  toastContainer.setAttribute("aria-atomic", "true");
+  document.body.appendChild(toastContainer);
+  return toastContainer;
+}
+
+function showToast(message, type = inferirTipoToast(message), duration = 3600) {
+  if (!message) return;
+
+  const iconos = {
+    success: "✓",
+    error: "!",
+    info: "i"
+  };
+
+  const container = obtenerToastContainer();
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+
+  const icono = document.createElement("span");
+  icono.className = "toastIcon";
+  icono.setAttribute("aria-hidden", "true");
+  icono.textContent = iconos[type] || iconos.info;
+
+  const texto = document.createElement("span");
+  texto.className = "toastMessage";
+  texto.textContent = String(message);
+
+  const cerrar = document.createElement("button");
+  cerrar.type = "button";
+  cerrar.className = "toastClose";
+  cerrar.setAttribute("aria-label", "Cerrar notificación");
+  cerrar.textContent = "×";
+
+  let timer = null;
+  const dismiss = () => {
+    if (!toast.isConnected) return;
+    if (timer) window.clearTimeout(timer);
+    toast.classList.remove("show");
+    window.setTimeout(() => {
+      if (toast.isConnected) toast.remove();
+    }, 220);
+  };
+
+  cerrar.addEventListener("click", dismiss);
+  toast.append(icono, texto, cerrar);
+  container.appendChild(toast);
+
+  window.requestAnimationFrame(() => {
+    toast.classList.add("show");
+  });
+
+  timer = window.setTimeout(dismiss, Math.max(duration, 1800));
+}
+
+window.showToast = showToast;
+window.alert = message => showToast(message);
+
+function obtenerConfirmDialog() {
+  if (confirmDialogElements && document.body.contains(confirmDialogElements.mask)) {
+    return confirmDialogElements;
+  }
+
+  const mask = document.createElement("div");
+  mask.className = "confirmDialogMask";
+  mask.innerHTML = `
+    <div class="confirmDialog" role="alertdialog" aria-modal="true" aria-labelledby="confirmDialogTitle" aria-describedby="confirmDialogMessage">
+      <div class="confirmDialogHeader">
+        <div class="confirmDialogEyebrow">Confirmación</div>
+        <h3 class="confirmDialogTitle" id="confirmDialogTitle">Confirmar acción</h3>
+      </div>
+      <p class="confirmDialogMessage" id="confirmDialogMessage"></p>
+      <div class="confirmDialogActions">
+        <button type="button" class="btn" data-confirm-cancel>Cancelar</button>
+        <button type="button" class="btn primary" data-confirm-accept>Aceptar</button>
+      </div>
+    </div>
+  `;
+
+  const dialog = mask.querySelector(".confirmDialog");
+  const title = mask.querySelector("#confirmDialogTitle");
+  const message = mask.querySelector("#confirmDialogMessage");
+  const cancelBtn = mask.querySelector("[data-confirm-cancel]");
+  const acceptBtn = mask.querySelector("[data-confirm-accept]");
+
+  const cerrar = result => {
+    if (!confirmDialogState) return;
+    const { resolve } = confirmDialogState;
+    confirmDialogState = null;
+    mask.classList.remove("show");
+    dialog.classList.remove("confirmDialogShow");
+    resolve(Boolean(result));
+  };
+
+  cancelBtn.addEventListener("click", () => cerrar(false));
+  acceptBtn.addEventListener("click", () => cerrar(true));
+  mask.addEventListener("click", e => {
+    if (e.target === mask) cerrar(false);
+  });
+
+  document.body.appendChild(mask);
+  confirmDialogElements = { mask, dialog, title, message, cancelBtn, acceptBtn, cerrar };
+  return confirmDialogElements;
+}
+
+function showConfirmDialog({
+  title = "Confirmar acción",
+  message = "",
+  confirmText = "Aceptar",
+  cancelText = "Cancelar",
+  variant = "primary"
+} = {}) {
+  if (confirmDialogState?.resolve) {
+    confirmDialogState.resolve(false);
+  }
+
+  const dialog = obtenerConfirmDialog();
+  dialog.title.textContent = title;
+  dialog.message.textContent = message;
+  dialog.cancelBtn.textContent = cancelText;
+  dialog.acceptBtn.textContent = confirmText;
+  dialog.acceptBtn.classList.toggle("danger", variant === "danger");
+  dialog.mask.classList.add("show");
+
+  window.requestAnimationFrame(() => {
+    dialog.dialog.classList.add("confirmDialogShow");
+    dialog.acceptBtn.focus();
+  });
+
+  return new Promise(resolve => {
+    confirmDialogState = { resolve };
+  });
+}
+
+async function obtenerJsonSeguro(response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
 
 const presets = {
   Mercantil: { prioridad: "Alta", estado: "En proceso", asignado: "Abg. A" },
@@ -92,16 +414,18 @@ function normalizarCaso(raw) {
   };
 
   return {
-    id: (() => {
+    id: raw.id_display || (() => {
       const num = raw.id || raw._id || raw.caso_id || "";
       const tipo = (raw.tipo || raw.tipo_caso || "").toUpperCase().replace(/ES$/, "").replace(/S$/, "").trim();
       return tipo ? `${tipo}-${num}` : String(num);
     })(),
     nombre: raw.nombre || raw.asunto || raw.nombre_caso || "",
     tipo: mapTipo(raw.tipo || raw.tipo_caso || ""),
+    tipoDb: normalizarTipoCasoDb(raw.tipo_db || raw.tipo || raw.tipo_caso),
     prioridad: mapPrioridad(raw.prioridad),
-    estado: mapEstado(raw.estado),
+    estado: mapEstado(raw.estado || raw.estado_procesal),
     asignado: mapAsignado(raw.asignado || raw.abogado_asignado || ""),
+    _numId: String(raw.id || raw._id || raw.caso_id || ""),
     _raw: raw
   };
 }
@@ -234,6 +558,26 @@ function mostrarCamposModal(tipo) {
   renderCampos(camposPorTipo[tipo] || [], camposRelevantesModal);
 }
 
+function limpiarFormularioUsuario() {
+  if (formNuevoUsuario) formNuevoUsuario.reset();
+  if (inputUsuarioId) inputUsuarioId.value = "";
+}
+
+function abrirModalNuevoUsuario() {
+  if (!modalUsuarioMask || !modalNuevoUsuario) return;
+  limpiarFormularioUsuario();
+  modalUsuarioMask.classList.add("show");
+  modalNuevoUsuario.classList.add("show");
+  window.requestAnimationFrame(() => inputUsuarioNombre?.focus());
+}
+
+function cerrarModalNuevoUsuario() {
+  if (!modalUsuarioMask || !modalNuevoUsuario) return;
+  modalUsuarioMask.classList.remove("show");
+  modalNuevoUsuario.classList.remove("show");
+  limpiarFormularioUsuario();
+}
+
 // ========== EVENTOS PARA MODAL ==========
 if (btnNuevoGlobal) {
   btnNuevoGlobal.addEventListener("click", abrirModalNuevoCaso);
@@ -274,15 +618,91 @@ if (formNuevoCaso) {
       });
       const result = await res.json();
       if (result.success) {
-        alert("✅ Caso guardado con ID: " + result.id);
+        showToast("Caso guardado con ID: " + result.id, "success");
         cerrarModalNuevoCaso();
         cargarCasos();
       } else {
-        alert("Error: " + (result.mensaje || "No se pudo guardar el caso"));
+        showToast("Error: " + (result.mensaje || "No se pudo guardar el caso"), "error");
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?");
+      showToast("No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?", "error");
+    }
+  });
+}
+
+if (btnNuevoUsuario) {
+  btnNuevoUsuario.addEventListener("click", abrirModalNuevoUsuario);
+}
+
+if (btnCancelarUsuarioModal) {
+  btnCancelarUsuarioModal.addEventListener("click", cerrarModalNuevoUsuario);
+}
+
+if (btnCloseUsuarioModal) {
+  btnCloseUsuarioModal.addEventListener("click", cerrarModalNuevoUsuario);
+}
+
+if (btnLimpiarUsuario) {
+  btnLimpiarUsuario.addEventListener("click", limpiarFormularioUsuario);
+}
+
+if (modalUsuarioMask) {
+  modalUsuarioMask.addEventListener("click", (e) => {
+    if (e.target === modalUsuarioMask) cerrarModalNuevoUsuario();
+  });
+}
+
+if (formNuevoUsuario) {
+  formNuevoUsuario.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(formNuevoUsuario);
+    const datos = Object.fromEntries(formData);
+    const payload = {
+      nombre: (datos.nombre || "").trim(),
+      username: (datos.username || "").trim(),
+      email: (datos.email || "").trim(),
+      rol: datos.rol || "ABOGADO",
+      password: datos.password || "",
+      activo: Number(datos.activo ?? 1)
+    };
+
+    if (!payload.nombre || !payload.username || !payload.password) {
+      showToast("Nombre, usuario y contraseña son obligatorios.", "error");
+      return;
+    }
+
+    const textoOriginal = btnGuardarUsuario?.textContent || "Guardar usuario";
+    if (btnGuardarUsuario) {
+      btnGuardarUsuario.disabled = true;
+      btnGuardarUsuario.textContent = "Guardando...";
+    }
+
+    try {
+      const res = await fetch("http://localhost:3000/api/usuarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        const idFormato = result.id ? `USR-${String(result.id).padStart(4, "0")}` : "";
+        showToast(idFormato ? `Usuario creado con ID ${idFormato}.` : "Usuario creado correctamente.", "success");
+        cerrarModalNuevoUsuario();
+        cargarUsuarios();
+      } else {
+        showToast(result.mensaje || "No se pudo guardar el usuario.", "error");
+      }
+    } catch (error) {
+      console.error("Error guardando usuario:", error);
+      showToast("No se pudo conectar con el servidor.", "error");
+    } finally {
+      if (btnGuardarUsuario) {
+        btnGuardarUsuario.disabled = false;
+        btnGuardarUsuario.textContent = textoOriginal;
+      }
     }
   });
 }
@@ -323,18 +743,18 @@ if (formInline) {
       });
       const result = await res.json();
       if (result.success) {
-        alert("✅ Caso guardado con ID: " + result.id);
+        showToast("Caso guardado con ID: " + result.id, "success");
         formInline.reset();
         mostrarCampos();
         const details = document.getElementById("detallesNuevoCaso");
         if (details) details.open = false;
         cargarCasos();
       } else {
-        alert("Error: " + (result.mensaje || "No se pudo guardar el caso"));
+        showToast("Error: " + (result.mensaje || "No se pudo guardar el caso"), "error");
       }
     } catch (err) {
       console.error(err);
-      alert("No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?");
+      showToast("No se pudo conectar con el servidor. ¿Está corriendo en puerto 3000?", "error");
     }
   });
 }
@@ -342,19 +762,7 @@ if (formInline) {
 // ========== NAVEGACIÓN ==========
 buttons.forEach(button => {
   button.addEventListener("click", () => {
-    const vista = button.dataset.view;
-
-    buttons.forEach(item => item.classList.remove("active"));
-    button.classList.add("active");
-
-    views.forEach(view => {
-      view.classList.toggle("active", view.id === vista);
-    });
-
-    // ← AGREGADO: cargar usuarios al navegar a esa sección
-    if (vista === "v_usuarios") cargarUsuarios();
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setActiveView(button.dataset.view);
   });
 });
 
@@ -364,14 +772,21 @@ const LIMITE = 5;
 async function renderTable(pagina = 1) {
   if (!tbody) return;
   const tipo = tipoSelect ? tipoSelect.value : "Todos";
-  const url = `http://localhost:3000/api/casos?limite=${LIMITE}&pagina=${pagina}&tipo=${tipo}`;
+  const params = new URLSearchParams({
+    limite:   LIMITE,
+    pagina:   pagina,
+    tipo:     tipo,
+    busqueda: busquedaActual
+  });
+  const url = `http://localhost:3000/api/casos?${params}`;
   try {
     const res = await fetch(url);
     const data = await res.json();
     if (!data.success) return;
-    tbody.innerHTML = data.casos.map(caso => `
-      <tr data-id="${caso.id}" data-tipo="${caso.tipo}">
-        <td><span class="tag">${caso.id_display}</span></td>
+    casos = (data.casos || []).map(normalizarCaso);
+    tbody.innerHTML = casos.map(caso => `
+      <tr data-id="${caso._numId}" data-tipo="${caso.tipo}">
+        <td><span class="tag">${caso.id}</span></td>
         <td>${caso.nombre}</td>
         <td class="muted">${caso.tipo}</td>
         <td>${caso.prioridad}</td>
@@ -379,26 +794,30 @@ async function renderTable(pagina = 1) {
         <td class="muted">${caso.asignado}</td>
       </tr>
     `).join("");
-    tbody.querySelectorAll("tr").forEach(row => {
+    tbody.querySelectorAll("tr").forEach((row, index) => {
+      const casoCompleto = casos[index];
+      if (!casoCompleto) return;
 
-     row.addEventListener("dblclick", () => {
-   const casoCompleto = data.casos.find(c => String(c.id) === row.dataset.id);
-   openDrawer({
-    id: casoCompleto.id_display,
-    tipo: casoCompleto.tipo,
-    prioridad: casoCompleto.prioridad,
-    estado: casoCompleto.estado,
-    asignado: casoCompleto.asignado,
-    _numId: String(casoCompleto.id)
+      row.addEventListener("dblclick", () => {
+        openDrawer(casoCompleto);
+      });
     });
-  });
-  
-
-    });
-    renderPaginacion(pagina, data.casos.length);
+    renderPaginacion(pagina, casos.length);
+    resaltarTermino(busquedaActual);
   } catch (err) {
     console.error("Error cargando casos:", err);
   }
+}
+
+// Resalta el término buscado en la tabla
+function resaltarTermino(termino) {
+  if (!termino || !tbody) return;
+  const regex = new RegExp(`(${termino.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+  tbody.querySelectorAll("td:nth-child(2)").forEach(td => {
+    td.innerHTML = td.textContent.replace(regex,
+      '<mark style="background:#fef08a; border-radius:3px; padding:0 2px;">$1</mark>'
+    );
+  });
 }
 
 function renderPaginacion(pagina, cantidadActual) {
@@ -446,12 +865,23 @@ function applyPreset(tipo) {
 function openDrawer(item) {
   if (!item) return;
   casoActivoId = item._numId || (item._raw ? (item._raw.id || item._raw._id || item._raw.caso_id) : item.id);
+  casoActivoTipo = item.tipoDb || normalizarTipoCasoDb(item.tipo || item._raw?.tipo || item._raw?.tipo_caso);
+  setActiveView("v_casos", { scroll: false });
   document.getElementById("drawerTitle").textContent = item.id;
   document.getElementById("drawerSubtitle").textContent = `· ${item.tipo}`;
   document.getElementById("d_tipo").textContent = item.tipo;
   document.getElementById("d_prioridad").textContent = item.prioridad;
   document.getElementById("d_estado").textContent = item.estado;
   document.getElementById("d_asignado").textContent = item.asignado;
+  guardarCasoActivo({
+    id: item.id,
+    tipo: item.tipo,
+    tipoDb: casoActivoTipo,
+    prioridad: item.prioridad,
+    estado: item.estado,
+    asignado: item.asignado,
+    _numId: casoActivoId
+  });
   if (inputNuevaNota) inputNuevaNota.value = "";
   cargarNotas(casoActivoId);
   cargarDocumentos(casoActivoId);
@@ -460,6 +890,9 @@ function openDrawer(item) {
 }
 
 function closeDrawer() {
+  casoActivoId = null;
+  casoActivoTipo = null;
+  limpiarCasoActivoGuardado();
   mask.classList.remove("show");
 }
 
@@ -475,14 +908,28 @@ if (closeBtn) {
   closeBtn.addEventListener("click", closeDrawer);
 }
 
-if (mask) {
-  mask.addEventListener("click", event => {
-    if (event.target === mask) closeDrawer();
+// Prevenir que clicks dentro del drawer cierren el drawer
+const drawerPanel = document.querySelector('.drawer');
+if (drawerPanel) {
+  drawerPanel.addEventListener('click', (e) => {
+    e.stopPropagation(); // Detener propagación de TODOS los clicks dentro del drawer
   });
+}
+
+if (mask) {
+  mask.addEventListener("click", closeDrawer); // Ahora solo cierra si clickeas el fondo oscuro
 }
 
 window.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
+  if (confirmDialogState) {
+    obtenerConfirmDialog().cerrar(false);
+    return;
+  }
+  if (modalUsuarioMask && modalUsuarioMask.classList.contains("show")) {
+    cerrarModalNuevoUsuario();
+    return;
+  }
   if (modalMask && modalMask.classList.contains("show")) {
     cerrarModalNuevoCaso();
   } else {
@@ -505,9 +952,20 @@ if (btnRolForm && permDetails) {
 }
 
 if (btnLogout) {
-  btnLogout.addEventListener("click", () => {
-    const confirmar = confirm("¿Deseas cerrar sesión?");
+  btnLogout.addEventListener("click", async () => {
+    const confirmar = await showConfirmDialog({
+      title: "Cerrar sesión",
+      message: "¿Deseas cerrar sesión?",
+      confirmText: "Cerrar sesión",
+      cancelText: "Cancelar"
+    });
     if (!confirmar) return;
+    sessionStorage.removeItem(STORAGE_KEYS.activeView);
+    limpiarCasoActivoGuardado();
+    guardarToastPendiente(STORAGE_KEYS.loginToast, {
+      message: "Sesión cerrada correctamente.",
+      type: "info"
+    });
     localStorage.removeItem("usuario");
     window.location.href = "index.html";
   });
@@ -515,11 +973,17 @@ if (btnLogout) {
 
 // ========== NOTAS DEL CASO ==========
 let casoActivoId = null;
+let casoActivoTipo = null;
+// Flag removido - usamos event.stopPropagation en el drawer directamente
 
 const btnGuardarNota = document.getElementById("btnGuardarNota");
 const btnLimpiarNota = document.getElementById("btnLimpiarNota");
 const inputNuevaNota = document.getElementById("inputNuevaNota");
 const listaNotas = document.getElementById("listaNotas");
+
+function obtenerNotaId(nota) {
+  return nota?.id || nota?.nota_id || nota?._id || nota?.notaId || "";
+}
 
 function renderNotas(notas) {
   if (!listaNotas) return;
@@ -527,19 +991,79 @@ function renderNotas(notas) {
     listaNotas.innerHTML = '<div class="small muted">Sin notas registradas.</div>';
     return;
   }
-  listaNotas.innerHTML = notas.map(n => `
-    <div class="nota-item card" style="box-shadow:none; padding: 12px 14px;">
-      <div class="small muted">${n.fecha || ""} · ${n.usuario || "Sistema"}</div>
-      <div style="margin-top:4px;">${n.texto || n.nota || n.contenido || ""}</div>
-    </div>
-  `).join("");
+  listaNotas.innerHTML = notas.map(n => {
+    const notaId = obtenerNotaId(n);
+    const meta = [n.fecha, n.usuario || "Sistema"].filter(Boolean).map(escapeHtml).join(" · ");
+    const contenido = formatearTextoHtml(n.texto || n.nota || n.contenido || "");
+
+    return `
+      <div class="nota-item card noteCard" style="box-shadow:none; padding: 12px 14px;">
+        <div class="noteMetaRow">
+          <div class="small muted">${meta || "Sistema"}</div>
+          ${notaId ? `<button type="button" class="btn noteDeleteBtn" data-note-id="${escapeHtml(notaId)}">Eliminar</button>` : ""}
+        </div>
+        <div class="noteText" style="margin-top:4px;">${contenido}</div>
+      </div>
+    `;
+  }).join("");
+
+  listaNotas.querySelectorAll("[data-note-id]").forEach(button => {
+    button.addEventListener("click", () => {
+      eliminarNota(button.dataset.noteId);
+    });
+  });
+}
+
+async function eliminarNota(notaId) {
+  if (!casoActivoId || !casoActivoTipo || !notaId) {
+    showToast("No se pudo identificar la nota a eliminar.", "error");
+    return;
+  }
+
+  const confirmar = await showConfirmDialog({
+    title: "Eliminar nota",
+    message: "¿Eliminar esta nota? Esta acción no se puede deshacer.",
+    confirmText: "Eliminar",
+    cancelText: "Cancelar",
+    variant: "danger"
+  });
+
+  if (!confirmar) return;
+
+  const params = new URLSearchParams({ tipo_caso: casoActivoTipo });
+  let mensajeError = "No se pudo eliminar la nota.";
+
+  try {
+    const res = await fetch(
+      `http://localhost:3000/api/casos/${encodeURIComponent(casoActivoId)}/notas/${encodeURIComponent(notaId)}?${params}`,
+      { method: "DELETE" }
+    );
+    const data = await obtenerJsonSeguro(res);
+
+    if (res.ok && (!data || data.success !== false)) {
+      cargarNotas(casoActivoId);
+      showToast("Nota eliminada correctamente.", "success");
+      return;
+    }
+
+    mensajeError = data?.mensaje || mensajeError;
+  } catch {
+    mensajeError = "Error al conectar con el servidor.";
+  }
+
+  showToast(mensajeError, "error");
 }
 
 async function cargarNotas(casoId) {
   if (!listaNotas) return;
+  if (!casoActivoTipo) {
+    listaNotas.innerHTML = '<div class="small muted">No se pudo identificar el tipo del caso.</div>';
+    return;
+  }
   listaNotas.innerHTML = '<div class="small muted">Cargando notas...</div>';
   try {
-    const res = await fetch(`http://localhost:3000/api/casos/${casoId}/notas`);
+    const params = new URLSearchParams({ tipo_caso: casoActivoTipo });
+    const res = await fetch(`http://localhost:3000/api/casos/${casoId}/notas?${params}`);
     if (!res.ok) throw new Error();
     const data = await res.json();
     const notas = data.notas || [];
@@ -551,7 +1075,7 @@ async function cargarNotas(casoId) {
 
 if (btnGuardarNota) {
   btnGuardarNota.addEventListener("click", async () => {
-    if (!casoActivoId || !inputNuevaNota) return;
+    if (!casoActivoId || !casoActivoTipo || !inputNuevaNota) return;
     const texto = inputNuevaNota.value.trim();
     if (!texto) return;
     try {
@@ -564,18 +1088,19 @@ if (btnGuardarNota) {
     body: JSON.stringify({ 
     texto, 
     usuario: usr.username || usr.nombre || "Sistema",
-    tipo_caso: document.getElementById("drawerSubtitle")?.textContent?.replace("· ", "").trim() || "general"
+    tipo_caso: casoActivoTipo
   })
 });
 
       if (res.ok) {
         inputNuevaNota.value = "";
         cargarNotas(casoActivoId);
+        showToast("Nota guardada correctamente.", "success");
       } else {
-        alert("Error al guardar la nota");
+        showToast("Error al guardar la nota", "error");
       }
     } catch {
-      alert("Error al conectar con el servidor");
+      showToast("Error al conectar con el servidor", "error");
     }
   });
 }
@@ -632,11 +1157,13 @@ function renderDocumentos(docs) {
         </div>
       </div>
       <button class="btn" style="padding:6px 12px; font-size:12px;"
-              onclick="descargarDocumento(${doc.id}, '${doc.nombre_original.replace(/'/g, "\\'")}')">
+              type="button"
+              onclick="event.stopPropagation(); descargarDocumento(${doc.id}, '${doc.nombre_original.replace(/'/g, "\\'")}')">
         ⬇ Descargar
       </button>
       <button class="btn" style="padding:6px 12px; font-size:12px; color:#dc2626; border-color:#fecaca;"
-              onclick="eliminarDocumento(${doc.id})">
+              type="button"
+              onclick="event.stopPropagation(); eliminarDocumento(${doc.id})">
         🗑
       </button>
     </div>
@@ -646,7 +1173,7 @@ function renderDocumentos(docs) {
 async function descargarDocumento(docId, nombre) {
   try {
     const res = await fetch(`http://localhost:3000/api/documentos/descargar/${docId}`);
-    if (!res.ok) { alert("No se pudo descargar el archivo."); return; }
+    if (!res.ok) { showToast("No se pudo descargar el archivo.", "error"); return; }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -657,31 +1184,44 @@ async function descargarDocumento(docId, nombre) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   } catch {
-    alert("Error al descargar el archivo.");
+    showToast("Error al descargar el archivo.", "error");
   }
 }
 
 async function eliminarDocumento(docId) {
-  if (!confirm("¿Eliminar este documento? Esta acción no se puede deshacer.")) return;
+  const confirmar = await showConfirmDialog({
+    title: "Eliminar documento",
+    message: "¿Eliminar este documento? Esta acción no se puede deshacer.",
+    confirmText: "Eliminar",
+    cancelText: "Cancelar",
+    variant: "danger"
+  });
+  if (!confirmar) return;
   try {
     const res = await fetch(`http://localhost:3000/api/documentos/${docId}`, { method: "DELETE" });
     const data = await res.json();
     if (data.success) {
       cargarDocumentos(casoActivoId);
+      showToast("Documento eliminado correctamente.", "success");
     } else {
-      alert("Error al eliminar: " + (data.mensaje || ""));
+      showToast("Error al eliminar: " + (data.mensaje || ""), "error");
     }
   } catch {
-    alert("Error al conectar con el servidor.");
+    showToast("Error al conectar con el servidor.", "error");
   }
 }
 
 async function cargarDocumentos(casoId) {
   listaDocumentos = document.getElementById("listaDocumentos");
   if (!listaDocumentos) return;
+  if (!casoActivoTipo) {
+    listaDocumentos.innerHTML = '<div class="small muted">No se pudo identificar el tipo del caso.</div>';
+    return;
+  }
   listaDocumentos.innerHTML = '<div class="small muted">Cargando documentos...</div>';
   try {
-    const res = await fetch(`http://localhost:3000/api/documentos/${casoId}`);
+    const params = new URLSearchParams({ tipo_caso: casoActivoTipo });
+    const res = await fetch(`http://localhost:3000/api/documentos/${casoId}?${params}`);
     const data = await res.json();
     const docs = Array.isArray(data) ? data : (data.documentos || data.data || []);
     renderDocumentos(docs);
@@ -691,7 +1231,7 @@ async function cargarDocumentos(casoId) {
 }
 
 async function subirArchivos(archivos) {
-  if (!archivos || archivos.length === 0 || !casoActivoId) return;
+  if (!archivos || archivos.length === 0 || !casoActivoId || !casoActivoTipo) return;
   uploadProgress = document.getElementById("uploadProgress");
   uploadBar = document.getElementById("uploadBar");
   uploadStatus = document.getElementById("uploadStatus");
@@ -700,19 +1240,25 @@ async function subirArchivos(archivos) {
   if (uploadStatus) uploadStatus.textContent = `Subiendo 0 de ${archivos.length}...`;
   const usr = JSON.parse(localStorage.getItem("usuario") || "{}");
   let subidos = 0;
+  let errores = 0;
   for (const archivo of archivos) {
     const fd = new FormData();
     fd.append("archivo", archivo);
     fd.append("subido_por", usr.username || usr.nombre || "Usuario");
+    fd.append("tipo_caso", casoActivoTipo);
     try {
       const res = await fetch(`http://localhost:3000/api/documentos/${casoActivoId}`, {
         method: "POST",
         body: fd
       });
       const data = await res.json();
-      if (!data.success) alert("Error al subir " + archivo.name + ": " + (data.mensaje || ""));
+      if (!data.success) {
+        errores++;
+        showToast("Error al subir " + archivo.name + ": " + (data.mensaje || ""), "error");
+      }
     } catch {
-      alert("Error de conexión al subir " + archivo.name);
+      errores++;
+      showToast("Error de conexión al subir " + archivo.name, "error");
     }
     subidos++;
     const pct = Math.round((subidos / archivos.length) * 100);
@@ -725,6 +1271,11 @@ async function subirArchivos(archivos) {
   inputArchivo = document.getElementById("inputArchivo");
   if (inputArchivo) inputArchivo.value = "";
   cargarDocumentos(casoActivoId);
+  if (archivos.length > 0 && errores === 0) {
+    showToast("Archivos subidos correctamente.", "success");
+  } else if (subidos > errores) {
+    showToast("Algunos archivos se subieron, pero hubo errores.", "info");
+  }
 }
 
 function iniciarEventosUpload() {
@@ -732,7 +1283,11 @@ function iniciarEventosUpload() {
   inputArchivo = document.getElementById("inputArchivo");
   btnSeleccionarArch = document.getElementById("btnSeleccionarArchivo");
   if (btnSeleccionarArch) {
-    btnSeleccionarArch.onclick = () => { if (inputArchivo) inputArchivo.click(); };
+    btnSeleccionarArch.onclick = e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (inputArchivo) inputArchivo.click();
+    };
   }
   if (inputArchivo) {
     inputArchivo.onchange = () => {
@@ -751,10 +1306,23 @@ function iniciarEventosUpload() {
     };
     zonaUpload.ondrop = e => {
       e.preventDefault();
+      e.stopPropagation();
       zonaUpload.style.borderColor = "var(--line)";
       zonaUpload.style.background = "";
       if (e.dataTransfer.files.length > 0) subirArchivos(e.dataTransfer.files);
     };
+  }
+}
+
+function restaurarEstadoUI() {
+  const vistaGuardada = obtenerVistaActiva();
+  if (vistaGuardada) {
+    setActiveView(vistaGuardada, { scroll: false });
+  }
+
+  const casoGuardado = obtenerCasoActivoGuardado();
+  if (casoGuardado?._numId) {
+    openDrawer(casoGuardado);
   }
 }
 
@@ -858,10 +1426,10 @@ async function cargarUsuarios() {
                 body: JSON.stringify({ permisos })
               });
               const result = await res.json();
-              if (result.success) alert("✅ Permisos guardados.");
-              else alert("❌ " + result.mensaje);
+              if (result.success) showToast("Permisos guardados.", "success");
+              else showToast(result.mensaje || "No se pudieron guardar los permisos.", "error");
             } catch {
-              alert("❌ No se pudo conectar con el servidor.");
+              showToast("No se pudo conectar con el servidor.", "error");
             }
           });
         }
@@ -874,3 +1442,6 @@ async function cargarUsuarios() {
       style="text-align:center; padding:24px;">Error al cargar usuarios.</td></tr>`;
   }
 }
+
+restaurarEstadoUI();
+mostrarToastPendiente(STORAGE_KEYS.dashboardToast);

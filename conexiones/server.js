@@ -41,6 +41,34 @@ const db = mysql.createConnection({
   database: process.env.DB_NAME
 });
 
+const CASE_TYPE_ALIASES = {
+  administrativos: ['administrativos', 'administrativo'],
+  agrarios: ['agrarios', 'agrario'],
+  amparos: ['amparos', 'amparo'],
+  civiles: ['civiles', 'civil'],
+  laborales: ['laborales', 'laboral'],
+  mercantiles: ['mercantiles', 'mercantil'],
+  penales: ['penales', 'penal'],
+  exp_varios: ['exp_varios', 'varios', 'exp varios']
+};
+
+function normalizarTipoCaso(tipo) {
+  const limpio = String(tipo || '').trim().toLowerCase();
+  if (!limpio) return '';
+
+  for (const [canonico, alias] of Object.entries(CASE_TYPE_ALIASES)) {
+    if (alias.includes(limpio)) return canonico;
+  }
+
+  return '';
+}
+
+function obtenerVariantesTipoCaso(tipo) {
+  const canonico = normalizarTipoCaso(tipo);
+  if (!canonico) return [];
+  return [...new Set((CASE_TYPE_ALIASES[canonico] || [canonico]).map(valor => valor.toLowerCase()))];
+}
+
 
 db.connect(err => {
   if (err) {
@@ -203,45 +231,46 @@ app.post('/api/nuevocaso', (req, res) => {
 //-----------------PRUEBA-------------------------
 app.get('/api/casos', (req, res) => {
   const tipoRecibido = req.query.tipo;
+  const busqueda     = (req.query.busqueda || "").trim();
 
-  let sql = "SELECT * FROM v_expedientes";
+  let sql    = "SELECT * FROM v_expedientes";
   let params = [];
+  const condiciones = [];
 
   const mapaTipos = {
-    "Amparo": "amparos",
-    "Administrativo": "administrativos",
-    "Laboral": "laborales",
-    "Civil": "civiles",
-    "Mercantil": "mercantiles",
-    "Penal": "penales",
-    "Agrario": "agrarios",
-    "Varios": "exp_varios",
-
-
-    "amparo": "amparos",
-    "administrativo": "administrativos",
-    "laboral": "laborales",
-    "civil": "civiles",
-    "mercantil": "mercantiles",
-    "penal": "penales",
-    "agrario": "agrarios",
-    "varios": "exp_varios"
+    "Amparo": "amparos", "amparo": "amparos",
+    "Administrativo": "administrativos", "administrativo": "administrativos",
+    "Laboral": "laborales", "laboral": "laborales",
+    "Civil": "civiles", "civil": "civiles",
+    "Mercantil": "mercantiles", "mercantil": "mercantiles",
+    "Penal": "penales", "penal": "penales",
+    "Agrario": "agrarios", "agrario": "agrarios",
+    "Varios": "exp_varios", "varios": "exp_varios"
   };
 
+  // Filtro por tipo
   if (tipoRecibido && tipoRecibido !== "Todos") {
     const tipoBD = mapaTipos[tipoRecibido];
-
     if (!tipoBD) {
-      return res.status(400).json({
-        success: false,
-        mensaje: "Tipo no válido"
-      });
+      return res.status(400).json({ success: false, mensaje: "Tipo no válido" });
     }
-    //-----------------PRUEBA-------------------------
-    sql += " WHERE tipo = CONVERT(? USING utf8mb4) COLLATE utf8mb4_0900_ai_ci";
-    //-----------------PRUEBA-------------------------
+    condiciones.push("tipo = CONVERT(? USING utf8mb4) COLLATE utf8mb4_0900_ai_ci");
     params.push(tipoBD);
   }
+
+  // Filtro por búsqueda: busca en expediente, actor, demandado y asunto
+  if (busqueda) {
+    condiciones.push(
+      "(expediente LIKE ? OR actor LIKE ? OR demandado LIKE ? OR asunto LIKE ?)"
+    );
+    const termino = `%${busqueda}%`;
+    params.push(termino, termino, termino, termino);
+  }
+
+  if (condiciones.length > 0) {
+    sql += " WHERE " + condiciones.join(" AND ");
+  }
+
   const limite = parseInt(req.query.limite) || 5;
   const pagina = parseInt(req.query.pagina) || 1;
   const offset = (pagina - 1) * limite;
@@ -265,6 +294,7 @@ app.get('/api/casos', (req, res) => {
       id_display: `${caso.tipo.toUpperCase()}-${caso.id}`,
       nombre: caso.asunto || caso.actor || caso.expediente || "Sin nombre",
       tipo: caso.tipo,
+      tipo_db: normalizarTipoCaso(caso.tipo) || caso.tipo,
       prioridad: caso.prioridad || "Media",
       estado: caso.estado_procesal || "—",
       asignado: "Sin asignar"
@@ -324,10 +354,17 @@ app.post('/api/usuarios', (req, res) => {
 
 // GET  /api/documentos/:casoId  → lista
 app.get('/api/documentos/:casoId', (req, res) => {
+  const tipoCaso = normalizarTipoCaso(req.query.tipo_caso);
+  if (!tipoCaso) {
+    return res.status(400).json({ success: false, mensaje: 'tipo_caso es obligatorio.' });
+  }
+
   const sql = `SELECT id, nombre_original, tamaño, subido_por,
                       DATE_FORMAT(created_at,'%d/%m/%Y %H:%i') AS fecha
-               FROM documentos WHERE caso_id = ? ORDER BY created_at DESC`;
-  db.query(sql, [req.params.casoId], (err, rows) => {
+               FROM documentos
+               WHERE caso_id = ? AND tipo_caso = ?
+               ORDER BY created_at DESC`;
+  db.query(sql, [req.params.casoId, tipoCaso], (err, rows) => {
     if (err) return res.status(500).json({ success: false, mensaje: err.message });
     res.json({ success: true, documentos: rows });
   });
@@ -336,12 +373,17 @@ app.get('/api/documentos/:casoId', (req, res) => {
 // POST /api/documentos/:casoId  → sube archivo
 app.post('/api/documentos/:casoId', upload.single('archivo'), (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, mensaje: 'Sin archivo' });
+  const tipoCaso = normalizarTipoCaso(req.body.tipo_caso);
+  if (!tipoCaso) {
+    return res.status(400).json({ success: false, mensaje: 'tipo_caso es obligatorio.' });
+  }
+
   const sql = `INSERT INTO documentos
-               (caso_id, nombre_original, nombre_archivo, mimetype, tamaño, subido_por)
-               VALUES (?, ?, ?, ?, ?, ?)`;
+               (caso_id, tipo_caso, nombre_original, nombre_archivo, mimetype, tamaño, subido_por)
+               VALUES (?, ?, ?, ?, ?, ?, ?)`;
   db.query(sql,
-    [req.params.casoId, req.file.originalname, req.file.filename,
-    req.file.mimetype, req.file.size, req.body.subido_por || 'Sistema'],
+    [req.params.casoId, tipoCaso, req.file.originalname, req.file.filename,
+     req.file.mimetype, req.file.size, req.body.subido_por || 'Sistema'],
     (err, r) => {
       if (err) return res.status(500).json({ success: false, mensaje: err.message });
       res.json({ success: true, id: r.insertId });
@@ -388,10 +430,18 @@ app.delete('/api/documentos/:docId', (req, res) => {
 
 // GET /api/casos/:id/notas → lista de notas
 app.get('/api/casos/:id/notas', (req, res) => {
+  const tiposCompatibles = obtenerVariantesTipoCaso(req.query.tipo_caso);
+  if (!tiposCompatibles.length) {
+    return res.status(400).json({ success: false, mensaje: 'tipo_caso es obligatorio.' });
+  }
+
+  const placeholders = tiposCompatibles.map(() => '?').join(', ');
   const sql = `SELECT id, texto, usuario,
                       DATE_FORMAT(created_at,'%d/%m/%Y %H:%i') AS fecha
-               FROM notas_caso WHERE caso_id = ? ORDER BY created_at DESC`;
-  db.query(sql, [req.params.id], (err, rows) => {
+               FROM notas_caso
+               WHERE caso_id = ? AND LOWER(tipo_caso) IN (${placeholders})
+               ORDER BY created_at DESC`;
+  db.query(sql, [req.params.id, ...tiposCompatibles], (err, rows) => {
     if (err) return res.status(500).json({ success: false, mensaje: err.message });
     res.json({ success: true, notas: rows });
   });
@@ -400,13 +450,38 @@ app.get('/api/casos/:id/notas', (req, res) => {
 // POST /api/casos/:id/notas → guardar nota
 app.post('/api/casos/:id/notas', (req, res) => {
   const { texto, usuario, tipo_caso } = req.body;
+  const tipoCaso = normalizarTipoCaso(tipo_caso);
   if (!texto || !texto.trim()) {
     return res.status(400).json({ success: false, mensaje: 'El texto es obligatorio.' });
   }
+  if (!tipoCaso) {
+    return res.status(400).json({ success: false, mensaje: 'tipo_caso es obligatorio.' });
+  }
+
   const sql = `INSERT INTO notas_caso (caso_id, tipo_caso, texto, usuario) VALUES (?, ?, ?, ?)`;
-  db.query(sql, [req.params.id, tipo_caso || 'general', texto.trim(), usuario || 'Sistema'], (err, result) => {
+  db.query(sql, [req.params.id, tipoCaso, texto.trim(), usuario || 'Sistema'], (err, result) => {
     if (err) return res.status(500).json({ success: false, mensaje: err.message });
     res.json({ success: true, id: result.insertId });
+  });
+});
+
+// DELETE /api/casos/:id/notas/:notaId → elimina nota
+app.delete('/api/casos/:id/notas/:notaId', (req, res) => {
+  const tiposCompatibles = obtenerVariantesTipoCaso(req.query.tipo_caso);
+  if (!tiposCompatibles.length) {
+    return res.status(400).json({ success: false, mensaje: 'tipo_caso es obligatorio.' });
+  }
+
+  const placeholders = tiposCompatibles.map(() => '?').join(', ');
+  const sql = `DELETE FROM notas_caso
+               WHERE id = ? AND caso_id = ? AND LOWER(tipo_caso) IN (${placeholders})`;
+
+  db.query(sql, [req.params.notaId, req.params.id, ...tiposCompatibles], (err, result) => {
+    if (err) return res.status(500).json({ success: false, mensaje: err.message });
+    if (!result.affectedRows) {
+      return res.status(404).json({ success: false, mensaje: 'Nota no encontrada.' });
+    }
+    res.json({ success: true });
   });
 });
 
