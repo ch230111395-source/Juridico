@@ -530,6 +530,73 @@ app.put('/api/casos/:tipo/:id/asignar', (req, res) => {
   });
 });
 
+app.put('/api/casos/:tipo/:id/editar', (req, res) => {
+  const { tipo, id } = req.params;
+  const { prioridad, estado_procesal, abogado_encargado, rol } = req.body;
+
+  if (rol !== "ADMIN") {
+    return res.status(403).json({
+      success: false,
+      mensaje: "No tienes permisos para editar."
+    });
+  }
+
+  const mapaTablas = {
+  amparo: 'amparos',
+  amparos: 'amparos',
+
+  administrativo: 'administrativos',
+  administrativos: 'administrativos',
+
+  laboral: 'laborales',
+  laborales: 'laborales',
+
+  civil: 'civiles',
+  civiles: 'civiles',
+
+  mercantil: 'mercantiles',
+  mercantiles: 'mercantiles',
+
+  penal: 'penales',
+  penales: 'penales',
+
+  agrario: 'agrarios',
+  agrarios: 'agrarios',
+
+  varios: 'exp_varios',
+  exp_varios: 'exp_varios'
+};
+
+  const tabla = mapaTablas[String(tipo).toLowerCase()];
+
+  if (!tabla) {
+    return res.status(400).json({
+      success: false,
+      mensaje: 'Tipo inválido'
+    });
+  }
+
+  const sql = `
+    UPDATE ${tabla}
+    SET prioridad = ?, estado_procesal = ?, abogado_encargado = ?
+    WHERE id = ?
+  `;
+
+  db.query(sql, [prioridad, estado_procesal, abogado_encargado || null, id], (err) => {
+    if (err) {
+      console.error("Error editando:", err);
+      return res.status(500).json({
+        success: false,
+        mensaje: err.message
+      });
+    }
+
+    res.json({
+      success: true,
+      mensaje: "Caso actualizado correctamente"
+    });
+  });
+});
 
 const PORT = 3000;
 app.listen(PORT, () => {

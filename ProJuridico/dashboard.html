@@ -386,9 +386,8 @@
       <div class="bd">
 
         <div class="row">
-          <button type="button" class="btn" id="drawerBtnAsignar">Asignar</button>
-          <button type="button" class="btn" id="drawerBtnReasignar">Reasignar</button>
-         <button type="button" class="btn primary" id="drawerBtnCambiarEstado">Editar</button>
+         <button type="button" class="btn primary" id="drawerBtnEditar">Editar</button>
+         <button type="button" class="btn" id="drawerBtnGuardarCambios" style="display:none;">Guardar cambios</button>
           <button type="button" class="btn" id="drawerBtnArchivar">Archivar</button>
         </div>
 
@@ -407,6 +406,10 @@
           <div class="field"><label>Asignado a</label>
             <div class="in" id="d_asignado"></div>
           </div>
+           <div class="field" id="campoReasignar" style="display:none;">
+              <label>Reasignar</label>
+            <div class="in" id="d_reasignar"></div>
+           </div>
         </div>
 
         <div class="divider"></div>

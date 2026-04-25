@@ -4,9 +4,8 @@ if (!usuarioGuardado) {
   window.location.href = "index.html";
 }
 
-// ← AGREGADO: rol de sesión global
 const usuarioSesion = JSON.parse(usuarioGuardado || "{}");
-const sessionRol = usuarioSesion.rol || "";
+const sessionRol = (usuarioSesion.rol || "").toUpperCase();
 
 const buttons = document.querySelectorAll(".nav button[data-view]");
 const views = document.querySelectorAll(".view");
@@ -916,6 +915,7 @@ function applyPreset(tipo) {
 }
 
 function openDrawer(item) {
+  tipoActualGlobal = item.tipo;
   if (!item) return;
   casoActivoId = item._numId || (item._raw ? (item._raw.id || item._raw._id || item._raw.caso_id) : item.id);
   casoActivoTipo = item.tipoDb || normalizarTipoCasoDb(item.tipo || item._raw?.tipo || item._raw?.tipo_caso);
@@ -926,6 +926,22 @@ function openDrawer(item) {
   document.getElementById("d_prioridad").textContent = item.prioridad;
   document.getElementById("d_estado").textContent = item.estado;
   document.getElementById("d_asignado").textContent = item.asignado;
+  document.getElementById("campoReasignar").style.display = "none";
+  document.getElementById("d_reasignar").innerHTML = "";
+  // Mostrar u ocultar botones de edición según el rol
+  const btnEditar = document.getElementById("drawerBtnEditar");
+  const btnGuardar = document.getElementById("drawerBtnGuardarCambios");
+
+  if (btnEditar && btnGuardar) {
+  if (sessionRol === "ADMIN") {
+    btnEditar.style.display = "inline-block";
+    btnGuardar.style.display = "none";
+  } else {
+    btnEditar.style.display = "none";
+    btnGuardar.style.display = "none";
+  }
+}
+
   guardarCasoActivo({
     id: item.id,
     tipo: item.tipo,
@@ -935,12 +951,142 @@ function openDrawer(item) {
     asignado: item.asignado,
     _numId: casoActivoId
   });
+
   if (inputNuevaNota) inputNuevaNota.value = "";
+
   cargarNotas(casoActivoId);
   cargarDocumentos(casoActivoId);
   iniciarEventosUpload();
+
   mask.classList.add("show");
 }
+
+const btnEditarCaso = document.getElementById("drawerBtnEditar");
+const btnGuardarCambios = document.getElementById("drawerBtnGuardarCambios");
+
+async function activarEdicionCaso() {
+  if (sessionRol !== "ADMIN") {
+    showToast("No tienes permisos para editar.", "error");
+    return;
+  }
+
+  const tipoActual = document.getElementById("d_tipo").textContent.trim();
+  const prioridadActual = document.getElementById("d_prioridad").textContent.trim();
+  const estadoActual = document.getElementById("d_estado").textContent.trim();
+  const asignadoActual = document.getElementById("d_asignado").textContent.trim();
+
+  const res = await fetch("http://localhost:3000/api/usuarios");
+  const data = await res.json();
+
+  const abogados = data.success
+    ? data.usuarios.filter(u => u.rol?.toUpperCase() === "ABOGADO" && Number(u.activo) === 1)
+    : [];
+
+  document.getElementById("d_tipo").innerHTML = `
+    <select id="edit_tipo">
+      <option value="amparos" ${tipoActual === "Amparo" ? "selected" : ""}>Amparo</option>
+      <option value="administrativos" ${tipoActual === "Administrativo" ? "selected" : ""}>Administrativo</option>
+      <option value="laborales" ${tipoActual === "Laboral" ? "selected" : ""}>Laboral</option>
+      <option value="civiles" ${tipoActual === "Civil" ? "selected" : ""}>Civil</option>
+      <option value="mercantiles" ${tipoActual === "Mercantil" ? "selected" : ""}>Mercantil</option>
+      <option value="penales" ${tipoActual === "Penal" ? "selected" : ""}>Penal</option>
+      <option value="agrarios" ${tipoActual === "Agrario" ? "selected" : ""}>Agrario</option>
+      <option value="exp_varios" ${tipoActual === "Varios" ? "selected" : ""}>Varios</option>
+    </select>
+  `;
+
+  document.getElementById("d_prioridad").innerHTML = `
+    <select id="edit_prioridad">
+      <option value="Alta" ${prioridadActual === "Alta" ? "selected" : ""}>Alta</option>
+      <option value="Media" ${prioridadActual === "Media" ? "selected" : ""}>Media</option>
+      <option value="Baja" ${prioridadActual === "Baja" ? "selected" : ""}>Baja</option>
+    </select>
+  `;
+
+  document.getElementById("d_estado").innerHTML = `
+    <select id="edit_estado">
+      <option value="en_proceso" ${estadoActual === "En proceso" ? "selected" : ""}>En proceso</option>
+      <option value="sin_asignar" ${estadoActual === "Sin asignar" ? "selected" : ""}>Sin asignar</option>
+      <option value="asignado" ${estadoActual === "Asignado" ? "selected" : ""}>Asignado</option>
+      <option value="finalizado" ${estadoActual === "Finalizado" ? "selected" : ""}>Finalizado</option>
+      <option value="sin_actividad" ${estadoActual === "Sin actividad" ? "selected" : ""}>Sin actividad</option>
+    </select>
+  `;
+
+  document.getElementById("d_asignado").textContent = asignadoActual;
+
+  document.getElementById("campoReasignar").style.display = "block";
+  document.getElementById("d_reasignar").innerHTML = `
+    <select id="edit_abogado">
+      <option value="">Sin asignar</option>
+      ${abogados.map(a => `
+        <option value="${a.id}" ${a.nombre === asignadoActual ? "selected" : ""}>
+         ${a.nombre}
+        </option>
+     `).join("")}
+   </select>
+`;
+
+  btnEditarCaso.style.display = "none";
+  btnGuardarCambios.style.display = "inline-block";
+}
+
+async function guardarCambiosCaso() {
+  if (sessionRol !== "ADMIN") {
+    showToast("No tienes permisos para guardar cambios.", "error");
+    return;
+  }
+
+  if (!casoActivoId || !casoActivoTipo) {
+    showToast("No hay caso seleccionado.", "error");
+    return;
+  }
+
+  const prioridad = document.getElementById("edit_prioridad")?.value;
+  const estado_procesal = document.getElementById("edit_estado")?.value;
+  const abogado_encargado = document.getElementById("edit_abogado")?.value;
+
+  try {
+    const res = await fetch(
+      `http://localhost:3000/api/casos/${casoActivoTipo}/${casoActivoId}/editar`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          prioridad,
+          estado_procesal,
+          abogado_encargado,
+          rol: sessionRol
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    if (data.success) {
+      // Mejora UX
+      showToast("Caso actualizado correctamente.", "success");
+      await cargarCasos();
+      closeDrawer();
+    } else {
+      showToast(data.mensaje || "No se pudieron guardar los cambios.", "error");
+    }
+  } catch (error) {
+    console.error("Error guardando cambios:", error);
+    showToast("Error al conectar con el servidor.", "error");
+  }
+}
+
+if (btnEditarCaso) {
+  btnEditarCaso.addEventListener("click", activarEdicionCaso);
+}
+
+if (btnGuardarCambios) {
+  btnGuardarCambios.addEventListener("click", guardarCambiosCaso);
+}
+
 
 function closeDrawer() {
   casoActivoId = null;
@@ -1027,6 +1173,7 @@ if (btnLogout) {
 // ========== NOTAS DEL CASO ==========
 let casoActivoId = null;
 let casoActivoTipo = null;
+let tipoActualGlobal = null;
 // Flag removido - usamos event.stopPropagation en el drawer directamente
 
 const btnGuardarNota = document.getElementById("btnGuardarNota");
