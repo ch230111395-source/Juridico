@@ -23,7 +23,6 @@
         <button data-view="v_casos"><span>Casos</span></button>
         <button data-view="v_usuarios"><span>Usuarios</span></button>
         <button data-view="v_recordatorios"><span>Recordatorios</span></button>
-        <button data-view="v_admin"><span>Administración</span></button>
         <button id="btnLogout"><span>Cerrar sesión</span></button>
       </nav>
     </aside>
@@ -46,7 +45,6 @@
             <div class="hd">
               <div>
                 <h2>Panel general</h2>
-                <div class="sub">Casos: prioridad, estado, pendientes y archivados</div>
               </div>
               <div class="row">
                 <span class="chip">Filtro: Hoy</span>
@@ -79,7 +77,6 @@
           <div class="card">
             <div class="hd">
               <h2>Actividad reciente</h2>
-              <div class="sub">Historial de actividad y acciones</div>
             </div>
             <div class="bd">
               <div class="row" style="flex-direction: column; align-items: stretch; gap: 10px;">
@@ -228,147 +225,68 @@
 </section>
       <!-- ===== RECORDATORIOS ===== -->
       <section id="v_recordatorios" class="view">
-        <div class="grid cols2">
-          <div class="card">
-            <div class="hd">
-              <div>
-                <h2>Recordatorios automáticos</h2>
-              </div>
-              <button class="btn primary">Nuevo</button>
-            </div>
-            <div class="bd">
-              <div class="row" style="flex-direction: column; align-items: stretch; gap: 10px;">
-                <div class="field">
-                  <div class="small">Diario 08:00 · <span class="tag">CASO-1029</span></div>
-                  <div style="margin-top: 6px;">Revisar vencimientos próximos.</div>
-                </div>
-                <div class="field">
-                  <div class="small">Semanal · <span class="tag">General</span></div>
-                  <div style="margin-top: 6px;">Resumen por prioridad y estado.</div>
-                </div>
-                <div class="field">
-                  <div class="small">Al crear caso · <span class="tag">Automático</span></div>
-                  <div style="margin-top: 6px;">Checklist por tipo de caso.</div>
-                </div>
-              </div>
-            </div>
+  <div class="grid cols2">
+    <div class="card">
+      <div class="hd">
+        <div>
+          <h2>Recordatorios automáticos</h2>
+        </div>
+        <button class="btn primary">Nuevo</button>
+      </div>
+      <div class="bd">
+        <div class="row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+          <div class="field">
+            <div class="small">Diario 08:00 · <span class="tag">CASO-1029</span></div>
+            <div style="margin-top: 6px;">Revisar vencimientos próximos.</div>
           </div>
-
-          <div class="card">
-            <div class="hd">
-              <div>
-                <h2>Regla</h2>
-                <div class="sub">Creación o edición de recordatorios</div>
-              </div>
-              <span class="pill">Borrador</span>
-            </div>
-            <div class="bd">
-              <details>
-                <summary>
-                  <span><b>Configurar</b> <span class="muted">· desplegable</span></span>
-                </summary>
-                <div class="fieldgrid">
-                  <div class="field"><label>Nombre</label>
-                    <div class="in"></div>
-                  </div>
-                  <div class="field"><label>Frecuencia</label>
-                    <div class="in"></div>
-                  </div>
-                  <div class="field"><label>Condición</label>
-                    <div class="in"></div>
-                  </div>
-                  <div class="field"><label>Destinatarios</label>
-                    <div class="in"></div>
-                  </div>
-                </div>
-                <div class="rightActions">
-                  <button class="btn">Probar</button>
-                  <button class="btn primary">Guardar</button>
-                </div>
-              </details>
-            </div>
+          <div class="field">
+            <div class="small">Semanal · <span class="tag">General</span></div>
+            <div style="margin-top: 6px;">Resumen por prioridad y estado.</div>
+          </div>
+          <div class="field">
+            <div class="small">Al crear caso · <span class="tag">Automático</span></div>
+            <div style="margin-top: 6px;">Checklist por tipo de caso.</div>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
 
-      <!-- ===== ADMINISTRACIÓN ===== -->
-      <section id="v_admin" class="view">
-        <div class="grid">
-          <div class="card">
-            <div class="hd">
-              <div>
-                <h2>Administración</h2>
-                <div class="sub">Respaldo y base de datos</div>
-              </div>
-              <span class="pill">Solo administrador</span>
+    <div class="card">
+      <div class="hd">
+        <div>
+          <h2>Regla</h2>
+        </div>
+        <span class="pill">Borrador</span>
+      </div>
+      <div class="bd">
+        <details class="details-btn">
+          <summary class="btn">
+            <span>Configurar</span>
+            <span class="muted" style="font-weight: normal;">· desplegable</span>
+          </summary>
+          <div class="fieldgrid">
+            <div class="field"><label>Nombre</label>
+              <div class="in"></div>
             </div>
-            <div class="bd">
-              <div class="kpis">
-                <div class="kpi">
-                  <div class="v">OK</div>
-                  <div class="l">Respaldo diario</div>
-                </div>
-                <div class="kpi">
-                  <div class="v">SQL</div>
-                  <div class="l">Base de datos creada</div>
-                </div>
-                <div class="kpi">
-                  <div class="v">⚙</div>
-                  <div class="l">Gestión de base de datos</div>
-                </div>
-                <div class="kpi">
-                  <div class="v">Logs</div>
-                  <div class="l">Auditoría</div>
-                </div>
-              </div>
-
-              <div class="divider"></div>
-
-              <div class="grid cols2">
-                <div class="card" style="box-shadow: none; border-color: var(--line);">
-                  <div class="hd">
-                    <h2>Respaldo</h2>
-                    <div class="sub">Gestión de respaldos</div>
-                  </div>
-                  <div class="bd">
-                    <div class="row">
-                      <span class="chip">Último respaldo: pendiente</span>
-                      <span class="chip">Retención: pendiente</span>
-                    </div>
-                    <div class="rightActions" style="padding: 0; margin-top: 10px;">
-                      <button class="btn">Generar</button>
-                      <button class="btn">Restaurar</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="card" style="box-shadow: none; border-color: var(--line);">
-                  <div class="hd">
-                    <h2>Base de datos</h2>
-                    <div class="sub">Administración</div>
-                  </div>
-                  <div class="bd">
-                    <div class="field">
-                      <label>Tareas administrativas</label>
-                      <div class="in" style="height: 110px;"></div>
-                    </div>
-                    <div class="rightActions" style="padding: 0; margin-top: 10px;">
-                      <button class="btn">Ver estado</button>
-                      <button class="btn">Mantenimiento</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="footerNote">
-                La creación de la base de datos corresponde al backend; aquí solo se muestra su estado en el frontend.
-              </div>
+            <div class="field"><label>Frecuencia</label>
+              <div class="in"></div>
+            </div>
+            <div class="field"><label>Condición</label>
+              <div class="in"></div>
+            </div>
+            <div class="field"><label>Destinatarios</label>
+              <div class="in"></div>
             </div>
           </div>
-        </div>
-      </section>
-    </main>
+          <div class="rightActions">
+            <button class="btn">Probar</button>
+            <button class="btn primary">Guardar</button>
+          </div>
+        </details>
+      </div>
+    </div>
   </div>
+</section>
 
   <!-- ===== DRAWER DETALLE DEL CASO ===== -->
   <div class="drawerMask" id="drawerMask" role="dialog" aria-modal="true" aria-label="Detalle del caso">
