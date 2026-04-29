@@ -144,7 +144,6 @@
                         <option value="varios">Varios</option>
                       </select>
                     </div>
-                    <!-- Modificación echa por Fer el 18 -->
                     <div class="field">
                       <label for="prioridad">Prioridad</label>
                       <select id="prioridad" name="prioridad">
@@ -190,103 +189,101 @@
         </div>
       </section>
 
-<!-- ===== USUARIOS ===== -->
-<section id="v_usuarios" class="view">
-  <div class="grid">
+      <!-- ===== USUARIOS ===== -->
+      <section id="v_usuarios" class="view">
+        <div class="grid">
+          <div class="card">
+            <div class="hd">
+              <div><h2>Usuarios</h2></div>
+              <button class="btn primary" id="btnNuevoUsuario">+ Nuevo</button>
+            </div>
+            <div class="bd" style="padding: 0;">
+              <table aria-label="Tabla de usuarios" id="tablaUsuarios">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Rol</th>
+                    <th>Correo</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="usuariosTbody">
+                  <tr>
+                    <td colspan="4" class="muted" style="text-align:center; padding:24px;">
+                      Cargando usuarios...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <!-- TABLA DE USUARIOS -->
-    <div class="card">
-      <div class="hd">
-        <div><h2>Usuarios</h2></div>
-        <button class="btn primary" id="btnNuevoUsuario">+ Nuevo</button>
-      </div>
-      <div class="bd" style="padding: 0;">
-        <table aria-label="Tabla de usuarios" id="tablaUsuarios">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Rol</th>
-              <th>Correo</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody id="usuariosTbody">
-            <tr>
-              <td colspan="5" class="muted" style="text-align:center; padding:24px;">
-                Cargando usuarios...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</section>
       <!-- ===== RECORDATORIOS ===== -->
       <section id="v_recordatorios" class="view">
-  <div class="grid cols2">
-    <div class="card">
-      <div class="hd">
-        <div>
-          <h2>Recordatorios automáticos</h2>
-        </div>
-        <button class="btn primary">Nuevo</button>
-      </div>
-      <div class="bd">
-        <div class="row" style="flex-direction: column; align-items: stretch; gap: 10px;">
-          <div class="field">
-            <div class="small">Diario 08:00 · <span class="tag">CASO-1029</span></div>
-            <div style="margin-top: 6px;">Revisar vencimientos próximos.</div>
+        <div class="grid cols2">
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Recordatorios automáticos</h2>
+              </div>
+              <button class="btn primary">Nuevo</button>
+            </div>
+            <div class="bd">
+              <div class="row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                <div class="field">
+                  <div class="small">Diario 08:00 · <span class="tag">CASO-1029</span></div>
+                  <div style="margin-top: 6px;">Revisar vencimientos próximos.</div>
+                </div>
+                <div class="field">
+                  <div class="small">Semanal · <span class="tag">General</span></div>
+                  <div style="margin-top: 6px;">Resumen por prioridad y estado.</div>
+                </div>
+                <div class="field">
+                  <div class="small">Al crear caso · <span class="tag">Automático</span></div>
+                  <div style="margin-top: 6px;">Checklist por tipo de caso.</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="field">
-            <div class="small">Semanal · <span class="tag">General</span></div>
-            <div style="margin-top: 6px;">Resumen por prioridad y estado.</div>
-          </div>
-          <div class="field">
-            <div class="small">Al crear caso · <span class="tag">Automático</span></div>
-            <div style="margin-top: 6px;">Checklist por tipo de caso.</div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <div class="card">
-      <div class="hd">
-        <div>
-          <h2>Regla</h2>
+          <div class="card">
+            <div class="hd">
+              <div>
+                <h2>Regla</h2>
+              </div>
+              <span class="pill">Borrador</span>
+            </div>
+            <div class="bd">
+              <details class="details-btn">
+                <summary class="btn">
+                  <span>Configurar</span>
+                  <span class="muted" style="font-weight: normal;">· desplegable</span>
+                </summary>
+                <div class="fieldgrid">
+                  <div class="field"><label>Nombre</label>
+                    <div class="in"></div>
+                  </div>
+                  <div class="field"><label>Frecuencia</label>
+                    <div class="in"></div>
+                  </div>
+                  <div class="field"><label>Condición</label>
+                    <div class="in"></div>
+                  </div>
+                  <div class="field"><label>Destinatarios</label>
+                    <div class="in"></div>
+                  </div>
+                </div>
+                <div class="rightActions">
+                  <button class="btn">Probar</button>
+                  <button class="btn primary">Guardar</button>
+                </div>
+              </details>
+            </div>
+          </div>
         </div>
-        <span class="pill">Borrador</span>
-      </div>
-      <div class="bd">
-        <details class="details-btn">
-          <summary class="btn">
-            <span>Configurar</span>
-            <span class="muted" style="font-weight: normal;">· desplegable</span>
-          </summary>
-          <div class="fieldgrid">
-            <div class="field"><label>Nombre</label>
-              <div class="in"></div>
-            </div>
-            <div class="field"><label>Frecuencia</label>
-              <div class="in"></div>
-            </div>
-            <div class="field"><label>Condición</label>
-              <div class="in"></div>
-            </div>
-            <div class="field"><label>Destinatarios</label>
-              <div class="in"></div>
-            </div>
-          </div>
-          <div class="rightActions">
-            <button class="btn">Probar</button>
-            <button class="btn primary">Guardar</button>
-          </div>
-        </details>
-      </div>
-    </div>
-  </div>
-</section>
+      </section>
 
   <!-- ===== DRAWER DETALLE DEL CASO ===== -->
   <div class="drawerMask" id="drawerMask" role="dialog" aria-modal="true" aria-label="Detalle del caso">
@@ -363,7 +360,6 @@
             <div class="sub">Carga y descarga de archivos del caso</div>
           </div>
           <div class="bd">
-            <!-- Zona drag & drop -->
             <div id="zonaUpload" style="border:2px dashed var(--line); border-radius:12px; padding:18px 16px;
                         text-align:center; cursor:pointer; transition:all 0.2s;">
               <div class="small muted" style="margin-bottom:8px;">
@@ -375,7 +371,6 @@
                 Seleccionar archivos
               </button>
             </div>
-            <!-- Barra de progreso -->
             <div id="uploadProgress" style="display:none; margin-top:10px;">
               <div style="background:var(--line); border-radius:999px; height:6px;">
                 <div id="uploadBar" style="background:var(--primary); height:6px; border-radius:999px;
@@ -383,7 +378,6 @@
               </div>
               <div id="uploadStatus" class="small muted" style="margin-top:4px; text-align:center;">Subiendo...</div>
             </div>
-            <!-- Lista de documentos -->
             <div id="listaDocumentos" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
               <div class="small muted">Selecciona un caso para ver sus documentos.</div>
             </div>
@@ -408,17 +402,66 @@
     </div>
   </div>
 
+  <!-- ===== DRAWER DETALLE DE USUARIO ===== -->
+  <div class="drawerMask" id="userDrawerMask" role="dialog" aria-modal="true" aria-label="Detalle del usuario">
+    <div class="drawer">
+      <div class="hd">
+        <div>
+          <div class="small">Detalle del usuario</div>
+          <div style="margin-top: 2px;">
+            <b id="userDrawerTitle">Usuario</b>
+            <span class="muted" id="userDrawerSubtitle">· (rol)</span>
+          </div>
+        </div>
+        <button type="button" class="btn" id="btnCerrarUserDrawer">Cerrar</button>
+      </div>
+      <div class="bd">
+
+        <div class="row">
+          <button type="button" class="btn primary" id="userDrawerBtnEditar">Editar</button>
+          <button type="button" class="btn" id="userDrawerBtnGuardar" style="display:none;">Guardar cambios</button>
+          <button type="button" class="btn" id="userDrawerBtnCancelarEdicion" style="display:none;">Cancelar</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="fieldgrid" style="padding: 0;">
+          <div class="field">
+            <label>Nombre completo</label>
+            <div class="in" id="ud_nombre"></div>
+          </div>
+          <div class="field">
+            <label>Usuario</label>
+            <div class="in" id="ud_username"></div>
+          </div>
+          <div class="field">
+            <label>Correo electrónico</label>
+            <div class="in" id="ud_email"></div>
+          </div>
+          <div class="field">
+            <label>Rol</label>
+            <div class="in" id="ud_rol"></div>
+          </div>
+          <div class="field">
+            <label>Estado</label>
+            <div class="in" id="ud_activo"></div>
+          </div>
+          <div class="field" id="ud_passwordField" style="display:none;">
+            <label>Nueva contraseña <span class="muted" style="font-weight:400;"></span></label>
+            <input type="password" id="ud_password" placeholder="Dejar vacío para no cambiar" autocomplete="new-password">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL PARA CREAR NUEVO CASO -->
   <div id="modalMask" class="modalMask">
     <div id="modalNuevoCaso" class="modalNuevoCaso">
-      <!-- HEADER DEL MODAL -->
       <div class="modalHeader">
         <h2>Nuevo Caso</h2>
         <button type="button" class="closeBtn" id="btnCloseModal">✕</button>
       </div>
-
-      <!-- BODY DEL MODAL -->
       <div class="modalBody">
         <form id="formNuevoCasoModal">
           <div class="form-tipo-row">
@@ -439,8 +482,6 @@
           <div class="fieldgrid" id="camposRelevantesModal"></div>
         </form>
       </div>
-
-
       <div class="modalFooter">
         <button type="button" id="btnCancelarModal" class="btn secondary">Cancelar</button>
         <button type="submit" form="formNuevoCasoModal" class="btn primary">Guardar Caso</button>

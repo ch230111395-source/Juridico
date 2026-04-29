@@ -312,7 +312,7 @@ app.get('/api/casos', (req, res) => {
 
 // GET /api/usuarios → lista de usuarios
 app.get('/api/usuarios', (req, res) => {
-  const sql = `SELECT id, nombre, rol, email, activo FROM usuarios ORDER BY id ASC`;
+  const sql = `SELECT id, nombre, username, rol, email, activo FROM usuarios ORDER BY id ASC`;
   db.query(sql, (err, results) => {
     if (err) return res.status(500).json({ success: false, mensaje: err.message });
     res.json({ success: true, usuarios: results });
@@ -347,7 +347,59 @@ app.post('/api/usuarios', (req, res) => {
     res.json({ success: true, mensaje: "Usuario creado.", id: result.insertId });
   });
 });
-//-----------------PRUEBA-------------------------
+// PUT /api/usuarios/:id → editar usuario
+app.put('/api/usuarios/:id', (req, res) => {
+  const { id } = req.params;
+  const { nombre, username, email, rol, activo, password } = req.body;
+
+  if (!nombre || !username) {
+    return res.status(400).json({ success: false, mensaje: 'Nombre y usuario son obligatorios.' });
+  }
+
+  const rolesValidos = ['ADMIN', 'ABOGADO', 'SECRETARIA'];
+  if (rol && !rolesValidos.includes(rol)) {
+    return res.status(400).json({ success: false, mensaje: 'Rol no válido.' });
+  }
+
+  if (password) {
+    // Actualizar también la contraseña
+    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+    const sql = `UPDATE usuarios SET nombre=?, username=?, email=?, rol=?, activo=?, password_hash=? WHERE id=?`;
+    db.query(sql, [nombre, username, email || null, rol || 'ABOGADO', activo ?? 1, passwordHash, id], (err, result) => {
+      if (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({ success: false, mensaje: 'El usuario o correo ya existe.' });
+        }
+        if (err.sqlState === '45000') {
+          return res.status(409).json({ success: false, mensaje: err.message });
+        }
+        return res.status(500).json({ success: false, mensaje: err.message });
+      }
+      if (!result.affectedRows) {
+        return res.status(404).json({ success: false, mensaje: 'Usuario no encontrado.' });
+      }
+      res.json({ success: true, mensaje: 'Usuario actualizado correctamente.' });
+    });
+  } else {
+    // Sin cambio de contraseña
+    const sql = `UPDATE usuarios SET nombre=?, username=?, email=?, rol=?, activo=? WHERE id=?`;
+    db.query(sql, [nombre, username, email || null, rol || 'ABOGADO', activo ?? 1, id], (err, result) => {
+      if (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({ success: false, mensaje: 'El usuario o correo ya existe.' });
+        }
+        if (err.sqlState === '45000') {
+          return res.status(409).json({ success: false, mensaje: err.message });
+        }
+        return res.status(500).json({ success: false, mensaje: err.message });
+      }
+      if (!result.affectedRows) {
+        return res.status(404).json({ success: false, mensaje: 'Usuario no encontrado.' });
+      }
+      res.json({ success: true, mensaje: 'Usuario actualizado correctamente.' });
+    });
+  }
+});
 
 // ─────────────────────────────────────────
 // ENDPOINTS DE DOCUMENTOS

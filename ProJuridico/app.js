@@ -29,7 +29,6 @@ if (inputBusqueda) {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       const termino = inputBusqueda.value.trim();
-      // Solo busca si cambió el término
       if (termino === busquedaActual) return;
       busquedaActual = termino;
       paginaActual   = 1;
@@ -37,7 +36,6 @@ if (inputBusqueda) {
     }, 400);
   });
 
-  // Limpiar con Escape dentro del input
   inputBusqueda.addEventListener("keydown", e => {
     if (e.key === "Escape") {
       inputBusqueda.value = "";
@@ -441,7 +439,6 @@ const camposPorTipo = {
     { name: "estado_procesal", label: "Estado procesal", type: "select", options: [["en_proceso", "En Proceso"], ["sin_asignar", "Sin Asignar"], ["asignado", "Asignado"], ["finalizado", "Finalizado"], ["sin_actividad", "Sin Actividad"]] },
     { name: "asunto", label: "Asunto", type: "text" },
     { name: "fecha_emplazamiento", label: "Fecha de emplazamiento", type: "date" },
-    // ------Cambio echo por Fernando------
     { name: "abogado_encargado", label: "Abogado encargado", type: "select-abogados" },
     { name: "actor", label: "Actor", type: "text" },
     { name: "demandado", label: "Demandado", type: "text" },
@@ -509,7 +506,7 @@ const camposPorTipo = {
     { name: "fecha_emplazamiento", label: "Fecha recibido", type: "date" }
   ]
 };
-//-------Cambio echo por Fer-----------
+
 async function renderCampos(campos, contenedor, idPrefix = "") {
   contenedor.innerHTML = "";
 
@@ -855,7 +852,6 @@ async function renderTable(pagina = 1) {
   }
 }
 
-// Resalta el término buscado en la tabla
 function resaltarTermino(termino) {
   if (!termino || !tbody) return;
   const regex = new RegExp(`(${termino.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
@@ -922,7 +918,7 @@ function openDrawer(item) {
   document.getElementById("d_asignado").textContent = item.asignado;
   document.getElementById("campoReasignar").style.display = "none";
   document.getElementById("d_reasignar").innerHTML = "";
-  // Mostrar u ocultar botones de edición según el rol
+
   const btnEditar = document.getElementById("drawerBtnEditar");
   const btnGuardar = document.getElementById("drawerBtnGuardarCambios");
   const btnArchivar = document.getElementById("drawerBtnArchivar");
@@ -1013,7 +1009,6 @@ async function activarEdicionCaso() {
       <option value="asignado" ${estadoActual === "Asignado" ? "selected" : ""}>Asignado</option>
       <option value="finalizado" ${estadoActual === "Finalizado" ? "selected" : ""}>Finalizado</option>
       <option value="sin_actividad" ${estadoActual === "Sin actividad" ? "selected" : ""}>Sin actividad</option>
-      <!-- <option value="archivado" ${estadoActual === "Archivado" ? "selected" : ""}>Archivado</option> -->
     </select>
   `;
 
@@ -1070,7 +1065,6 @@ async function guardarCambiosCaso() {
     const data = await res.json();
 
     if (data.success) {
-      // Mejora UX
       showToast("Caso actualizado correctamente.", "success");
       await cargarCasos();
       closeDrawer();
@@ -1084,7 +1078,6 @@ async function guardarCambiosCaso() {
 }
 
 const btnArchivarCaso = document.getElementById("drawerBtnArchivar");
-
 
 async function archivarCaso() {
   if (sessionRol !== "ADMIN") {
@@ -1157,7 +1150,6 @@ if (btnGuardarCambios) {
   btnGuardarCambios.addEventListener("click", guardarCambiosCaso);
 }
 
-
 function closeDrawer() {
   casoActivoId = null;
   casoActivoTipo = null;
@@ -1177,16 +1169,15 @@ if (closeBtn) {
   closeBtn.addEventListener("click", closeDrawer);
 }
 
-// Prevenir que clicks dentro del drawer cierren el drawer
 const drawerPanel = document.querySelector('.drawer');
 if (drawerPanel) {
   drawerPanel.addEventListener('click', (e) => {
-    e.stopPropagation(); // Detener propagación de TODOS los clicks dentro del drawer
+    e.stopPropagation();
   });
 }
 
 if (mask) {
-  mask.addEventListener("click", closeDrawer); // Ahora solo cierra si clickeas el fondo oscuro
+  mask.addEventListener("click", closeDrawer);
 }
 
 window.addEventListener("keydown", e => {
@@ -1201,9 +1192,14 @@ window.addEventListener("keydown", e => {
   }
   if (modalMask && modalMask.classList.contains("show")) {
     cerrarModalNuevoCaso();
-  } else {
-    closeDrawer();
+    return;
   }
+  const userDrawerMaskEl = document.getElementById("userDrawerMask");
+  if (userDrawerMaskEl && userDrawerMaskEl.classList.contains("show")) {
+    closeUserDrawer();
+    return;
+  }
+  closeDrawer();
 });
 
 if (btnUsuarioForm && usuarioDetails) {
@@ -1244,7 +1240,6 @@ if (btnLogout) {
 let casoActivoId = null;
 let casoActivoTipo = null;
 let tipoActualGlobal = null;
-// Flag removido - usamos event.stopPropagation en el drawer directamente
 
 const btnGuardarNota = document.getElementById("btnGuardarNota");
 const btnLimpiarNota = document.getElementById("btnLimpiarNota");
@@ -1349,8 +1344,6 @@ if (btnGuardarNota) {
     const texto = inputNuevaNota.value.trim();
     if (!texto) return;
     try {
-
-
      const usr = JSON.parse(localStorage.getItem("usuario") || "{}");
     const res = await fetch(`http://localhost:3000/api/casos/${casoActivoId}/notas`, {
     method: "POST",
@@ -1381,7 +1374,6 @@ if (btnLimpiarNota) {
   });
 }
 
-// ← AGREGADO: llamada inicial
 cargarCasos();
 cargarUsuarios();
 
@@ -1597,7 +1589,6 @@ function restaurarEstadoUI() {
 }
 
 // ========== USUARIOS ==========
-let openPermisosId = null;
 
 async function cargarUsuarios() {
   const tbody = document.getElementById("usuariosTbody");
@@ -1608,7 +1599,7 @@ async function cargarUsuarios() {
     const data = await res.json();
 
     if (!data.success || !data.usuarios.length) {
-      tbody.innerHTML = `<tr><td colspan="5" class="muted" 
+      tbody.innerHTML = `<tr><td colspan="4" class="muted"
         style="text-align:center; padding:24px;">Sin usuarios registrados.</td></tr>`;
       return;
     }
@@ -1616,101 +1607,211 @@ async function cargarUsuarios() {
     tbody.innerHTML = "";
 
     data.usuarios.forEach(u => {
-      const idFormato = `USR-${String(u.id).padStart(4, "0")}`;
-      const isOpen = openPermisosId === u.id;
-
       const tr = document.createElement("tr");
-      if (isOpen) tr.classList.add("selected");
       tr.innerHTML = `
-        <td><span class="tag">${idFormato}</span></td>
-        <td>${u.nombre || "—"}</td>
-        <td class="muted">${u.rol || "—"}</td>
-        <td class="muted">${u.email || "—"}</td>
+        <td>${escapeHtml(u.nombre || "—")}</td>
+        <td class="muted">${escapeHtml(u.rol || "—")}</td>
+        <td class="muted">${escapeHtml(u.email || "—")}</td>
         <td>${u.activo ? "Activo" : "Inactivo"}</td>
       `;
 
       tr.addEventListener("dblclick", () => {
-        openPermisosId = isOpen ? null : u.id;
-        cargarUsuarios();
+        openUserDrawer(u);
       });
 
       tbody.appendChild(tr);
-
-      if (isOpen) {
-        const esAdmin = sessionRol === "ADMIN";
-        const modulos = {
-          Casos:          ["Ver", "Crear", "Editar", "Eliminar"],
-          Documentos:     ["Ver", "Crear", "Editar", "Eliminar"],
-          Usuarios:       ["Ver", "Crear", "Editar", "Eliminar"],
-          Administración: ["Ver", "Configurar"]
-        };
-
-        const panelTr = document.createElement("tr");
-        panelTr.innerHTML = `
-          <td colspan="5" style="padding: 0;">
-            <div style="padding: 14px 20px; background: var(--bg2, #f8f8f8); 
-                        border-bottom: 1px solid #eee;">
-              <div style="font-size:13px; font-weight:600; margin-bottom:10px;">
-                Permisos de ${u.nombre} 
-                <span class="pill" style="margin-left:6px;">${u.rol}</span>
-                ${!esAdmin ? '<span class="muted" style="font-size:11px; margin-left:6px;">(solo lectura)</span>' : ""}
-              </div>
-              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:10px;">
-                ${Object.entries(modulos).map(([mod, acciones]) => `
-                  <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:10px;">
-                    <div style="font-size:11px; font-weight:600; color:#888; margin-bottom:7px;">${mod}</div>
-                    ${acciones.map(acc => `
-                      <label style="display:flex; align-items:center; gap:6px; font-size:12px; 
-                                    margin-bottom:4px; ${!esAdmin ? "color:#999;" : "cursor:pointer;"}">
-                        <input type="checkbox" data-mod="${mod}" data-acc="${acc}"
-                          ${!esAdmin ? "disabled" : ""}>
-                        ${acc}
-                      </label>
-                    `).join("")}
-                  </div>
-                `).join("")}
-              </div>
-              ${esAdmin ? `
-                <div style="display:flex; justify-content:flex-end; margin-top:12px;">
-                  <button class="btn primary" id="btnGuardarPermisos">Guardar permisos</button>
-                </div>
-              ` : ""}
-            </div>
-          </td>
-        `;
-
-        tbody.appendChild(panelTr);
-
-        if (esAdmin) {
-          panelTr.querySelector("#btnGuardarPermisos").addEventListener("click", async () => {
-            const checks = panelTr.querySelectorAll("input[type=checkbox]:checked");
-            const permisos = {};
-            checks.forEach(c => {
-              if (!permisos[c.dataset.mod]) permisos[c.dataset.mod] = [];
-              permisos[c.dataset.mod].push(c.dataset.acc);
-            });
-            try {
-              const res = await fetch(`http://localhost:3000/api/usuarios/${u.id}/permisos`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ permisos })
-              });
-              const result = await res.json();
-              if (result.success) showToast("Permisos guardados.", "success");
-              else showToast(result.mensaje || "No se pudieron guardar los permisos.", "error");
-            } catch {
-              showToast("No se pudo conectar con el servidor.", "error");
-            }
-          });
-        }
-      }
     });
 
   } catch (err) {
     console.error("Error cargando usuarios:", err);
-    tbody.innerHTML = `<tr><td colspan="5" class="muted" 
-      style="text-align:center; padding:24px;">Error al cargar usuarios.</td></tr>`;
+    const tbody2 = document.getElementById("usuariosTbody");
+    if (tbody2) {
+      tbody2.innerHTML = `<tr><td colspan="4" class="muted"
+        style="text-align:center; padding:24px;">Error al cargar usuarios.</td></tr>`;
+    }
   }
+}
+
+// ========== DRAWER DE USUARIO ==========
+let usuarioActivoId = null;
+let usuarioActivoData = null;
+
+const userDrawerMask = document.getElementById("userDrawerMask");
+const btnCerrarUserDrawer = document.getElementById("btnCerrarUserDrawer");
+const userDrawerBtnEditar = document.getElementById("userDrawerBtnEditar");
+const userDrawerBtnGuardar = document.getElementById("userDrawerBtnGuardar");
+const userDrawerBtnCancelarEdicion = document.getElementById("userDrawerBtnCancelarEdicion");
+
+function mostrarUsuarioEnDrawer(u) {
+  document.getElementById("userDrawerTitle").textContent = u.nombre || "Sin nombre";
+  document.getElementById("userDrawerSubtitle").textContent = `· ${u.rol || ""}`;
+  document.getElementById("ud_nombre").textContent = u.nombre || "—";
+  document.getElementById("ud_username").textContent = u.username || "—";
+  document.getElementById("ud_email").textContent = u.email || "—";
+  document.getElementById("ud_rol").textContent = u.rol || "—";
+  document.getElementById("ud_activo").textContent = u.activo ? "Activo" : "Inactivo";
+  document.getElementById("ud_passwordField").style.display = "none";
+  const ud_pw = document.getElementById("ud_password");
+  if (ud_pw) ud_pw.value = "";
+}
+
+function openUserDrawer(usuario) {
+  if (!usuario || !userDrawerMask) return;
+  usuarioActivoId = usuario.id;
+  usuarioActivoData = { ...usuario };
+
+  mostrarUsuarioEnDrawer(usuario);
+
+  // Botones según rol
+  if (userDrawerBtnEditar) {
+    userDrawerBtnEditar.style.display = sessionRol === "ADMIN" ? "inline-block" : "none";
+  }
+  if (userDrawerBtnGuardar) userDrawerBtnGuardar.style.display = "none";
+  if (userDrawerBtnCancelarEdicion) userDrawerBtnCancelarEdicion.style.display = "none";
+
+  userDrawerMask.classList.add("show");
+}
+
+function closeUserDrawer() {
+  usuarioActivoId = null;
+  usuarioActivoData = null;
+  if (userDrawerMask) userDrawerMask.classList.remove("show");
+}
+
+function activarEdicionUsuario() {
+  if (sessionRol !== "ADMIN") {
+    showToast("No tienes permisos para editar.", "error");
+    return;
+  }
+  const u = usuarioActivoData;
+  if (!u) return;
+
+  // Reemplazar campos estáticos por inputs editables
+  document.getElementById("ud_nombre").innerHTML =
+    `<input type="text" id="edit_u_nombre" value="${escapeHtml(u.nombre || "")}" placeholder="Nombre completo" style="width:100%;">`;
+
+  document.getElementById("ud_username").innerHTML =
+    `<input type="text" id="edit_u_username" value="${escapeHtml(u.username || "")}" placeholder="Usuario" style="width:100%;">`;
+
+  document.getElementById("ud_email").innerHTML =
+    `<input type="email" id="edit_u_email" value="${escapeHtml(u.email || "")}" placeholder="Correo electrónico" style="width:100%;">`;
+
+  document.getElementById("ud_rol").innerHTML = `
+    <select id="edit_u_rol" style="width:100%;">
+      <option value="ADMIN" ${u.rol === "ADMIN" ? "selected" : ""}>Administrador</option>
+      <option value="ABOGADO" ${u.rol === "ABOGADO" ? "selected" : ""}>Abogado</option>
+      <option value="SECRETARIA" ${u.rol === "SECRETARIA" ? "selected" : ""}>Secretaria</option>
+    </select>
+  `;
+
+  document.getElementById("ud_activo").innerHTML = `
+    <select id="edit_u_activo" style="width:100%;">
+      <option value="1" ${u.activo ? "selected" : ""}>Activo</option>
+      <option value="0" ${!u.activo ? "selected" : ""}>Inactivo</option>
+    </select>
+  `;
+
+  document.getElementById("ud_passwordField").style.display = "block";
+  const ud_pw = document.getElementById("ud_password");
+  if (ud_pw) ud_pw.value = "";
+
+  if (userDrawerBtnEditar) userDrawerBtnEditar.style.display = "none";
+  if (userDrawerBtnGuardar) userDrawerBtnGuardar.style.display = "inline-block";
+  if (userDrawerBtnCancelarEdicion) userDrawerBtnCancelarEdicion.style.display = "inline-block";
+}
+
+function cancelarEdicionUsuario() {
+  if (!usuarioActivoData) return;
+  mostrarUsuarioEnDrawer(usuarioActivoData);
+  if (userDrawerBtnEditar) userDrawerBtnEditar.style.display = sessionRol === "ADMIN" ? "inline-block" : "none";
+  if (userDrawerBtnGuardar) userDrawerBtnGuardar.style.display = "none";
+  if (userDrawerBtnCancelarEdicion) userDrawerBtnCancelarEdicion.style.display = "none";
+}
+
+async function guardarCambiosUsuario() {
+  if (sessionRol !== "ADMIN") {
+    showToast("No tienes permisos para guardar cambios.", "error");
+    return;
+  }
+  if (!usuarioActivoId) {
+    showToast("No hay usuario seleccionado.", "error");
+    return;
+  }
+
+  const nombre = document.getElementById("edit_u_nombre")?.value.trim();
+  const username = document.getElementById("edit_u_username")?.value.trim();
+  const email = document.getElementById("edit_u_email")?.value.trim();
+  const rol = document.getElementById("edit_u_rol")?.value;
+  const activo = document.getElementById("edit_u_activo")?.value;
+  const password = document.getElementById("ud_password")?.value;
+
+  if (!nombre || !username) {
+    showToast("Nombre y usuario son obligatorios.", "error");
+    return;
+  }
+
+  const payload = { nombre, username, email, rol, activo: Number(activo) };
+  if (password) payload.password = password;
+
+  if (userDrawerBtnGuardar) {
+    userDrawerBtnGuardar.disabled = true;
+    userDrawerBtnGuardar.textContent = "Guardando...";
+  }
+
+  try {
+    const res = await fetch(`http://localhost:3000/api/usuarios/${usuarioActivoId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      showToast("Usuario actualizado correctamente.", "success");
+      // Actualizar datos locales y volver a vista lectura
+      usuarioActivoData = { ...usuarioActivoData, ...payload };
+      mostrarUsuarioEnDrawer(usuarioActivoData);
+      if (userDrawerBtnEditar) userDrawerBtnEditar.style.display = "inline-block";
+      if (userDrawerBtnGuardar) userDrawerBtnGuardar.style.display = "none";
+      if (userDrawerBtnCancelarEdicion) userDrawerBtnCancelarEdicion.style.display = "none";
+      cargarUsuarios();
+    } else {
+      showToast(data.mensaje || "No se pudo guardar los cambios.", "error");
+    }
+  } catch {
+    showToast("Error al conectar con el servidor.", "error");
+  } finally {
+    if (userDrawerBtnGuardar) {
+      userDrawerBtnGuardar.disabled = false;
+      userDrawerBtnGuardar.textContent = "Guardar cambios";
+    }
+  }
+}
+
+// Eventos del drawer de usuario
+if (btnCerrarUserDrawer) {
+  btnCerrarUserDrawer.addEventListener("click", closeUserDrawer);
+}
+
+if (userDrawerBtnEditar) {
+  userDrawerBtnEditar.addEventListener("click", activarEdicionUsuario);
+}
+
+if (userDrawerBtnGuardar) {
+  userDrawerBtnGuardar.addEventListener("click", guardarCambiosUsuario);
+}
+
+if (userDrawerBtnCancelarEdicion) {
+  userDrawerBtnCancelarEdicion.addEventListener("click", cancelarEdicionUsuario);
+}
+
+// El panel del drawer de usuario no propaga clicks al mask
+if (userDrawerMask) {
+  const userDrawerPanel = userDrawerMask.querySelector(".drawer");
+  if (userDrawerPanel) {
+    userDrawerPanel.addEventListener("click", e => e.stopPropagation());
+  }
+  userDrawerMask.addEventListener("click", closeUserDrawer);
 }
 
 restaurarEstadoUI();
