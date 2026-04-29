@@ -413,31 +413,25 @@ function normalizarCaso(raw) {
   };
 
   return {
-    id: raw.id_display || (() => {
-      const num = raw.id || raw._id || raw.caso_id || "";
-      const tipo = (raw.tipo || raw.tipo_caso || "").toUpperCase().replace(/ES$/, "").replace(/S$/, "").trim();
-      return tipo ? `${tipo}-${num}` : String(num);
-    })(),
-    nombre: raw.nombre || raw.asunto || raw.nombre_caso || "",
-    tipo: mapTipo(raw.tipo || raw.tipo_caso || ""),
-    tipoDb: normalizarTipoCasoDb(raw.tipo_db || raw.tipo || raw.tipo_caso),
-    prioridad: mapPrioridad(raw.prioridad),
-    estado: mapEstado(raw.estado || raw.estado_procesal),
-    asignado: mapAsignado(raw.nombre_abogado || raw.asignado || raw.abogado_asignado || raw.abogado_encargado ||""),
-    _numId: String(raw.id || raw._id || raw.caso_id || ""),
-    _raw: raw
+  id: raw.id_display || (() => {
+    const num = raw.id || raw._id || raw.caso_id || "";
+    const tipo = (raw.tipo || raw.tipo_caso || "").toUpperCase().replace(/ES$/, "").replace(/S$/, "").trim();
+    return tipo ? `${tipo}-${num}` : String(num);
+  })(),
+  fecha: raw.fecha || raw.created_at || "Sin fecha",
+  nombre: raw.nombre || raw.asunto || raw.nombre_caso || "",
+  tipo: mapTipo(raw.tipo || raw.tipo_caso || ""),
+  tipoDb: normalizarTipoCasoDb(raw.tipo_db || raw.tipo || raw.tipo_caso),
+  prioridad: mapPrioridad(raw.prioridad),
+  estado: mapEstado(raw.estado || raw.estado_procesal),
+  asignado: mapAsignado(raw.nombre_abogado || raw.asignado || raw.abogado_asignado || raw.abogado_encargado ||""),
+  _numId: String(raw.id || raw._id || raw.caso_id || ""),
+  _raw: raw
   };
 }
 
 function cargarCasos() {
   renderTable(1);
-  if (tipoSelect) {
-    tipoSelect.addEventListener("change", () => {
-      paginaActual = 1;
-      renderTable(1);
-      applyPreset(tipoSelect.value);
-    });
-  }
 }
 
 // ========== CAMPOS POR TIPO ==========
@@ -837,15 +831,15 @@ async function renderTable(pagina = 1) {
     if (!data.success) return;
     casos = (data.casos || []).map(normalizarCaso);
     tbody.innerHTML = casos.map(caso => `
-      <tr data-id="${caso._numId}" data-tipo="${caso.tipo}">
-        <td><span class="tag">${caso.id}</span></td>
-        <td>${caso.nombre}</td>
-        <td class="muted">${caso.tipo}</td>
-        <td>${caso.prioridad}</td>
-        <td>${caso.estado}</td>
-        <td class="muted">${caso.asignado}</td>
-      </tr>
-    `).join("");
+  <tr data-id="${caso._numId}" data-tipo="${caso.tipo}">
+      <td><span class="tag">${caso.fecha}</span></td>
+      <td>${caso.nombre}</td>
+      <td class="muted">${caso.tipo}</td>
+      <td>${caso.prioridad}</td>
+      <td>${caso.estado}</td>
+      <td class="muted">${caso.asignado}</td>
+    </tr>
+  `).join("");
     tbody.querySelectorAll("tr").forEach((row, index) => {
       const casoCompleto = casos[index];
       if (!casoCompleto) return;
@@ -931,14 +925,18 @@ function openDrawer(item) {
   // Mostrar u ocultar botones de edición según el rol
   const btnEditar = document.getElementById("drawerBtnEditar");
   const btnGuardar = document.getElementById("drawerBtnGuardarCambios");
+  const btnArchivar = document.getElementById("drawerBtnArchivar");
 
   if (btnEditar && btnGuardar) {
   if (sessionRol === "ADMIN") {
     btnEditar.style.display = "inline-block";
     btnGuardar.style.display = "none";
+    btnArchivar.style.display = "inline-block";
+    btnArchivar.textContent = item.estado === "Archivado" ? "Desarchivar" : "Archivar";
   } else {
     btnEditar.style.display = "none";
     btnGuardar.style.display = "none";
+    btnArchivar.style.display = "none";
   }
 }
 
@@ -973,6 +971,11 @@ async function activarEdicionCaso() {
   const tipoActual = document.getElementById("d_tipo").textContent.trim();
   const prioridadActual = document.getElementById("d_prioridad").textContent.trim();
   const estadoActual = document.getElementById("d_estado").textContent.trim();
+  
+  if (estadoActual === "Archivado") {
+  showToast("Este caso está archivado y no se puede editar.", "info");
+  return;
+  }
   const asignadoActual = document.getElementById("d_asignado").textContent.trim();
 
   const res = await fetch("http://localhost:3000/api/usuarios");
@@ -1010,6 +1013,7 @@ async function activarEdicionCaso() {
       <option value="asignado" ${estadoActual === "Asignado" ? "selected" : ""}>Asignado</option>
       <option value="finalizado" ${estadoActual === "Finalizado" ? "selected" : ""}>Finalizado</option>
       <option value="sin_actividad" ${estadoActual === "Sin actividad" ? "selected" : ""}>Sin actividad</option>
+      <!-- <option value="archivado" ${estadoActual === "Archivado" ? "selected" : ""}>Archivado</option> -->
     </select>
   `;
 
@@ -1077,6 +1081,72 @@ async function guardarCambiosCaso() {
     console.error("Error guardando cambios:", error);
     showToast("Error al conectar con el servidor.", "error");
   }
+}
+
+const btnArchivarCaso = document.getElementById("drawerBtnArchivar");
+
+
+async function archivarCaso() {
+  if (sessionRol !== "ADMIN") {
+    showToast("No tienes permisos para modificar archivo.", "error");
+    return;
+  }
+
+  if (!casoActivoId || !casoActivoTipo) {
+    showToast("No hay caso seleccionado.", "error");
+    return;
+  }
+
+  const estadoActual = document.getElementById("d_estado")?.textContent.trim();
+  const estaArchivado = estadoActual === "Archivado";
+
+  const confirmar = await showConfirmDialog({
+    title: estaArchivado ? "Desarchivar caso" : "Archivar caso",
+    message: estaArchivado
+      ? "¿Deseas desarchivar este caso?"
+      : "¿Deseas archivar este caso?",
+    confirmText: estaArchivado ? "Desarchivar" : "Archivar",
+    cancelText: "Cancelar",
+    variant: estaArchivado ? "primary" : "danger"
+  });
+
+  if (!confirmar) return;
+
+  const accion = estaArchivado ? "desarchivar" : "archivar";
+
+  try {
+    const res = await fetch(
+      `http://localhost:3000/api/casos/${casoActivoTipo}/${casoActivoId}/${accion}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rol: sessionRol })
+      }
+    );
+
+    const data = await res.json();
+
+    if (data.success) {
+      showToast(
+        estaArchivado
+          ? "Caso desarchivado correctamente."
+          : "Caso archivado correctamente.",
+        "success"
+      );
+
+      await cargarCasos();
+      closeDrawer();
+    } else {
+      showToast(data.mensaje || "No se pudo completar la acción.", "error");
+    }
+  } catch (error) {
+    console.error("Error modificando archivo:", error);
+    showToast("Error al conectar con el servidor.", "error");
+  }
+}
+
+if (btnArchivarCaso) {
+  btnArchivarCaso.addEventListener("click", archivarCaso);
 }
 
 if (btnEditarCaso) {

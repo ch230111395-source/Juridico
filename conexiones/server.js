@@ -290,15 +290,16 @@ app.get('/api/casos', (req, res) => {
     }
     // ----------------- Modificacion echa por Fer el 18 -------------------------
   const casos = results.map(caso => ({
-      id: caso.id,
-      id_display: `${caso.tipo.toUpperCase()}-${caso.id}`,
-      nombre: caso.asunto || caso.actor || caso.expediente || "Sin nombre",
-      tipo: caso.tipo,
-      tipo_db: normalizarTipoCaso(caso.tipo) || caso.tipo,
-      prioridad: caso.prioridad || "Media",
-      estado: caso.estado_procesal || "—",
-      asignado: caso.nombre_abogado || "Sin asignar"
-  }));
+    id: caso.id,
+    id_display: `${caso.tipo.toUpperCase()}-${caso.id}`,
+    fecha: caso.fecha || caso.created_at || "Sin fecha",
+    nombre: caso.asunto || caso.actor || caso.expediente || "Sin nombre",
+    tipo: caso.tipo,
+    tipo_db: normalizarTipoCaso(caso.tipo) || caso.tipo,
+    prioridad: caso.prioridad || "Media",
+    estado: caso.estado_procesal || "—",
+    asignado: caso.nombre_abogado || "Sin asignar"
+}));
 
     res.json({
       success: true,
@@ -581,10 +582,185 @@ app.put('/api/casos/:tipo/:id/editar', (req, res) => {
     SET prioridad = ?, estado_procesal = ?, abogado_encargado = ?
     WHERE id = ?
   `;
+  db.query(
+  `SELECT estado_procesal FROM ${tabla} WHERE id = ?`,
+  [id],
+  (err, rows) => {
 
-  db.query(sql, [prioridad, estado_procesal, abogado_encargado || null, id], (err) => {
     if (err) {
-      console.error("Error editando:", err);
+      console.error("Error verificando estado:", err);
+      return res.status(500).json({
+        success: false,
+        mensaje: err.message
+      });
+    }
+
+    if (!rows.length) {
+      return res.status(404).json({
+        success: false,
+        mensaje: "Caso no encontrado."
+      });
+    }
+
+    if (String(rows[0].estado_procesal).toLowerCase() === "archivado") {
+      return res.status(403).json({
+        success: false,
+        mensaje: "Este caso está archivado y no se puede editar."
+      });
+    }
+
+    const sql = `
+      UPDATE ${tabla}
+      SET prioridad = ?, estado_procesal = ?, abogado_encargado = ?
+      WHERE id = ?
+    `;
+
+    db.query(
+      sql,
+      [prioridad, estado_procesal, abogado_encargado || null, id],
+      (err) => {
+
+        if (err) {
+          console.error("Error editando:", err);
+          return res.status(500).json({
+            success: false,
+            mensaje: err.message
+          });
+        }
+
+        res.json({
+          success: true,
+          mensaje: "Caso actualizado correctamente"
+        });
+      }
+    );
+  }
+);
+});
+  
+app.put('/api/casos/:tipo/:id/archivar', (req, res) => {
+  const { tipo, id } = req.params;
+  const { rol } = req.body;
+
+  if (rol !== "ADMIN") {
+    return res.status(403).json({
+      success: false,
+      mensaje: "No tienes permisos para archivar."
+    });
+  }
+
+  const mapaTablas = {
+    amparo: 'amparos',
+    amparos: 'amparos',
+
+    administrativo: 'administrativos',
+    administrativos: 'administrativos',
+
+    laboral: 'laborales',
+    laborales: 'laborales',
+
+    civil: 'civiles',
+    civiles: 'civiles',
+
+    mercantil: 'mercantiles',
+    mercantiles: 'mercantiles',
+
+    penal: 'penales',
+    penales: 'penales',
+
+    agrario: 'agrarios',
+    agrarios: 'agrarios',
+
+    varios: 'exp_varios',
+    exp_varios: 'exp_varios'
+  };
+
+  const tabla = mapaTablas[String(tipo).toLowerCase()];
+
+  if (!tabla) {
+    return res.status(400).json({
+      success: false,
+      mensaje: "Tipo inválido"
+    });
+  }
+
+  const sql = `
+    UPDATE ${tabla}
+    SET estado_procesal = 'archivado'
+    WHERE id = ?
+  `;
+
+  db.query(sql, [id], (err) => {
+    if (err) {
+      console.error("Error archivando caso:", err);
+      return res.status(500).json({
+        success: false,
+        mensaje: err.message
+      });
+    };
+
+    res.json({
+      success: true,
+      mensaje: "Caso archivado correctamente"
+    });
+  });
+});
+
+app.put('/api/casos/:tipo/:id/desarchivar', (req, res) => {
+  const { tipo, id } = req.params;
+  const { rol } = req.body;
+
+  if (rol !== "ADMIN") {
+    return res.status(403).json({
+      success: false,
+      mensaje: "No tienes permisos para desarchivar."
+    });
+  }
+
+  const mapaTablas = {
+    amparo: 'amparos',
+    amparos: 'amparos',
+
+    administrativo: 'administrativos',
+    administrativos: 'administrativos',
+
+    laboral: 'laborales',
+    laborales: 'laborales',
+
+    civil: 'civiles',
+    civiles: 'civiles',
+
+    mercantil: 'mercantiles',
+    mercantiles: 'mercantiles',
+
+    penal: 'penales',
+    penales: 'penales',
+
+    agrario: 'agrarios',
+    agrarios: 'agrarios',
+
+    varios: 'exp_varios',
+    exp_varios: 'exp_varios'
+  };
+
+  const tabla = mapaTablas[String(tipo).toLowerCase()];
+
+  if (!tabla) {
+    return res.status(400).json({
+      success: false,
+      mensaje: "Tipo inválido"
+    });
+  }
+
+  const sql = `
+    UPDATE ${tabla}
+    SET estado_procesal = 'en_proceso'
+    WHERE id = ?
+  `;
+
+  db.query(sql, [id], (err) => {
+    if (err) {
+      console.error("Error desarchivando caso:", err);
       return res.status(500).json({
         success: false,
         mensaje: err.message
@@ -593,7 +769,7 @@ app.put('/api/casos/:tipo/:id/editar', (req, res) => {
 
     res.json({
       success: true,
-      mensaje: "Caso actualizado correctamente"
+      mensaje: "Caso desarchivado correctamente"
     });
   });
 });
