@@ -6,6 +6,9 @@ if (!usuarioGuardado) {
 
 const usuarioSesion = JSON.parse(usuarioGuardado || "{}");
 const sessionRol = (usuarioSesion.rol || "").toUpperCase();
+const sessionUsuarioId = usuarioSesion.id ? String(usuarioSesion.id) : "";
+const sessionUsername = usuarioSesion.username || "";
+const sessionNombre = usuarioSesion.nombre || "";
 
 const buttons = document.querySelectorAll(".nav button[data-view]");
 const views = document.querySelectorAll(".view");
@@ -18,6 +21,16 @@ const usuarioDetails = document.getElementById("usuarioDetails");
 const btnRolForm = document.getElementById("btnRolForm");
 const permDetails = document.getElementById("permDetails");
 const btnLogout = document.getElementById("btnLogout");
+const btnFiltroPrioridad = document.getElementById("btnFiltroPrioridad");
+let ordenarPrioridadAltaBaja = false;
+
+function authQueryParams() {
+  return {
+    rol: sessionRol,
+    usuario_id: sessionUsuarioId,
+    usuario: sessionUsername || sessionNombre
+  };
+}
 
 // ── Búsqueda global ──
 const inputBusqueda = document.getElementById("inputBusqueda");
@@ -91,6 +104,9 @@ function guardarCasoActivo(item) {
     prioridad: item.prioridad,
     estado: item.estado,
     asignado: item.asignado,
+    asignadoExtra: item.asignadoExtra || "",
+    abogadoEncargadoId: item.abogadoEncargadoId || "",
+    abogadoColaboradorId: item.abogadoColaboradorId || "",
     _numId: String(item._numId)
   }));
 }
@@ -189,6 +205,19 @@ function escapeHtml(value) {
 
 function formatearTextoHtml(value) {
   return escapeHtml(value).replace(/\n/g, "<br>");
+}
+
+function prioridadClass(prioridad) {
+  const valor = String(prioridad || "").trim().toLowerCase();
+  if (valor === "alta") return "priority-alta";
+  if (valor === "media") return "priority-media";
+  if (valor === "baja") return "priority-baja";
+  return "priority-default";
+}
+
+function renderPrioridadBadge(prioridad) {
+  const texto = prioridad || "Media";
+  return `<span class="priorityBadge ${prioridadClass(texto)}">${escapeHtml(texto)}</span>`;
 }
 
 function inferirTipoToast(message) {
@@ -405,7 +434,7 @@ function normalizarCaso(raw) {
       "civiles": "Civil", "civil": "Civil",
       "administrativos": "Administrativo", "administrativo": "Administrativo",
       "agrarios": "Agrario", "agrario": "Agrario",
-      "varios": "Varios"
+      "varios": "Varios", "exp_varios": "Varios"
     };
     return tipoMap[v] || capitalizar(val);
   };
@@ -423,6 +452,11 @@ function normalizarCaso(raw) {
   prioridad: mapPrioridad(raw.prioridad),
   estado: mapEstado(raw.estado || raw.estado_procesal),
   asignado: mapAsignado(raw.nombre_abogado || raw.asignado || raw.abogado_asignado || raw.abogado_encargado ||""),
+  asignadoExtra: (raw.nombre_abogado_colaborador || raw.asignado_extra)
+    ? mapAsignado(raw.nombre_abogado_colaborador || raw.asignado_extra)
+    : "",
+  abogadoEncargadoId: raw.abogado_encargado ? String(raw.abogado_encargado) : "",
+  abogadoColaboradorId: raw.abogado_colaborador ? String(raw.abogado_colaborador) : "",
   _numId: String(raw.id || raw._id || raw.caso_id || ""),
   _raw: raw
   };
@@ -819,8 +853,10 @@ async function renderTable(pagina = 1) {
     limite:   LIMITE,
     pagina:   pagina,
     tipo:     tipo,
-    busqueda: busquedaActual
+    busqueda: busquedaActual,
+    ...authQueryParams()
   });
+  if (ordenarPrioridadAltaBaja) params.set("orden", "prioridad_desc");
   const url = `http://localhost:3000/api/casos?${params}`;
   try {
     const res = await fetch(url);
@@ -829,12 +865,12 @@ async function renderTable(pagina = 1) {
     casos = (data.casos || []).map(normalizarCaso);
     tbody.innerHTML = casos.map(caso => `
   <tr data-id="${caso._numId}" data-tipo="${caso.tipo}">
-      <td><span class="tag">${caso.fecha}</span></td>
-      <td>${caso.nombre}</td>
-      <td class="muted">${caso.tipo}</td>
-      <td>${caso.prioridad}</td>
-      <td>${caso.estado}</td>
-      <td class="muted">${caso.asignado}</td>
+      <td><span class="tag">${escapeHtml(caso.fecha)}</span></td>
+      <td>${escapeHtml(caso.nombre)}</td>
+      <td class="muted">${escapeHtml(caso.tipo)}</td>
+      <td>${renderPrioridadBadge(caso.prioridad)}</td>
+      <td>${escapeHtml(caso.estado)}</td>
+      <td class="muted">${escapeHtml([caso.asignado, caso.asignadoExtra].filter(Boolean).join(" + ") || "Sin asignar")}</td>
     </tr>
   `).join("");
     tbody.querySelectorAll("tr").forEach((row, index) => {
@@ -909,30 +945,41 @@ function openDrawer(item) {
   if (!item) return;
   casoActivoId = item._numId || (item._raw ? (item._raw.id || item._raw._id || item._raw.caso_id) : item.id);
   casoActivoTipo = item.tipoDb || normalizarTipoCasoDb(item.tipo || item._raw?.tipo || item._raw?.tipo_caso);
+  casoActivoAbogadoEncargadoId = item.abogadoEncargadoId || "";
+  casoActivoAbogadoColaboradorId = item.abogadoColaboradorId || "";
   setActiveView("v_casos", { scroll: false });
   document.getElementById("drawerTitle").textContent = item.id;
   document.getElementById("drawerSubtitle").textContent = `· ${item.tipo}`;
   document.getElementById("d_tipo").textContent = item.tipo;
-  document.getElementById("d_prioridad").textContent = item.prioridad;
+  document.getElementById("d_prioridad").innerHTML = renderPrioridadBadge(item.prioridad);
   document.getElementById("d_estado").textContent = item.estado;
   document.getElementById("d_asignado").textContent = item.asignado;
+  const abogadoExtraEl = document.getElementById("d_abogado_extra");
+  if (abogadoExtraEl) abogadoExtraEl.textContent = item.asignadoExtra || "Sin abogado extra";
   document.getElementById("campoReasignar").style.display = "none";
   document.getElementById("d_reasignar").innerHTML = "";
 
   const btnEditar = document.getElementById("drawerBtnEditar");
   const btnGuardar = document.getElementById("drawerBtnGuardarCambios");
   const btnArchivar = document.getElementById("drawerBtnArchivar");
+  const btnReasignar = document.getElementById("drawerBtnReasignar");
 
-  if (btnEditar && btnGuardar) {
+  if (btnEditar && btnGuardar && btnArchivar && btnReasignar) {
   if (sessionRol === "ADMIN") {
     btnEditar.style.display = "inline-block";
     btnGuardar.style.display = "none";
     btnArchivar.style.display = "inline-block";
     btnArchivar.textContent = item.estado === "Archivado" ? "Desarchivar" : "Archivar";
+    btnReasignar.style.display = item.estado === "Archivado" ? "none" : "inline-block";
+    btnReasignar.disabled = Boolean(item.abogadoColaboradorId);
+    btnReasignar.textContent = item.abogadoColaboradorId ? "Reasignado" : "Reasignar";
+    btnReasignar.classList.remove("primary");
+    btnReasignar.onclick = activarReasignacionCaso;
   } else {
     btnEditar.style.display = "none";
     btnGuardar.style.display = "none";
     btnArchivar.style.display = "none";
+    btnReasignar.style.display = "none";
   }
 }
 
@@ -943,6 +990,9 @@ function openDrawer(item) {
     prioridad: item.prioridad,
     estado: item.estado,
     asignado: item.asignado,
+    asignadoExtra: item.asignadoExtra,
+    abogadoEncargadoId: item.abogadoEncargadoId,
+    abogadoColaboradorId: item.abogadoColaboradorId,
     _numId: casoActivoId
   });
 
@@ -957,6 +1007,7 @@ function openDrawer(item) {
 
 const btnEditarCaso = document.getElementById("drawerBtnEditar");
 const btnGuardarCambios = document.getElementById("drawerBtnGuardarCambios");
+const btnReasignarCaso = document.getElementById("drawerBtnReasignar");
 
 async function activarEdicionCaso() {
   if (sessionRol !== "ADMIN") {
@@ -1028,6 +1079,7 @@ async function activarEdicionCaso() {
 
   btnEditarCaso.style.display = "none";
   btnGuardarCambios.style.display = "inline-block";
+  if (btnReasignarCaso) btnReasignarCaso.style.display = "none";
 }
 
 async function guardarCambiosCaso() {
@@ -1073,6 +1125,99 @@ async function guardarCambiosCaso() {
     }
   } catch (error) {
     console.error("Error guardando cambios:", error);
+    showToast("Error al conectar con el servidor.", "error");
+  }
+}
+
+async function activarReasignacionCaso() {
+  if (sessionRol !== "ADMIN") {
+    showToast("No tienes permisos para reasignar.", "error");
+    return;
+  }
+
+  if (!casoActivoId || !casoActivoTipo) {
+    showToast("No hay caso seleccionado.", "error");
+    return;
+  }
+
+  if (casoActivoAbogadoColaboradorId) {
+    showToast("Este caso ya tiene un abogado extra.", "info");
+    return;
+  }
+
+  if (!casoActivoAbogadoEncargadoId) {
+    showToast("Primero asigna un abogado encargado.", "info");
+    return;
+  }
+
+  const campo = document.getElementById("campoReasignar");
+  const contenedor = document.getElementById("d_reasignar");
+  if (!campo || !contenedor || !btnReasignarCaso) return;
+
+  try {
+    const res = await fetch("http://localhost:3000/api/usuarios");
+    const data = await res.json();
+    const abogados = data.success
+      ? data.usuarios.filter(u =>
+          u.rol?.toUpperCase() === "ABOGADO" &&
+          Number(u.activo) === 1 &&
+          String(u.id) !== String(casoActivoAbogadoEncargadoId)
+        )
+      : [];
+
+    if (!abogados.length) {
+      showToast("No hay abogados disponibles para reasignar.", "info");
+      return;
+    }
+
+    campo.style.display = "block";
+    contenedor.innerHTML = `
+      <select id="selectReasignarAbogado">
+        <option value="">Seleccione abogado</option>
+        ${abogados.map(a => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.nombre || a.username)}</option>`).join("")}
+      </select>
+    `;
+
+    btnReasignarCaso.textContent = "Guardar reasignación";
+    btnReasignarCaso.classList.add("primary");
+    btnReasignarCaso.onclick = guardarReasignacionCaso;
+  } catch (error) {
+    console.error("Error cargando abogados:", error);
+    showToast("No se pudieron cargar los abogados.", "error");
+  }
+}
+
+async function guardarReasignacionCaso() {
+  const select = document.getElementById("selectReasignarAbogado");
+  const abogado_colaborador = select?.value;
+  if (!abogado_colaborador) {
+    showToast("Selecciona un abogado.", "info");
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `http://localhost:3000/api/casos/${casoActivoTipo}/${casoActivoId}/reasignar`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          abogado_colaborador,
+          rol: sessionRol
+        })
+      }
+    );
+
+    const data = await res.json();
+    if (data.success) {
+      showToast("Caso reasignado correctamente.", "success");
+      await cargarCasos();
+      closeDrawer();
+    } else {
+      showToast(data.mensaje || "No se pudo reasignar el caso.", "error");
+    }
+  } catch (error) {
+    console.error("Error reasignando caso:", error);
     showToast("Error al conectar con el servidor.", "error");
   }
 }
@@ -1153,6 +1298,8 @@ if (btnGuardarCambios) {
 function closeDrawer() {
   casoActivoId = null;
   casoActivoTipo = null;
+  casoActivoAbogadoEncargadoId = "";
+  casoActivoAbogadoColaboradorId = "";
   limpiarCasoActivoGuardado();
   mask.classList.remove("show");
 }
@@ -1162,6 +1309,16 @@ if (tipoSelect) {
     paginaActual = 1;
     renderTable(1);
     applyPreset(tipoSelect.value);
+  });
+}
+
+if (btnFiltroPrioridad) {
+  btnFiltroPrioridad.addEventListener("click", () => {
+    ordenarPrioridadAltaBaja = !ordenarPrioridadAltaBaja;
+    btnFiltroPrioridad.classList.toggle("active", ordenarPrioridadAltaBaja);
+    btnFiltroPrioridad.textContent = ordenarPrioridadAltaBaja ? "Prioridad alta-baja" : "Prioridad";
+    paginaActual = 1;
+    renderTable(1);
   });
 }
 
@@ -1240,6 +1397,8 @@ if (btnLogout) {
 let casoActivoId = null;
 let casoActivoTipo = null;
 let tipoActualGlobal = null;
+let casoActivoAbogadoEncargadoId = "";
+let casoActivoAbogadoColaboradorId = "";
 
 const btnGuardarNota = document.getElementById("btnGuardarNota");
 const btnLimpiarNota = document.getElementById("btnLimpiarNota");
@@ -1248,6 +1407,25 @@ const listaNotas = document.getElementById("listaNotas");
 
 function obtenerNotaId(nota) {
   return nota?.id || nota?.nota_id || nota?._id || nota?.notaId || "";
+}
+
+function puedeEliminarNotas() {
+  return ["ADMIN", "SECRETARIA"].includes(sessionRol);
+}
+
+function normalizarTextoComparacion(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function esPropietarioNota(nota) {
+  const autor = normalizarTextoComparacion(nota?.usuario);
+  const usuariosSesion = [sessionUsername, sessionNombre].map(normalizarTextoComparacion).filter(Boolean);
+  return Boolean(autor && usuariosSesion.includes(autor));
+}
+
+function buscarNotaCard(notaId) {
+  return Array.from(listaNotas?.querySelectorAll(".noteCard") || [])
+    .find(card => String(card.dataset.noteId) === String(notaId));
 }
 
 function renderNotas(notas) {
@@ -1259,24 +1437,99 @@ function renderNotas(notas) {
   listaNotas.innerHTML = notas.map(n => {
     const notaId = obtenerNotaId(n);
     const meta = [n.fecha, n.usuario || "Sistema"].filter(Boolean).map(escapeHtml).join(" · ");
-    const contenido = formatearTextoHtml(n.texto || n.nota || n.contenido || "");
+    const textoPlano = n.texto || n.nota || n.contenido || "";
+    const contenido = formatearTextoHtml(textoPlano);
+    const acciones = [
+      notaId && esPropietarioNota(n)
+        ? `<button type="button" class="btn noteEditBtn" data-note-action="edit" data-note-id="${escapeHtml(notaId)}">Editar</button>`
+        : "",
+      notaId && puedeEliminarNotas()
+        ? `<button type="button" class="btn noteDeleteBtn" data-note-action="delete" data-note-id="${escapeHtml(notaId)}">Eliminar</button>`
+        : ""
+    ].filter(Boolean).join("");
 
     return `
-      <div class="nota-item card noteCard" style="box-shadow:none; padding: 12px 14px;">
+      <div class="nota-item card noteCard" data-note-id="${escapeHtml(notaId)}" data-note-text="${escapeHtml(textoPlano)}" data-note-owner="${escapeHtml(n.usuario || "")}" style="box-shadow:none; padding: 12px 14px;">
         <div class="noteMetaRow">
           <div class="small muted">${meta || "Sistema"}</div>
-          ${notaId ? `<button type="button" class="btn noteDeleteBtn" data-note-id="${escapeHtml(notaId)}">Eliminar</button>` : ""}
+          <div class="noteActions">${acciones}</div>
         </div>
         <div class="noteText" style="margin-top:4px;">${contenido}</div>
       </div>
     `;
   }).join("");
 
-  listaNotas.querySelectorAll("[data-note-id]").forEach(button => {
+  listaNotas.querySelectorAll("[data-note-action='delete']").forEach(button => {
     button.addEventListener("click", () => {
       eliminarNota(button.dataset.noteId);
     });
   });
+
+  listaNotas.querySelectorAll("[data-note-action='edit']").forEach(button => {
+    button.addEventListener("click", () => {
+      activarEdicionNota(button.dataset.noteId);
+    });
+  });
+}
+
+function activarEdicionNota(notaId) {
+  const card = buscarNotaCard(notaId);
+  if (!card) return;
+  const textoActual = card.dataset.noteText || "";
+  const noteText = card.querySelector(".noteText");
+  const actions = card.querySelector(".noteActions");
+  if (!noteText || !actions) return;
+
+  noteText.innerHTML = `
+    <textarea class="in textarea noteEditInput" style="resize:vertical;">${escapeHtml(textoActual)}</textarea>
+  `;
+  actions.innerHTML = `
+    <button type="button" class="btn primary noteSaveBtn" data-note-action="save" data-note-id="${escapeHtml(notaId)}">Guardar</button>
+    <button type="button" class="btn noteCancelBtn" data-note-action="cancel" data-note-id="${escapeHtml(notaId)}">Cancelar</button>
+  `;
+
+  actions.querySelector("[data-note-action='save']").addEventListener("click", () => guardarEdicionNota(notaId));
+  actions.querySelector("[data-note-action='cancel']").addEventListener("click", () => cargarNotas(casoActivoId));
+  const input = noteText.querySelector(".noteEditInput");
+  if (input) input.focus();
+}
+
+async function guardarEdicionNota(notaId) {
+  const card = buscarNotaCard(notaId);
+  const input = card?.querySelector(".noteEditInput");
+  const texto = input?.value.trim();
+  if (!texto) {
+    showToast("La nota no puede quedar vacía.", "info");
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `http://localhost:3000/api/casos/${encodeURIComponent(casoActivoId)}/notas/${encodeURIComponent(notaId)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          texto,
+          tipo_caso: casoActivoTipo,
+          rol: sessionRol,
+          usuario_id: sessionUsuarioId,
+          usuario: sessionUsername || sessionNombre
+        })
+      }
+    );
+    const data = await obtenerJsonSeguro(res);
+
+    if (res.ok && (!data || data.success !== false)) {
+      showToast("Nota actualizada correctamente.", "success");
+      cargarNotas(casoActivoId);
+      return;
+    }
+
+    showToast(data?.mensaje || "No se pudo actualizar la nota.", "error");
+  } catch {
+    showToast("Error al conectar con el servidor.", "error");
+  }
 }
 
 async function eliminarNota(notaId) {
@@ -1295,7 +1548,7 @@ async function eliminarNota(notaId) {
 
   if (!confirmar) return;
 
-  const params = new URLSearchParams({ tipo_caso: casoActivoTipo });
+  const params = new URLSearchParams({ tipo_caso: casoActivoTipo, ...authQueryParams() });
   let mensajeError = "No se pudo eliminar la nota.";
 
   try {
@@ -1327,7 +1580,7 @@ async function cargarNotas(casoId) {
   }
   listaNotas.innerHTML = '<div class="small muted">Cargando notas...</div>';
   try {
-    const params = new URLSearchParams({ tipo_caso: casoActivoTipo });
+    const params = new URLSearchParams({ tipo_caso: casoActivoTipo, ...authQueryParams() });
     const res = await fetch(`http://localhost:3000/api/casos/${casoId}/notas?${params}`);
     if (!res.ok) throw new Error();
     const data = await res.json();
@@ -1344,14 +1597,15 @@ if (btnGuardarNota) {
     const texto = inputNuevaNota.value.trim();
     if (!texto) return;
     try {
-     const usr = JSON.parse(localStorage.getItem("usuario") || "{}");
     const res = await fetch(`http://localhost:3000/api/casos/${casoActivoId}/notas`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ 
     texto, 
-    usuario: usr.username || usr.nombre || "Sistema",
-    tipo_caso: casoActivoTipo
+    usuario: sessionUsername || sessionNombre || "Sistema",
+    tipo_caso: casoActivoTipo,
+    rol: sessionRol,
+    usuario_id: sessionUsuarioId
   })
 });
 
@@ -1411,11 +1665,11 @@ function renderDocumentos(docs) {
       <span style="font-size:20px;">${iconoArchivo(doc.nombre_original)}</span>
       <div style="flex:1; min-width:0;">
         <div style="font-size:13px; font-weight:600; white-space:nowrap;
-                    overflow:hidden; text-overflow:ellipsis;" title="${doc.nombre_original}">
-          ${doc.nombre_original}
+                    overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(doc.nombre_original)}">
+          ${escapeHtml(doc.nombre_original)}
         </div>
         <div class="small muted">
-          ${formatBytes(doc.tamaño)} · ${doc.subido_por || "Sistema"} · ${doc.fecha || ""}
+          ${formatBytes(doc.tamaño)} · ${escapeHtml(doc.subido_por || "Sistema")} · ${escapeHtml(doc.fecha || "")}
         </div>
       </div>
       <button class="btn" style="padding:6px 12px; font-size:12px;"
@@ -1434,7 +1688,8 @@ function renderDocumentos(docs) {
 
 async function descargarDocumento(docId, nombre) {
   try {
-    const res = await fetch(`http://localhost:3000/api/documentos/descargar/${docId}`);
+    const params = new URLSearchParams(authQueryParams());
+    const res = await fetch(`http://localhost:3000/api/documentos/descargar/${docId}?${params}`);
     if (!res.ok) { showToast("No se pudo descargar el archivo.", "error"); return; }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -1460,7 +1715,8 @@ async function eliminarDocumento(docId) {
   });
   if (!confirmar) return;
   try {
-    const res = await fetch(`http://localhost:3000/api/documentos/${docId}`, { method: "DELETE" });
+    const params = new URLSearchParams(authQueryParams());
+    const res = await fetch(`http://localhost:3000/api/documentos/${docId}?${params}`, { method: "DELETE" });
     const data = await res.json();
     if (data.success) {
       cargarDocumentos(casoActivoId);
@@ -1482,7 +1738,7 @@ async function cargarDocumentos(casoId) {
   }
   listaDocumentos.innerHTML = '<div class="small muted">Cargando documentos...</div>';
   try {
-    const params = new URLSearchParams({ tipo_caso: casoActivoTipo });
+    const params = new URLSearchParams({ tipo_caso: casoActivoTipo, ...authQueryParams() });
     const res = await fetch(`http://localhost:3000/api/documentos/${casoId}?${params}`);
     const data = await res.json();
     const docs = Array.isArray(data) ? data : (data.documentos || data.data || []);
@@ -1500,14 +1756,15 @@ async function subirArchivos(archivos) {
   if (uploadProgress) uploadProgress.style.display = "block";
   if (uploadBar) uploadBar.style.width = "0%";
   if (uploadStatus) uploadStatus.textContent = `Subiendo 0 de ${archivos.length}...`;
-  const usr = JSON.parse(localStorage.getItem("usuario") || "{}");
   let subidos = 0;
   let errores = 0;
   for (const archivo of archivos) {
     const fd = new FormData();
     fd.append("archivo", archivo);
-    fd.append("subido_por", usr.username || usr.nombre || "Usuario");
+    fd.append("subido_por", sessionUsername || sessionNombre || "Usuario");
     fd.append("tipo_caso", casoActivoTipo);
+    fd.append("rol", sessionRol);
+    fd.append("usuario_id", sessionUsuarioId);
     try {
       const res = await fetch(`http://localhost:3000/api/documentos/${casoActivoId}`, {
         method: "POST",
