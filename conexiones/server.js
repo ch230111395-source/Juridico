@@ -32,6 +32,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const PORT = 3000;
 
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
@@ -52,21 +53,200 @@ const CASE_TYPE_ALIASES = {
   exp_varios: ['exp_varios', 'varios', 'exp varios']
 };
 
+const CASE_TABLES = {
+  amparos: {
+    numero: 't.no',
+    fecha: 't.fecha_emplazamiento',
+    juzgado: 't.juzgado',
+    demandado: 't.demandado',
+    asunto: 't.asunto'
+  },
+  administrativos: {
+    numero: 't.numero',
+    fecha: 't.fecha_emplazamiento',
+    juzgado: 't.sala',
+    demandado: 't.autoridad_demandada_demandado',
+    asunto: 't.asunto'
+  },
+  laborales: {
+    numero: 't.numero',
+    fecha: 't.emplazamiento',
+    juzgado: 't.mesa',
+    demandado: 'NULL',
+    asunto: 'NULL'
+  },
+  civiles: {
+    numero: 't.no',
+    fecha: 't.fecha_inicio',
+    juzgado: 't.juzgado',
+    demandado: 't.demandado',
+    asunto: 't.asunto'
+  },
+  mercantiles: {
+    numero: 't.no',
+    fecha: 't.fecha',
+    juzgado: 't.juzgado',
+    demandado: 'NULL',
+    asunto: 't.asunto'
+  },
+  penales: {
+    numero: 't.numero',
+    fecha: 'NULL',
+    juzgado: 't.juzgado',
+    demandado: 't.demandado',
+    asunto: 't.asunto'
+  },
+  agrarios: {
+    numero: 't.numero',
+    fecha: 't.fecha_emplazamiento',
+    juzgado: 't.juzgado',
+    demandado: 'NULL',
+    asunto: 't.asunto'
+  },
+  exp_varios: {
+    numero: 't.numero',
+    fecha: 't.fecha_recibido',
+    juzgado: 't.juzgado',
+    demandado: 't.demandado',
+    asunto: 't.asunto'
+  }
+};
+
+const CASE_TYPE_TO_TABLE = Object.entries(CASE_TYPE_ALIASES).reduce((acc, [table, aliases]) => {
+  aliases.forEach(alias => {
+    acc[alias] = table;
+  });
+  return acc;
+}, {});
+
 function normalizarTipoCaso(tipo) {
   const limpio = String(tipo || '').trim().toLowerCase();
   if (!limpio) return '';
 
-  for (const [canonico, alias] of Object.entries(CASE_TYPE_ALIASES)) {
-    if (alias.includes(limpio)) return canonico;
-  }
-
-  return '';
+  return CASE_TYPE_TO_TABLE[limpio] || '';
 }
 
 function obtenerVariantesTipoCaso(tipo) {
   const canonico = normalizarTipoCaso(tipo);
   if (!canonico) return [];
   return [...new Set((CASE_TYPE_ALIASES[canonico] || [canonico]).map(valor => valor.toLowerCase()))];
+}
+
+function obtenerTablaCaso(tipo) {
+  return normalizarTipoCaso(tipo);
+}
+
+function normalizarRol(rol) {
+  return String(rol || '').trim().toUpperCase();
+}
+
+function esAdmin(rol) {
+  return normalizarRol(rol) === 'ADMIN';
+}
+
+function esGestorNotas(rol) {
+  return ['ADMIN', 'SECRETARIA'].includes(normalizarRol(rol));
+}
+
+function tieneAccesoCompletoCasos(rol) {
+  return ['ADMIN', 'SECRETARIA'].includes(normalizarRol(rol));
+}
+
+function normalizarUsuarioId(usuarioId) {
+  const limpio = String(usuarioId || '').trim();
+  return limpio && limpio !== 'undefined' && limpio !== 'null' ? limpio : '';
+}
+
+function tieneAbogadoAsignado(abogado) {
+  const limpio = String(abogado || '').trim();
+  return Boolean(limpio && limpio !== '0' && limpio.toLowerCase() !== 'sin asignar');
+}
+
+function estadoAutomaticoPorAsignacion(estado, abogado) {
+  if (tieneAbogadoAsignado(abogado)) return 'asignado';
+  return estado || 'sin_asignar';
+}
+
+function construirSelectCasos() {
+  return Object.entries(CASE_TABLES).map(([tabla, cfg]) => `
+    SELECT
+      '${tabla}' AS tipo,
+      t.id,
+      ${cfg.numero} AS numero,
+      t.expediente,
+      ${cfg.fecha} AS fecha,
+      ${cfg.juzgado} AS juzgado,
+      t.actor,
+      ${cfg.demandado} AS demandado,
+      ${cfg.asunto} AS asunto,
+      t.estado_procesal,
+      t.prioridad,
+      t.created_at,
+      t.abogado_encargado,
+      t.abogado_colaborador,
+      u.nombre AS nombre_abogado,
+      uc.nombre AS nombre_abogado_colaborador
+    FROM ${tabla} t
+    LEFT JOIN usuarios u ON CAST(NULLIF(t.abogado_encargado, '') AS UNSIGNED) = u.id
+    LEFT JOIN usuarios uc ON CAST(NULLIF(t.abogado_colaborador, '') AS UNSIGNED) = uc.id
+  `).join(' UNION ALL ');
+}
+
+function aplicarAccesoCaso(condiciones, params, rol, usuarioId) {
+  if (tieneAccesoCompletoCasos(rol)) return;
+
+  const id = normalizarUsuarioId(usuarioId);
+  if (!id) {
+    condiciones.push('1 = 0');
+    return;
+  }
+
+  condiciones.push(`(
+    CAST(casos.abogado_encargado AS CHAR) = ?
+    OR CAST(casos.abogado_colaborador AS CHAR) = ?
+  )`);
+  params.push(id, id);
+}
+
+function verificarAccesoCaso(tipoCaso, casoId, rol, usuarioId, callback) {
+  const tabla = obtenerTablaCaso(tipoCaso);
+  if (!tabla) {
+    return callback(null, false, 'tipo_caso es obligatorio.');
+  }
+
+  if (tieneAccesoCompletoCasos(rol)) {
+    return callback(null, true);
+  }
+
+  const id = normalizarUsuarioId(usuarioId);
+  if (!id) return callback(null, false);
+
+  const sql = `
+    SELECT id
+    FROM ${tabla}
+    WHERE id = ?
+      AND (
+        CAST(abogado_encargado AS CHAR) = ?
+        OR CAST(abogado_colaborador AS CHAR) = ?
+      )
+    LIMIT 1
+  `;
+
+  db.query(sql, [casoId, id, id], (err, rows) => {
+    if (err) return callback(err);
+    callback(null, rows.length > 0);
+  });
+}
+
+async function asegurarCompatibilidadBD() {
+  const pdb = db.promise();
+
+  for (const tabla of Object.keys(CASE_TABLES)) {
+    const [cols] = await pdb.query(`SHOW COLUMNS FROM ${tabla} LIKE 'abogado_colaborador'`);
+    if (!cols.length) {
+      await pdb.query(`ALTER TABLE ${tabla} ADD COLUMN abogado_colaborador TEXT NULL`);
+    }
+  }
 }
 
 
@@ -76,6 +256,16 @@ db.connect(err => {
     return;
   }
   console.log('¡Conectado exitosamente a MySQL!');
+  asegurarCompatibilidadBD()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`Servidor Backend corriendo y escuchando en http://localhost:${PORT}`);
+      });
+    })
+    .catch(error => {
+      console.error('Error preparando la base de datos:', error);
+      process.exit(1);
+    });
 });
 
 
@@ -109,6 +299,7 @@ app.post('/api/login', (req, res) => {
           usuario: {
             id: usuarioEncontrado.id,
             username: usuarioEncontrado.username,
+            nombre: usuarioEncontrado.nombre,
             rol: usuarioEncontrado.rol
           }
         });
@@ -150,6 +341,7 @@ app.post('/api/nuevocaso', (req, res) => {
   let sql = "";
   let params = [];
   const tipo = tipo_caso ? tipo_caso.toLowerCase() : '';
+  const estadoProcesalFinal = estadoAutomaticoPorAsignacion(estado_procesal, abogado_encargado);
 
   // Mapeo exacto según tu bdjuridico.sql
   // ----------------- Modificacion echa por Fer el 18 -------------------------
@@ -158,35 +350,35 @@ app.post('/api/nuevocaso', (req, res) => {
       sql = `INSERT INTO amparos 
       (expediente, fecha_emplazamiento, estado_procesal, asunto, juzgado, actor, demandado, abogado_encargado, prioridad, estado_id) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, fecha_emplazamiento, estado_procesal, asunto, juzgado, actor, demandado, abogado_encargado, prioridad];
+      params = [expediente, fecha_emplazamiento, estadoProcesalFinal, asunto, juzgado, actor, demandado, abogado_encargado, prioridad];
       break;
 
     case 'administrativo':
       sql = `INSERT INTO administrativos 
       (expediente, estado_procesal, asunto, fecha_emplazamiento, sala, actor, abogado_encargado, prioridad, estado_id) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, sala, actor, abogado_encargado, prioridad];
+      params = [expediente, estadoProcesalFinal, asunto, fecha_emplazamiento, sala, actor, abogado_encargado, prioridad];
       break;
 
     case 'laboral':
       sql = `INSERT INTO laborales 
       (expediente, estado_procesal, actor, emplazamiento, mesa, numero, abogado_encargado, prioridad, estado_id) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, actor, fecha_emplazamiento, mesa, numero, abogado_encargado, prioridad];
+      params = [expediente, estadoProcesalFinal, actor, fecha_emplazamiento, mesa, numero, abogado_encargado, prioridad];
       break;
 
     case 'civil':
       sql = `INSERT INTO civiles 
       (expediente, estado_procesal, asunto, fecha_inicio, juzgado, actor, demandado, abogado_encargado, prioridad, estado_id) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, juzgado, actor, demandado, abogado_encargado, prioridad];
+      params = [expediente, estadoProcesalFinal, asunto, fecha_emplazamiento, juzgado, actor, demandado, abogado_encargado, prioridad];
       break;
 
     case 'mercantil':
       sql = `INSERT INTO mercantiles 
       (expediente, estado_procesal, asunto, fecha, juzgado, actor, abogado_encargado, prioridad, estado_id) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, juzgado, actor, abogado_encargado, prioridad];
+      params = [expediente, estadoProcesalFinal, asunto, fecha_emplazamiento, juzgado, actor, abogado_encargado, prioridad];
       break;
 
     case 'penal':
@@ -195,7 +387,7 @@ app.post('/api/nuevocaso', (req, res) => {
      (expediente, estado_procesal, asunto, juzgado, actor, demandado, abogado_encargado, prioridad, estado_id) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`;
 
-      params = [expediente, estado_procesal, asunto, juzgado, actor, demandado, abogado_encargado, prioridad];
+      params = [expediente, estadoProcesalFinal, asunto, juzgado, actor, demandado, abogado_encargado, prioridad];
       break;
 
     case 'agrario':
@@ -203,14 +395,14 @@ app.post('/api/nuevocaso', (req, res) => {
       sql = `INSERT INTO agrarios 
       (expediente, estado_procesal, asunto, fecha_emplazamiento, actor, abogado_encargado, prioridad, estado_id) 
       VALUES (?, ?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, actor, abogado_encargado, prioridad];
+      params = [expediente, estadoProcesalFinal, asunto, fecha_emplazamiento, actor, abogado_encargado, prioridad];
       break;
 
     case 'varios':
       sql = `INSERT INTO exp_varios 
       (expediente, estado_procesal, asunto, fecha_recibido,abogado_encargado, prioridad, estado_id) 
       VALUES (?, ?, ?, ?, ?, ?, 1)`;
-      params = [expediente, estado_procesal, asunto, fecha_emplazamiento, abogado_encargado, prioridad];
+      params = [expediente, estadoProcesalFinal, asunto, fecha_emplazamiento, abogado_encargado, prioridad];
       break;
 
     default:
@@ -232,29 +424,20 @@ app.post('/api/nuevocaso', (req, res) => {
 app.get('/api/casos', (req, res) => {
   const tipoRecibido = req.query.tipo;
   const busqueda     = (req.query.busqueda || "").trim();
+  const rol          = normalizarRol(req.query.rol);
+  const usuarioId    = normalizarUsuarioId(req.query.usuario_id);
 
-  let sql    = "SELECT * FROM v_expedientes";
+  let sql    = `SELECT * FROM (${construirSelectCasos()}) casos`;
   let params = [];
   const condiciones = [];
 
-  const mapaTipos = {
-    "Amparo": "amparos", "amparo": "amparos",
-    "Administrativo": "administrativos", "administrativo": "administrativos",
-    "Laboral": "laborales", "laboral": "laborales",
-    "Civil": "civiles", "civil": "civiles",
-    "Mercantil": "mercantiles", "mercantil": "mercantiles",
-    "Penal": "penales", "penal": "penales",
-    "Agrario": "agrarios", "agrario": "agrarios",
-    "Varios": "exp_varios", "varios": "exp_varios"
-  };
-
   // Filtro por tipo
   if (tipoRecibido && tipoRecibido !== "Todos") {
-    const tipoBD = mapaTipos[tipoRecibido];
+    const tipoBD = normalizarTipoCaso(tipoRecibido);
     if (!tipoBD) {
       return res.status(400).json({ success: false, mensaje: "Tipo no válido" });
     }
-    condiciones.push("tipo = CONVERT(? USING utf8mb4) COLLATE utf8mb4_0900_ai_ci");
+    condiciones.push("tipo = ?");
     params.push(tipoBD);
   }
 
@@ -267,6 +450,8 @@ app.get('/api/casos', (req, res) => {
     params.push(termino, termino, termino, termino);
   }
 
+  aplicarAccesoCaso(condiciones, params, rol, usuarioId);
+
   if (condiciones.length > 0) {
     sql += " WHERE " + condiciones.join(" AND ");
   }
@@ -274,7 +459,23 @@ app.get('/api/casos', (req, res) => {
   const limite = parseInt(req.query.limite) || 5;
   const pagina = parseInt(req.query.pagina) || 1;
   const offset = (pagina - 1) * limite;
-  sql += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+
+  if (req.query.orden === 'prioridad_desc') {
+    sql += `
+      ORDER BY
+        CASE LOWER(COALESCE(prioridad, 'media'))
+          WHEN 'alta' THEN 1
+          WHEN 'media' THEN 2
+          WHEN 'baja' THEN 3
+          ELSE 4
+        END ASC,
+        created_at DESC
+    `;
+  } else {
+    sql += " ORDER BY created_at DESC";
+  }
+
+  sql += " LIMIT ? OFFSET ?";
   params.push(limite, offset);
 
   console.log("SQL:", sql);
@@ -298,7 +499,11 @@ app.get('/api/casos', (req, res) => {
     tipo_db: normalizarTipoCaso(caso.tipo) || caso.tipo,
     prioridad: caso.prioridad || "Media",
     estado: caso.estado_procesal || "—",
-    asignado: caso.nombre_abogado || "Sin asignar"
+    asignado: [caso.nombre_abogado, caso.nombre_abogado_colaborador].filter(Boolean).join(" + ") || "Sin asignar",
+    abogado_encargado: caso.abogado_encargado,
+    abogado_colaborador: caso.abogado_colaborador,
+    nombre_abogado: caso.nombre_abogado,
+    nombre_abogado_colaborador: caso.nombre_abogado_colaborador
 }));
 
     res.json({
@@ -412,14 +617,19 @@ app.get('/api/documentos/:casoId', (req, res) => {
     return res.status(400).json({ success: false, mensaje: 'tipo_caso es obligatorio.' });
   }
 
-  const sql = `SELECT id, nombre_original, tamaño, subido_por,
-                      DATE_FORMAT(created_at,'%d/%m/%Y %H:%i') AS fecha
-               FROM documentos
-               WHERE caso_id = ? AND tipo_caso = ?
-               ORDER BY created_at DESC`;
-  db.query(sql, [req.params.casoId, tipoCaso], (err, rows) => {
-    if (err) return res.status(500).json({ success: false, mensaje: err.message });
-    res.json({ success: true, documentos: rows });
+  verificarAccesoCaso(tipoCaso, req.params.casoId, req.query.rol, req.query.usuario_id, (accessErr, permitido) => {
+    if (accessErr) return res.status(500).json({ success: false, mensaje: accessErr.message });
+    if (!permitido) return res.status(403).json({ success: false, mensaje: 'No tienes acceso a este caso.' });
+
+    const sql = `SELECT id, nombre_original, tamaño, subido_por,
+                        DATE_FORMAT(created_at,'%d/%m/%Y %H:%i') AS fecha
+                 FROM documentos
+                 WHERE caso_id = ? AND tipo_caso = ?
+                 ORDER BY created_at DESC`;
+    db.query(sql, [req.params.casoId, tipoCaso], (err, rows) => {
+      if (err) return res.status(500).json({ success: false, mensaje: err.message });
+      res.json({ success: true, documentos: rows });
+    });
   });
 });
 
@@ -431,47 +641,70 @@ app.post('/api/documentos/:casoId', upload.single('archivo'), (req, res) => {
     return res.status(400).json({ success: false, mensaje: 'tipo_caso es obligatorio.' });
   }
 
-  const sql = `INSERT INTO documentos
-               (caso_id, tipo_caso, nombre_original, nombre_archivo, mimetype, tamaño, subido_por)
-               VALUES (?, ?, ?, ?, ?, ?, ?)`;
-  db.query(sql,
-    [req.params.casoId, tipoCaso, req.file.originalname, req.file.filename,
-     req.file.mimetype, req.file.size, req.body.subido_por || 'Sistema'],
-    (err, r) => {
-      if (err) return res.status(500).json({ success: false, mensaje: err.message });
-      res.json({ success: true, id: r.insertId });
+  verificarAccesoCaso(tipoCaso, req.params.casoId, req.body.rol, req.body.usuario_id, (accessErr, permitido) => {
+    if (accessErr) return res.status(500).json({ success: false, mensaje: accessErr.message });
+    if (!permitido) {
+      if (req.file?.filename) {
+        const ruta = path.join(__dirname, 'uploads', req.file.filename);
+        if (fs.existsSync(ruta)) fs.unlinkSync(ruta);
+      }
+      return res.status(403).json({ success: false, mensaje: 'No tienes acceso a este caso.' });
     }
-  );
+
+    const sql = `INSERT INTO documentos
+                 (caso_id, tipo_caso, nombre_original, nombre_archivo, mimetype, tamaño, subido_por)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    db.query(sql,
+      [req.params.casoId, tipoCaso, req.file.originalname, req.file.filename,
+       req.file.mimetype, req.file.size, req.body.subido_por || 'Sistema'],
+      (err, r) => {
+        if (err) return res.status(500).json({ success: false, mensaje: err.message });
+        res.json({ success: true, id: r.insertId });
+      }
+    );
+  });
 });
 
 // GET  /api/documentos/descargar/:docId  → descarga
 app.get('/api/documentos/descargar/:docId', (req, res) => {
-  db.query('SELECT nombre_original, nombre_archivo FROM documentos WHERE id = ?',
+  db.query('SELECT caso_id, tipo_caso, nombre_original, nombre_archivo FROM documentos WHERE id = ?',
     [req.params.docId], (err, rows) => {
       if (err || !rows.length)
         return res.status(404).json({ success: false, mensaje: 'No encontrado' });
-      const ruta = path.join(__dirname, 'uploads', rows[0].nombre_archivo);
-      if (!fs.existsSync(ruta))
-        return res.status(404).json({ success: false, mensaje: 'Archivo eliminado del servidor' });
-      res.download(ruta, rows[0].nombre_original);
+
+      const doc = rows[0];
+      verificarAccesoCaso(doc.tipo_caso, doc.caso_id, req.query.rol, req.query.usuario_id, (accessErr, permitido) => {
+        if (accessErr) return res.status(500).json({ success: false, mensaje: accessErr.message });
+        if (!permitido) return res.status(403).json({ success: false, mensaje: 'No tienes acceso a este documento.' });
+
+        const ruta = path.join(__dirname, 'uploads', doc.nombre_archivo);
+        if (!fs.existsSync(ruta))
+          return res.status(404).json({ success: false, mensaje: 'Archivo eliminado del servidor' });
+        res.download(ruta, doc.nombre_original);
+      });
     });
 });
-
 // DELETE /api/documentos/:docId  → elimina
 app.delete('/api/documentos/:docId', (req, res) => {
-  db.query('SELECT nombre_archivo FROM documentos WHERE id = ?',
+  db.query('SELECT caso_id, tipo_caso, nombre_archivo FROM documentos WHERE id = ?',
     [req.params.docId], (err, rows) => {
       if (err || !rows.length)
         return res.status(404).json({ success: false, mensaje: 'No encontrado' });
 
-      // Borrar del disco
-      const ruta = path.join(__dirname, 'uploads', rows[0].nombre_archivo);
-      if (fs.existsSync(ruta)) fs.unlinkSync(ruta);
+      const doc = rows[0];
+      verificarAccesoCaso(doc.tipo_caso, doc.caso_id, req.query.rol, req.query.usuario_id, (accessErr, permitido) => {
+        if (accessErr) return res.status(500).json({ success: false, mensaje: accessErr.message });
+        if (!permitido) return res.status(403).json({ success: false, mensaje: 'No tienes acceso a este documento.' });
 
-      // Borrar de la BD
-      db.query('DELETE FROM documentos WHERE id = ?', [req.params.docId], err2 => {
-        if (err2) return res.status(500).json({ success: false, mensaje: err2.message });
-        res.json({ success: true });
+        // Borrar del disco
+        const ruta = path.join(__dirname, 'uploads', doc.nombre_archivo);
+        if (fs.existsSync(ruta)) fs.unlinkSync(ruta);
+
+        // Borrar de la BD
+        db.query('DELETE FROM documentos WHERE id = ?', [req.params.docId], err2 => {
+          if (err2) return res.status(500).json({ success: false, mensaje: err2.message });
+          res.json({ success: true });
+        });
       });
     });
 });
@@ -488,21 +721,26 @@ app.get('/api/casos/:id/notas', (req, res) => {
     return res.status(400).json({ success: false, mensaje: 'tipo_caso es obligatorio.' });
   }
 
-  const placeholders = tiposCompatibles.map(() => '?').join(', ');
-  const sql = `SELECT id, texto, usuario,
-                      DATE_FORMAT(created_at,'%d/%m/%Y %H:%i') AS fecha
-               FROM notas_caso
-               WHERE caso_id = ? AND LOWER(tipo_caso) IN (${placeholders})
-               ORDER BY created_at DESC`;
-  db.query(sql, [req.params.id, ...tiposCompatibles], (err, rows) => {
-    if (err) return res.status(500).json({ success: false, mensaje: err.message });
-    res.json({ success: true, notas: rows });
+  verificarAccesoCaso(req.query.tipo_caso, req.params.id, req.query.rol, req.query.usuario_id, (accessErr, permitido) => {
+    if (accessErr) return res.status(500).json({ success: false, mensaje: accessErr.message });
+    if (!permitido) return res.status(403).json({ success: false, mensaje: 'No tienes acceso a este caso.' });
+
+    const placeholders = tiposCompatibles.map(() => '?').join(', ');
+    const sql = `SELECT id, texto, usuario,
+                        DATE_FORMAT(created_at,'%d/%m/%Y %H:%i') AS fecha
+                 FROM notas_caso
+                 WHERE caso_id = ? AND LOWER(tipo_caso) IN (${placeholders})
+                 ORDER BY created_at DESC`;
+    db.query(sql, [req.params.id, ...tiposCompatibles], (err, rows) => {
+      if (err) return res.status(500).json({ success: false, mensaje: err.message });
+      res.json({ success: true, notas: rows });
+    });
   });
 });
 
 // POST /api/casos/:id/notas → guardar nota
 app.post('/api/casos/:id/notas', (req, res) => {
-  const { texto, usuario, tipo_caso } = req.body;
+  const { texto, usuario, tipo_caso, rol, usuario_id } = req.body;
   const tipoCaso = normalizarTipoCaso(tipo_caso);
   if (!texto || !texto.trim()) {
     return res.status(400).json({ success: false, mensaje: 'El texto es obligatorio.' });
@@ -511,13 +749,61 @@ app.post('/api/casos/:id/notas', (req, res) => {
     return res.status(400).json({ success: false, mensaje: 'tipo_caso es obligatorio.' });
   }
 
-  const sql = `INSERT INTO notas_caso (caso_id, tipo_caso, texto, usuario) VALUES (?, ?, ?, ?)`;
-  db.query(sql, [req.params.id, tipoCaso, texto.trim(), usuario || 'Sistema'], (err, result) => {
-    if (err) return res.status(500).json({ success: false, mensaje: err.message });
-    res.json({ success: true, id: result.insertId });
+  verificarAccesoCaso(tipoCaso, req.params.id, rol, usuario_id, (accessErr, permitido) => {
+    if (accessErr) return res.status(500).json({ success: false, mensaje: accessErr.message });
+    if (!permitido) return res.status(403).json({ success: false, mensaje: 'No tienes acceso a este caso.' });
+
+    const sql = `INSERT INTO notas_caso (caso_id, tipo_caso, texto, usuario) VALUES (?, ?, ?, ?)`;
+    db.query(sql, [req.params.id, tipoCaso, texto.trim(), usuario || 'Sistema'], (err, result) => {
+      if (err) return res.status(500).json({ success: false, mensaje: err.message });
+      res.json({ success: true, id: result.insertId });
+    });
   });
 });
+// PUT /api/casos/:id/notas/:notaId → edita nota propia
+app.put('/api/casos/:id/notas/:notaId', (req, res) => {
+  const { texto, usuario, tipo_caso, rol, usuario_id } = req.body;
+  const tiposCompatibles = obtenerVariantesTipoCaso(tipo_caso);
+  const usuarioActual = String(usuario || '').trim();
 
+  if (!texto || !texto.trim()) {
+    return res.status(400).json({ success: false, mensaje: 'El texto es obligatorio.' });
+  }
+  if (!tiposCompatibles.length) {
+    return res.status(400).json({ success: false, mensaje: 'tipo_caso es obligatorio.' });
+  }
+  if (!usuarioActual) {
+    return res.status(400).json({ success: false, mensaje: 'No se pudo identificar el propietario de la nota.' });
+  }
+
+  verificarAccesoCaso(tipo_caso, req.params.id, rol, usuario_id, (accessErr, permitido) => {
+    if (accessErr) return res.status(500).json({ success: false, mensaje: accessErr.message });
+    if (!permitido) return res.status(403).json({ success: false, mensaje: 'No tienes acceso a este caso.' });
+
+    const placeholders = tiposCompatibles.map(() => '?').join(', ');
+    const sql = `UPDATE notas_caso
+                 SET texto = ?
+                 WHERE id = ?
+                   AND caso_id = ?
+                   AND LOWER(tipo_caso) IN (${placeholders})
+                   AND LOWER(usuario) = LOWER(?)`;
+
+    db.query(
+      sql,
+      [texto.trim(), req.params.notaId, req.params.id, ...tiposCompatibles, usuarioActual],
+      (err, result) => {
+        if (err) return res.status(500).json({ success: false, mensaje: err.message });
+        if (!result.affectedRows) {
+          return res.status(403).json({
+            success: false,
+            mensaje: 'Solo el propietario de la nota puede editarla.'
+          });
+        }
+        res.json({ success: true, mensaje: 'Nota actualizada correctamente.' });
+      }
+    );
+  });
+});
 // DELETE /api/casos/:id/notas/:notaId → elimina nota
 app.delete('/api/casos/:id/notas/:notaId', (req, res) => {
   const tiposCompatibles = obtenerVariantesTipoCaso(req.query.tipo_caso);
@@ -525,35 +811,62 @@ app.delete('/api/casos/:id/notas/:notaId', (req, res) => {
     return res.status(400).json({ success: false, mensaje: 'tipo_caso es obligatorio.' });
   }
 
-  const placeholders = tiposCompatibles.map(() => '?').join(', ');
-  const sql = `DELETE FROM notas_caso
-               WHERE id = ? AND caso_id = ? AND LOWER(tipo_caso) IN (${placeholders})`;
+  if (!esGestorNotas(req.query.rol)) {
+    return res.status(403).json({
+      success: false,
+      mensaje: 'Solo ADMIN o SECRETARIA pueden eliminar notas.'
+    });
+  }
 
-  db.query(sql, [req.params.notaId, req.params.id, ...tiposCompatibles], (err, result) => {
-    if (err) return res.status(500).json({ success: false, mensaje: err.message });
-    if (!result.affectedRows) {
-      return res.status(404).json({ success: false, mensaje: 'Nota no encontrada.' });
-    }
-    res.json({ success: true });
+  verificarAccesoCaso(req.query.tipo_caso, req.params.id, req.query.rol, req.query.usuario_id, (accessErr, permitido) => {
+    if (accessErr) return res.status(500).json({ success: false, mensaje: accessErr.message });
+    if (!permitido) return res.status(403).json({ success: false, mensaje: 'No tienes acceso a este caso.' });
+
+    const placeholders = tiposCompatibles.map(() => '?').join(', ');
+    const sql = `DELETE FROM notas_caso
+                 WHERE id = ? AND caso_id = ? AND LOWER(tipo_caso) IN (${placeholders})`;
+
+    db.query(sql, [req.params.notaId, req.params.id, ...tiposCompatibles], (err, result) => {
+      if (err) return res.status(500).json({ success: false, mensaje: err.message });
+      if (!result.affectedRows) {
+        return res.status(404).json({ success: false, mensaje: 'Nota no encontrada.' });
+      }
+      res.json({ success: true });
+    });
   });
 });
 
 app.put('/api/casos/:tipo/:id/asignar', (req, res) => {
   const { tipo, id } = req.params;
-  const { abogado_encargado } = req.body;
+  const { abogado_encargado, rol } = req.body;
+
+  if (!esAdmin(rol)) {
+    return res.status(403).json({
+      success: false,
+      mensaje: 'No tienes permisos para asignar.'
+    });
+  }
 
   const mapaTablas = {
     amparo: 'amparos',
+    amparos: 'amparos',
     administrativo: 'administrativos',
+    administrativos: 'administrativos',
     laboral: 'laborales',
+    laborales: 'laborales',
     civil: 'civiles',
+    civiles: 'civiles',
     mercantil: 'mercantiles',
+    mercantiles: 'mercantiles',
     penal: 'penales',
+    penales: 'penales',
     agrario: 'agrarios',
-    varios: 'exp_varios'
+    agrarios: 'agrarios',
+    varios: 'exp_varios',
+    exp_varios: 'exp_varios'
   };
 
-  const tabla = mapaTablas[tipo];
+  const tabla = mapaTablas[String(tipo).toLowerCase()];
 
   if (!tabla) {
     return res.status(400).json({
@@ -564,11 +877,11 @@ app.put('/api/casos/:tipo/:id/asignar', (req, res) => {
 
   const sql = `
     UPDATE ${tabla}
-    SET abogado_encargado = ?
+    SET abogado_encargado = ?, estado_procesal = ?
     WHERE id = ?
   `;
 
-  db.query(sql, [abogado_encargado, id], (err, result) => {
+  db.query(sql, [abogado_encargado, estadoAutomaticoPorAsignacion('', abogado_encargado), id], (err, result) => {
     if (err) {
       return res.status(500).json({
         success: false,
@@ -587,7 +900,7 @@ app.put('/api/casos/:tipo/:id/editar', (req, res) => {
   const { tipo, id } = req.params;
   const { prioridad, estado_procesal, abogado_encargado, rol } = req.body;
 
-  if (rol !== "ADMIN") {
+  if (!esAdmin(rol)) {
     return res.status(403).json({
       success: false,
       mensaje: "No tienes permisos para editar."
@@ -629,13 +942,8 @@ app.put('/api/casos/:tipo/:id/editar', (req, res) => {
     });
   }
 
-  const sql = `
-    UPDATE ${tabla}
-    SET prioridad = ?, estado_procesal = ?, abogado_encargado = ?
-    WHERE id = ?
-  `;
   db.query(
-  `SELECT estado_procesal FROM ${tabla} WHERE id = ?`,
+  `SELECT estado_procesal, abogado_colaborador FROM ${tabla} WHERE id = ?`,
   [id],
   (err, rows) => {
 
@@ -661,6 +969,18 @@ app.put('/api/casos/:tipo/:id/editar', (req, res) => {
       });
     }
 
+    if (
+      tieneAbogadoAsignado(abogado_encargado) &&
+      tieneAbogadoAsignado(rows[0].abogado_colaborador) &&
+      String(abogado_encargado) === String(rows[0].abogado_colaborador)
+    ) {
+      return res.status(400).json({
+        success: false,
+        mensaje: "El abogado principal no puede ser el mismo abogado extra."
+      });
+    }
+
+    const estadoProcesalFinal = estadoAutomaticoPorAsignacion(estado_procesal, abogado_encargado);
     const sql = `
       UPDATE ${tabla}
       SET prioridad = ?, estado_procesal = ?, abogado_encargado = ?
@@ -669,7 +989,7 @@ app.put('/api/casos/:tipo/:id/editar', (req, res) => {
 
     db.query(
       sql,
-      [prioridad, estado_procesal, abogado_encargado || null, id],
+      [prioridad, estadoProcesalFinal, abogado_encargado || null, id],
       (err) => {
 
         if (err) {
@@ -689,12 +1009,101 @@ app.put('/api/casos/:tipo/:id/editar', (req, res) => {
   }
 );
 });
+
+app.put('/api/casos/:tipo/:id/reasignar', (req, res) => {
+  const { tipo, id } = req.params;
+  const { abogado_colaborador, rol } = req.body;
+
+  if (!esAdmin(rol)) {
+    return res.status(403).json({
+      success: false,
+      mensaje: "No tienes permisos para reasignar."
+    });
+  }
+
+  const tabla = obtenerTablaCaso(tipo);
+  if (!tabla) {
+    return res.status(400).json({
+      success: false,
+      mensaje: "Tipo inválido"
+    });
+  }
+
+  if (!tieneAbogadoAsignado(abogado_colaborador)) {
+    return res.status(400).json({
+      success: false,
+      mensaje: "Selecciona un abogado para reasignar."
+    });
+  }
+
+  db.query(
+    `SELECT estado_procesal, abogado_encargado, abogado_colaborador FROM ${tabla} WHERE id = ?`,
+    [id],
+    (err, rows) => {
+      if (err) {
+        console.error("Error verificando caso:", err);
+        return res.status(500).json({ success: false, mensaje: err.message });
+      }
+
+      if (!rows.length) {
+        return res.status(404).json({ success: false, mensaje: "Caso no encontrado." });
+      }
+
+      const caso = rows[0];
+      if (String(caso.estado_procesal || '').toLowerCase() === "archivado") {
+        return res.status(403).json({
+          success: false,
+          mensaje: "Este caso está archivado y no se puede reasignar."
+        });
+      }
+
+      if (!tieneAbogadoAsignado(caso.abogado_encargado)) {
+        return res.status(400).json({
+          success: false,
+          mensaje: "Primero asigna un abogado encargado."
+        });
+      }
+
+      if (tieneAbogadoAsignado(caso.abogado_colaborador)) {
+        return res.status(400).json({
+          success: false,
+          mensaje: "Este caso ya tiene un abogado extra asignado."
+        });
+      }
+
+      if (String(caso.abogado_encargado) === String(abogado_colaborador)) {
+        return res.status(400).json({
+          success: false,
+          mensaje: "El abogado extra debe ser distinto al encargado."
+        });
+      }
+
+      db.query(
+        `UPDATE ${tabla}
+         SET abogado_colaborador = ?, estado_procesal = 'asignado'
+         WHERE id = ?`,
+        [abogado_colaborador, id],
+        updateErr => {
+          if (updateErr) {
+            console.error("Error reasignando:", updateErr);
+            return res.status(500).json({ success: false, mensaje: updateErr.message });
+          }
+
+          res.json({
+            success: true,
+            mensaje: "Abogado extra asignado correctamente"
+          });
+        }
+      );
+    }
+  );
+});
   
 app.put('/api/casos/:tipo/:id/archivar', (req, res) => {
   const { tipo, id } = req.params;
   const { rol } = req.body;
 
-  if (rol !== "ADMIN") {
+  if (!esAdmin(rol)) {
     return res.status(403).json({
       success: false,
       mensaje: "No tienes permisos para archivar."
@@ -762,7 +1171,7 @@ app.put('/api/casos/:tipo/:id/desarchivar', (req, res) => {
   const { tipo, id } = req.params;
   const { rol } = req.body;
 
-  if (rol !== "ADMIN") {
+  if (!esAdmin(rol)) {
     return res.status(403).json({
       success: false,
       mensaje: "No tienes permisos para desarchivar."
@@ -824,9 +1233,4 @@ app.put('/api/casos/:tipo/:id/desarchivar', (req, res) => {
       mensaje: "Caso desarchivado correctamente"
     });
   });
-});
-
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor Backend corriendo y escuchando en http://localhost:${PORT}`);
 });

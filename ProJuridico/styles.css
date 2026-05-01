@@ -131,6 +131,12 @@ body {
 
 .btn.primary:hover { background: var(--primary-dark); }
 
+.btn.active {
+  border-color: var(--primary);
+  background: #eff6ff;
+  color: var(--primary);
+}
+
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -185,6 +191,42 @@ body {
   background: var(--chip);
   font-size: 12px;
   color: var(--primary);
+}
+
+.priorityBadge {
+  display: inline-flex;
+  align-items: center;
+  min-width: 64px;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.priority-alta {
+  color: #991b1b;
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.priority-media {
+  color: #92400e;
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+
+.priority-baja {
+  color: #166534;
+  background: #dcfce7;
+  border-color: #bbf7d0;
+}
+
+.priority-default {
+  color: var(--primary);
+  background: var(--chip);
+  border-color: #dbeafe;
 }
 
 /* ── Campos base ── */
@@ -479,13 +521,27 @@ details:not([open]) > summary::before { content: '▸ '; }
   align-items: center;
 }
 
+.noteActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.noteEditBtn,
+.noteSaveBtn,
+.noteCancelBtn,
 .noteDeleteBtn {
   padding: 7px 12px;
   font-size: 12px;
   min-height: auto;
+  flex-shrink: 0;
+}
+
+.noteDeleteBtn {
   color: #dc2626;
   border-color: #fecaca;
-  flex-shrink: 0;
 }
 
 .noteDeleteBtn:hover {
@@ -628,6 +684,9 @@ details:not([open]) > summary::before { content: '▸ '; }
   .noteMetaRow {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .noteActions {
+    justify-content: flex-start;
   }
 
   #formNuevoCaso .fieldgrid { grid-template-columns: 1fr; }
