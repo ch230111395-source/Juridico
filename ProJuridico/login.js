@@ -3,6 +3,8 @@ const usuarioInput = document.getElementById("usuario");
 const contrasenaInput = document.getElementById("contrasena");
 const DASHBOARD_TOAST_KEY = "projuridico.dashboardToast";
 const LOGIN_TOAST_KEY = "projuridico.loginToast";
+const ACTIVIDAD_KEY = "projuridico.actividad";
+const MAX_ACTIVIDAD = 20;
 let toastContainer = null;
 
 loginForm.addEventListener("submit", login);
@@ -81,6 +83,21 @@ function mostrarToastPendiente() {
   }
 }
 
+// ========== ACTIVIDAD RECIENTE (compartida con app.js via localStorage) ==========
+function registrarActividad(mensaje, tag) {
+  try {
+    const actividades = JSON.parse(localStorage.getItem(ACTIVIDAD_KEY) || "[]");
+    const ahora = new Date();
+    const hora = ahora.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    const fecha = ahora.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
+    actividades.unshift({ mensaje, tag: tag || "", hora, fecha, timestamp: ahora.getTime() });
+    if (actividades.length > MAX_ACTIVIDAD) actividades.pop();
+    localStorage.setItem(ACTIVIDAD_KEY, JSON.stringify(actividades));
+  } catch {
+    // Si falla el localStorage no interrumpir el flujo de login
+  }
+}
+
 async function login(event) {
   event.preventDefault();
 
@@ -105,7 +122,7 @@ async function login(event) {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       showToast(data.mensaje || "No fue posible iniciar sesión.", "error");
       return;
@@ -113,6 +130,11 @@ async function login(event) {
 
     if (data.success) {
       localStorage.setItem("usuario", JSON.stringify(data.usuario));
+
+      // ← ACTIVIDAD: registrar inicio de sesión
+      const nombreUsuario = data.usuario?.nombre || data.usuario?.username || usuario;
+      registrarActividad(`Inicio de sesión: ${nombreUsuario}.`, "");
+
       sessionStorage.setItem(DASHBOARD_TOAST_KEY, JSON.stringify({
         message: data.mensaje || "Acceso concedido.",
         type: "success"

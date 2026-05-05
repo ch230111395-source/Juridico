@@ -440,25 +440,25 @@ function normalizarCaso(raw) {
   };
 
   return {
-  id: raw.id_display || (() => {
-    const num = raw.id || raw._id || raw.caso_id || "";
-    const tipo = (raw.tipo || raw.tipo_caso || "").toUpperCase().replace(/ES$/, "").replace(/S$/, "").trim();
-    return tipo ? `${tipo}-${num}` : String(num);
-  })(),
-  fecha: raw.fecha || raw.created_at || "Sin fecha",
-  nombre: raw.nombre || raw.asunto || raw.nombre_caso || "",
-  tipo: mapTipo(raw.tipo || raw.tipo_caso || ""),
-  tipoDb: normalizarTipoCasoDb(raw.tipo_db || raw.tipo || raw.tipo_caso),
-  prioridad: mapPrioridad(raw.prioridad),
-  estado: mapEstado(raw.estado || raw.estado_procesal),
-  asignado: mapAsignado(raw.nombre_abogado || raw.asignado || raw.abogado_asignado || raw.abogado_encargado ||""),
-  asignadoExtra: (raw.nombre_abogado_colaborador || raw.asignado_extra)
-    ? mapAsignado(raw.nombre_abogado_colaborador || raw.asignado_extra)
-    : "",
-  abogadoEncargadoId: raw.abogado_encargado ? String(raw.abogado_encargado) : "",
-  abogadoColaboradorId: raw.abogado_colaborador ? String(raw.abogado_colaborador) : "",
-  _numId: String(raw.id || raw._id || raw.caso_id || ""),
-  _raw: raw
+    id: raw.id_display || (() => {
+      const num = raw.id || raw._id || raw.caso_id || "";
+      const tipo = (raw.tipo || raw.tipo_caso || "").toUpperCase().replace(/ES$/, "").replace(/S$/, "").trim();
+      return tipo ? `${tipo}-${num}` : String(num);
+    })(),
+    fecha: raw.fecha || raw.created_at || "Sin fecha",
+    nombre: raw.nombre || raw.asunto || raw.nombre_caso || "",
+    tipo: mapTipo(raw.tipo || raw.tipo_caso || ""),
+    tipoDb: normalizarTipoCasoDb(raw.tipo_db || raw.tipo || raw.tipo_caso),
+    prioridad: mapPrioridad(raw.prioridad),
+    estado: mapEstado(raw.estado || raw.estado_procesal),
+    asignado: mapAsignado(raw.nombre_abogado || raw.asignado || raw.abogado_asignado || raw.abogado_encargado || ""),
+    asignadoExtra: (raw.nombre_abogado_colaborador || raw.asignado_extra)
+      ? mapAsignado(raw.nombre_abogado_colaborador || raw.asignado_extra)
+      : "",
+    abogadoEncargadoId: raw.abogado_encargado ? String(raw.abogado_encargado) : "",
+    abogadoColaboradorId: raw.abogado_colaborador ? String(raw.abogado_colaborador) : "",
+    _numId: String(raw.id || raw._id || raw.caso_id || ""),
+    _raw: raw
   };
 }
 
@@ -695,6 +695,7 @@ if (formNuevoCaso) {
       });
       const result = await res.json();
       if (result.success) {
+        registrarActividad("Nuevo caso creado.", "CASO-" + result.id); // ← ACTIVIDAD
         showToast("Caso guardado con ID: " + result.id, "success");
         cerrarModalNuevoCaso();
         cargarCasos();
@@ -766,6 +767,7 @@ if (formNuevoUsuario) {
 
       if (res.ok && result.success) {
         const idFormato = result.id ? `USR-${String(result.id).padStart(4, "0")}` : "";
+        registrarActividad("Nuevo usuario creado.", idFormato); // ← ACTIVIDAD
         showToast(idFormato ? `Usuario creado con ID ${idFormato}.` : "Usuario creado correctamente.", "success");
         cerrarModalNuevoUsuario();
         cargarUsuarios();
@@ -820,6 +822,7 @@ if (formInline) {
       });
       const result = await res.json();
       if (result.success) {
+        registrarActividad("Nuevo caso creado.", "CASO-" + result.id); // ← ACTIVIDAD
         showToast("Caso guardado con ID: " + result.id, "success");
         formInline.reset();
         mostrarCampos();
@@ -846,7 +849,7 @@ buttons.forEach(button => {
 let paginaActual = 1;
 const LIMITE = 5;
 
-async function renderTable(pagina = 1) { 
+async function renderTable(pagina = 1) {
   if (!tbody) return;
   const tipo = tipoSelect ? tipoSelect.value : "Todos";
   const params = new URLSearchParams({
@@ -864,19 +867,18 @@ async function renderTable(pagina = 1) {
     if (!data.success) return;
     casos = (data.casos || []).map(normalizarCaso);
     tbody.innerHTML = casos.map(caso => `
-  <tr data-id="${caso._numId}" data-tipo="${caso.tipo}">
-      <td><span class="tag">${escapeHtml(caso.fecha)}</span></td>
-      <td>${escapeHtml(caso.nombre)}</td>
-      <td class="muted">${escapeHtml(caso.tipo)}</td>
-      <td>${renderPrioridadBadge(caso.prioridad)}</td>
-      <td>${escapeHtml(caso.estado)}</td>
-      <td class="muted">${escapeHtml([caso.asignado, caso.asignadoExtra].filter(Boolean).join(" + ") || "Sin asignar")}</td>
-    </tr>
-  `).join("");
+      <tr data-id="${caso._numId}" data-tipo="${caso.tipo}">
+        <td><span class="tag">${escapeHtml(caso.fecha)}</span></td>
+        <td>${escapeHtml(caso.nombre)}</td>
+        <td class="muted">${escapeHtml(caso.tipo)}</td>
+        <td>${renderPrioridadBadge(caso.prioridad)}</td>
+        <td>${escapeHtml(caso.estado)}</td>
+        <td class="muted">${escapeHtml([caso.asignado, caso.asignadoExtra].filter(Boolean).join(" + ") || "Sin asignar")}</td>
+      </tr>
+    `).join("");
     tbody.querySelectorAll("tr").forEach((row, index) => {
       const casoCompleto = casos[index];
       if (!casoCompleto) return;
-
       row.addEventListener("dblclick", () => {
         openDrawer(casoCompleto);
       });
@@ -965,23 +967,23 @@ function openDrawer(item) {
   const btnReasignar = document.getElementById("drawerBtnReasignar");
 
   if (btnEditar && btnGuardar && btnArchivar && btnReasignar) {
-  if (sessionRol === "ADMIN") {
-    btnEditar.style.display = "inline-block";
-    btnGuardar.style.display = "none";
-    btnArchivar.style.display = "inline-block";
-    btnArchivar.textContent = item.estado === "Archivado" ? "Desarchivar" : "Archivar";
-    btnReasignar.style.display = item.estado === "Archivado" ? "none" : "inline-block";
-    btnReasignar.disabled = Boolean(item.abogadoColaboradorId);
-    btnReasignar.textContent = item.abogadoColaboradorId ? "Reasignado" : "Reasignar";
-    btnReasignar.classList.remove("primary");
-    btnReasignar.onclick = activarReasignacionCaso;
-  } else {
-    btnEditar.style.display = "none";
-    btnGuardar.style.display = "none";
-    btnArchivar.style.display = "none";
-    btnReasignar.style.display = "none";
+    if (sessionRol === "ADMIN") {
+      btnEditar.style.display = "inline-block";
+      btnGuardar.style.display = "none";
+      btnArchivar.style.display = "inline-block";
+      btnArchivar.textContent = item.estado === "Archivado" ? "Desarchivar" : "Archivar";
+      btnReasignar.style.display = item.estado === "Archivado" ? "none" : "inline-block";
+      btnReasignar.disabled = Boolean(item.abogadoColaboradorId);
+      btnReasignar.textContent = item.abogadoColaboradorId ? "Reasignado" : "Reasignar";
+      btnReasignar.classList.remove("primary");
+      btnReasignar.onclick = activarReasignacionCaso;
+    } else {
+      btnEditar.style.display = "none";
+      btnGuardar.style.display = "none";
+      btnArchivar.style.display = "none";
+      btnReasignar.style.display = "none";
+    }
   }
-}
 
   guardarCasoActivo({
     id: item.id,
@@ -1018,10 +1020,10 @@ async function activarEdicionCaso() {
   const tipoActual = document.getElementById("d_tipo").textContent.trim();
   const prioridadActual = document.getElementById("d_prioridad").textContent.trim();
   const estadoActual = document.getElementById("d_estado").textContent.trim();
-  
+
   if (estadoActual === "Archivado") {
-  showToast("Este caso está archivado y no se puede editar.", "info");
-  return;
+    showToast("Este caso está archivado y no se puede editar.", "info");
+    return;
   }
   const asignadoActual = document.getElementById("d_asignado").textContent.trim();
 
@@ -1071,11 +1073,11 @@ async function activarEdicionCaso() {
       <option value="">Sin asignar</option>
       ${abogados.map(a => `
         <option value="${a.id}" ${a.nombre === asignadoActual ? "selected" : ""}>
-         ${a.nombre}
+          ${a.nombre}
         </option>
-     `).join("")}
-   </select>
-`;
+      `).join("")}
+    </select>
+  `;
 
   btnEditarCaso.style.display = "none";
   btnGuardarCambios.style.display = "inline-block";
@@ -1102,9 +1104,7 @@ async function guardarCambiosCaso() {
       `http://localhost:3000/api/casos/${casoActivoTipo}/${casoActivoId}/editar`,
       {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prioridad,
           estado_procesal,
@@ -1117,6 +1117,7 @@ async function guardarCambiosCaso() {
     const data = await res.json();
 
     if (data.success) {
+      registrarActividad("Caso editado.", document.getElementById("drawerTitle")?.textContent || ""); // ← ACTIVIDAD
       showToast("Caso actualizado correctamente.", "success");
       await cargarCasos();
       closeDrawer();
@@ -1210,6 +1211,7 @@ async function guardarReasignacionCaso() {
 
     const data = await res.json();
     if (data.success) {
+      registrarActividad("Caso reasignado.", document.getElementById("drawerTitle")?.textContent || ""); // ← ACTIVIDAD
       showToast("Caso reasignado correctamente.", "success");
       await cargarCasos();
       closeDrawer();
@@ -1265,13 +1267,14 @@ async function archivarCaso() {
     const data = await res.json();
 
     if (data.success) {
+      registrarActividad( // ← ACTIVIDAD
+        estaArchivado ? "Caso desarchivado." : "Caso archivado.",
+        document.getElementById("drawerTitle")?.textContent || ""
+      );
       showToast(
-        estaArchivado
-          ? "Caso desarchivado correctamente."
-          : "Caso archivado correctamente.",
+        estaArchivado ? "Caso desarchivado correctamente." : "Caso archivado correctamente.",
         "success"
       );
-
       await cargarCasos();
       closeDrawer();
     } else {
@@ -1388,6 +1391,9 @@ if (btnLogout) {
       message: "Sesión cerrada correctamente.",
       type: "info"
     });
+    // ← ACTIVIDAD: registrar cierre de sesión antes de limpiar localStorage
+    const nombreSesion = usuarioSesion?.nombre || usuarioSesion?.username || "Usuario";
+    registrarActividad(`Cierre de sesión: ${nombreSesion}.`, "");
     localStorage.removeItem("usuario");
     window.location.href = "index.html";
   });
@@ -1597,21 +1603,22 @@ if (btnGuardarNota) {
     const texto = inputNuevaNota.value.trim();
     if (!texto) return;
     try {
-    const res = await fetch(`http://localhost:3000/api/casos/${casoActivoId}/notas`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ 
-    texto, 
-    usuario: sessionUsername || sessionNombre || "Sistema",
-    tipo_caso: casoActivoTipo,
-    rol: sessionRol,
-    usuario_id: sessionUsuarioId
-  })
-});
+      const res = await fetch(`http://localhost:3000/api/casos/${casoActivoId}/notas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          texto,
+          usuario: sessionUsername || sessionNombre || "Sistema",
+          tipo_caso: casoActivoTipo,
+          rol: sessionRol,
+          usuario_id: sessionUsuarioId
+        })
+      });
 
       if (res.ok) {
         inputNuevaNota.value = "";
         cargarNotas(casoActivoId);
+        registrarActividad("Se agregó una nota.", document.getElementById("drawerTitle")?.textContent || ""); // ← ACTIVIDAD
         showToast("Nota guardada correctamente.", "success");
       } else {
         showToast("Error al guardar la nota", "error");
@@ -1628,8 +1635,50 @@ if (btnLimpiarNota) {
   });
 }
 
+// ========== ACTIVIDAD RECIENTE ==========
+const ACTIVIDAD_KEY = "projuridico.actividad";
+const MAX_ACTIVIDAD = 20;
+
+function registrarActividad(mensaje, tag) {
+  const actividades = obtenerActividades();
+  const ahora = new Date();
+  const hora = ahora.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  const fecha = ahora.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
+  actividades.unshift({ mensaje, tag: tag || "", hora, fecha, timestamp: ahora.getTime() });
+  if (actividades.length > MAX_ACTIVIDAD) actividades.pop();
+  localStorage.setItem(ACTIVIDAD_KEY, JSON.stringify(actividades));
+  renderActividad();
+}
+
+function obtenerActividades() {
+  try { return JSON.parse(localStorage.getItem(ACTIVIDAD_KEY) || "[]"); }
+  catch { return []; }
+}
+
+function renderActividad() {
+  const contenedor = document.querySelector("#v_dashboard .card:nth-child(2) .bd .row");
+  if (!contenedor) return;
+  const actividades = obtenerActividades();
+  if (!actividades.length) {
+    contenedor.innerHTML = `<div class="small muted">Sin actividad registrada.</div>`;
+    return;
+  }
+  const hoy = new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
+  contenedor.innerHTML = actividades.map(a => {
+    const etiqueta = a.tag ? `<span class="tag">${escapeHtml(a.tag)}</span>` : "";
+    const cuandoFecha = a.fecha === hoy ? "Hoy" : a.fecha;
+    return `
+      <div class="field">
+        <div class="small">${escapeHtml(cuandoFecha)} ${escapeHtml(a.hora)}${a.tag ? " · " : ""}${etiqueta}</div>
+        <div style="margin-top: 6px;">${escapeHtml(a.mensaje)}</div>
+      </div>`;
+  }).join("");
+}
+
+// ========== INICIO ==========
 cargarCasos();
 cargarUsuarios();
+renderActividad(); // ← carga el historial guardado al abrir la app
 
 // ========== DOCUMENTOS DEL CASO ==========
 let listaDocumentos = document.getElementById("listaDocumentos");
@@ -1719,6 +1768,7 @@ async function eliminarDocumento(docId) {
     const res = await fetch(`http://localhost:3000/api/documentos/${docId}?${params}`, { method: "DELETE" });
     const data = await res.json();
     if (data.success) {
+      registrarActividad("Documento eliminado.", document.getElementById("drawerTitle")?.textContent || ""); // ← ACTIVIDAD
       cargarDocumentos(casoActivoId);
       showToast("Documento eliminado correctamente.", "success");
     } else {
@@ -1790,9 +1840,16 @@ async function subirArchivos(archivos) {
   inputArchivo = document.getElementById("inputArchivo");
   if (inputArchivo) inputArchivo.value = "";
   cargarDocumentos(casoActivoId);
-  if (archivos.length > 0 && errores === 0) {
-    showToast("Archivos subidos correctamente.", "success");
-  } else if (subidos > errores) {
+
+
+  if (subidos > 0) {
+  registrarActividad(
+    errores === 0
+      ? `${subidos} archivo agregado.`
+      : `${subidos - errores} archivo(s) adjuntado(s) (algunos fallaron).`,
+    document.getElementById("drawerTitle")?.textContent || ""
+  );
+} else if (subidos > errores) {
     showToast("Algunos archivos se subieron, pero hubo errores.", "info");
   }
 }
@@ -1919,7 +1976,6 @@ function openUserDrawer(usuario) {
 
   mostrarUsuarioEnDrawer(usuario);
 
-  // Botones según rol
   if (userDrawerBtnEditar) {
     userDrawerBtnEditar.style.display = sessionRol === "ADMIN" ? "inline-block" : "none";
   }
@@ -1943,7 +1999,6 @@ function activarEdicionUsuario() {
   const u = usuarioActivoData;
   if (!u) return;
 
-  // Reemplazar campos estáticos por inputs editables
   document.getElementById("ud_nombre").innerHTML =
     `<input type="text" id="edit_u_nombre" value="${escapeHtml(u.nombre || "")}" placeholder="Nombre completo" style="width:100%;">`;
 
@@ -2024,8 +2079,8 @@ async function guardarCambiosUsuario() {
     const data = await res.json();
 
     if (res.ok && data.success) {
+      registrarActividad("Usuario editado.", `USR-${String(usuarioActivoId).padStart(4, "0")}`); // ← ACTIVIDAD
       showToast("Usuario actualizado correctamente.", "success");
-      // Actualizar datos locales y volver a vista lectura
       usuarioActivoData = { ...usuarioActivoData, ...payload };
       mostrarUsuarioEnDrawer(usuarioActivoData);
       if (userDrawerBtnEditar) userDrawerBtnEditar.style.display = "inline-block";
@@ -2062,7 +2117,6 @@ if (userDrawerBtnCancelarEdicion) {
   userDrawerBtnCancelarEdicion.addEventListener("click", cancelarEdicionUsuario);
 }
 
-// El panel del drawer de usuario no propaga clicks al mask
 if (userDrawerMask) {
   const userDrawerPanel = userDrawerMask.querySelector(".drawer");
   if (userDrawerPanel) {
