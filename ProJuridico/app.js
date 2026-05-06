@@ -34,8 +34,8 @@ function authQueryParams() {
 
 // ── Búsqueda global ──
 const inputBusqueda = document.getElementById("inputBusqueda");
-let busquedaActual  = "";
-let debounceTimer   = null;
+let busquedaActual = "";
+let debounceTimer = null;
 
 if (inputBusqueda) {
   inputBusqueda.addEventListener("input", () => {
@@ -44,7 +44,7 @@ if (inputBusqueda) {
       const termino = inputBusqueda.value.trim();
       if (termino === busquedaActual) return;
       busquedaActual = termino;
-      paginaActual   = 1;
+      paginaActual = 1;
       renderTable(1);
     }, 400);
   });
@@ -53,7 +53,7 @@ if (inputBusqueda) {
     if (e.key === "Escape") {
       inputBusqueda.value = "";
       busquedaActual = "";
-      paginaActual   = 1;
+      paginaActual = 1;
       renderTable(1);
     }
   });
@@ -853,9 +853,9 @@ async function renderTable(pagina = 1) {
   if (!tbody) return;
   const tipo = tipoSelect ? tipoSelect.value : "Todos";
   const params = new URLSearchParams({
-    limite:   LIMITE,
-    pagina:   pagina,
-    tipo:     tipo,
+    limite: LIMITE,
+    pagina: pagina,
+    tipo: tipo,
     busqueda: busquedaActual,
     ...authQueryParams()
   });
@@ -1160,10 +1160,10 @@ async function activarReasignacionCaso() {
     const data = await res.json();
     const abogados = data.success
       ? data.usuarios.filter(u =>
-          u.rol?.toUpperCase() === "ABOGADO" &&
-          Number(u.activo) === 1 &&
-          String(u.id) !== String(casoActivoAbogadoEncargadoId)
-        )
+        u.rol?.toUpperCase() === "ABOGADO" &&
+        Number(u.activo) === 1 &&
+        String(u.id) !== String(casoActivoAbogadoEncargadoId)
+      )
       : [];
 
     if (!abogados.length) {
@@ -1843,13 +1843,13 @@ async function subirArchivos(archivos) {
 
 
   if (subidos > 0) {
-  registrarActividad(
-    errores === 0
-      ? `${subidos} archivo agregado.`
-      : `${subidos - errores} archivo(s) adjuntado(s) (algunos fallaron).`,
-    document.getElementById("drawerTitle")?.textContent || ""
-  );
-} else if (subidos > errores) {
+    registrarActividad(
+      errores === 0
+        ? `${subidos} archivo agregado.`
+        : `${subidos - errores} archivo(s) adjuntado(s) (algunos fallaron).`,
+      document.getElementById("drawerTitle")?.textContent || ""
+    );
+  } else if (subidos > errores) {
     showToast("Algunos archivos se subieron, pero hubo errores.", "info");
   }
 }
@@ -2127,3 +2127,252 @@ if (userDrawerMask) {
 
 restaurarEstadoUI();
 mostrarToastPendiente(STORAGE_KEYS.dashboardToast);
+
+// ========== RECORDATORIOS ==========
+
+// Carga abogados en el select del form
+async function cargarAbogadosSelect() {
+  const select = document.getElementById("rec_destinatario");
+  if (!select) return;
+
+  try {
+    const res = await fetch("http://localhost:3000/api/usuarios");
+    const data = await res.json();
+    if (!data.success) return;
+
+    // Admin y Secretaria pueden mandar a cualquiera
+    // Abogado solo puede mandarse a sí mismo
+    const destinatarios = sessionRol === 'ADMIN' || sessionRol === 'SECRETARIA'
+      ? data.usuarios
+      : data.usuarios.filter(u => String(u.id) === sessionUsuarioId);
+
+    select.innerHTML = destinatarios.map(u =>
+      `<option value="${u.id}">${u.nombre || u.username} (${u.rol})</option>`
+    ).join("");
+  } catch (err) {
+    console.error("Error cargando abogados:", err);
+  }
+}
+
+async function cargarRecordatorios() {
+  const tbody = document.getElementById("recordatoriosTbody");
+  if (!tbody) return;
+
+  try {
+    const res = await fetch(
+      `http://localhost:3000/api/recordatorios?usuario_id=${sessionUsuarioId}&rol=${sessionRol}`
+    );
+    const data = await res.json();
+
+    if (!data.success || !data.recordatorios.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="muted" 
+        style="text-align:center; padding:24px;">Sin recordatorios.</td></tr>`;
+      return;
+    }
+
+  const hoy = new Date().toLocaleDateString('en-CA'); // formato YYYY-MM-DD en zona local
+
+    tbody.innerHTML = data.recordatorios.map(r => {
+      const vencido = r.fecha_aviso && r.fecha_aviso.slice(0, 10) < hoy && !r.visto;
+      const esHoy = r.fecha_aviso && r.fecha_aviso.slice(0, 10) === hoy;
+      const caso = r.caso_tipo && r.caso_id
+        ? `<span class="tag">${r.caso_tipo.toUpperCase()}-${r.caso_id}</span>`
+        : `<span class="muted">—</span>`;
+      const estado = r.visto
+        ? `<span class="pill">Visto</span>`
+        : vencido
+          ? `<span class="pill" style="background:#fee2e2;color:#dc2626;">Vencido</span>`
+          : esHoy
+            ? `<span class="pill" style="background:#fef9c3;color:#ca8a04;">Hoy</span>`
+            : `<span class="pill" style="background:#f0fdf4;color:#16a34a;">Pendiente</span>`;
+
+      // Muestra quién lo creó si eres el destinatario
+      const creador = r.nombre_creador
+        ? `<div class="small muted" style="margin-top:2px;">De: ${r.nombre_creador}</div>`
+        : "";
+
+      return `
+        <tr>
+          <td class="muted">${r.fecha_aviso ? r.fecha_aviso.slice(0, 10) : "—"}</td>
+          <td>${r.titulo}${creador}</td>
+          <td>${caso}</td>
+          <td>${estado}</td>
+          <td>
+            ${!r.visto ? `<button class="btn" onclick="marcarVisto(${r.id})">✓</button>` : ""}
+            <button class="btn" onclick="eliminarRecordatorio(${r.id})" 
+              style="margin-left:4px;">✕</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+  } catch (err) {
+    console.error("Error cargando recordatorios:", err);
+  }
+}
+
+async function marcarVisto(id) {
+  await fetch(`http://localhost:3000/api/recordatorios/${id}/visto`, { method: "PATCH" });
+  cargarRecordatorios();
+}
+
+async function eliminarRecordatorio(id) {
+  const confirmado = await showConfirmDialog({
+    title: "Eliminar recordatorio",
+    message: "¿Estás seguro de que deseas eliminar este recordatorio?",
+    confirmText: "Eliminar",
+    cancelText: "Cancelar",
+    variant: "danger"
+  });
+  if (!confirmado) return;
+  await fetch(`http://localhost:3000/api/recordatorios/${id}`, { method: "DELETE" });
+  showToast("Recordatorio eliminado.", "success");
+  cargarRecordatorios();
+}
+async function verificarRecordatorios() {
+  try {
+    const res = await fetch(
+      `http://localhost:3000/api/recordatorios/hoy?usuario_id=${sessionUsuarioId}&rol=${sessionRol}`
+    );
+    const data = await res.json();
+    if (!data.success || !data.recordatorios.length) return;
+    data.recordatorios.forEach((rec, i) => {
+      setTimeout(() => mostrarToastRecordatorio(rec), i * 1500);
+    });
+  } catch (err) {
+    console.error("Error verificando recordatorios:", err);
+  }
+}
+
+function mostrarToastRecordatorio(rec) {
+  const toast = document.createElement("div");
+  toast.style.cssText = `
+    position: fixed; bottom: 20px; right: 20px;
+    background: var(--bg2, #fff); border: 1px solid var(--line, #e0e0e0);
+    border-left: 4px solid #f59e0b;
+    border-radius: 8px; padding: 14px 18px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    min-width: 280px; max-width: 360px;
+    z-index: 9999; cursor: pointer;
+    animation: slideIn 0.3s ease;
+  `;
+  toast.innerHTML = `
+    <div style="font-size:11px;color:#f59e0b;font-weight:600;margin-bottom:4px;">
+      🔔 RECORDATORIO ${rec.caso_tipo ? `· ${rec.caso_tipo.toUpperCase()}-${rec.caso_id}` : ""}
+    </div>
+    <div style="font-size:14px;font-weight:600;margin-bottom:2px;">${rec.titulo}</div>
+    ${rec.descripcion ? `<div style="font-size:12px;opacity:0.7;">${rec.descripcion}</div>` : ""}
+    <div style="font-size:11px;opacity:0.5;margin-top:6px;">Clic para marcar como visto</div>
+  `;
+  // DESPUÉS:
+  toast.addEventListener("click", async () => {
+    if (!rec.automatico) {
+      await fetch(`http://localhost:3000/api/recordatorios/${rec.id}/visto`, { method: "PATCH" });
+      cargarRecordatorios();
+    }
+    toast.style.animation = "fadeOut 0.3s ease forwards";
+    setTimeout(() => toast.remove(), 300);
+  });
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    if (document.body.contains(toast)) {
+      toast.style.animation = "fadeOut 0.3s ease forwards";
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, 8000);
+}
+
+// Variable en memoria — se resetea con cada carga de página
+const _toastsAutoMostrados = new Set();
+
+async function verificarRecordatoriosAutomaticos() {
+  try {
+    const res = await fetch(
+      `http://localhost:3000/api/recordatorios/automaticos?usuario_id=${sessionUsuarioId}&rol=${sessionRol}&username=${sessionUsername}`
+    );
+    const data = await res.json();
+
+    console.log("usuario_id enviado:", sessionUsuarioId);
+    console.log("casos recibidos:", data.casos);
+    data.casos.forEach(c => console.log("abogado_encargado:", c.abogado_encargado, "tipo:", typeof c.abogado_encargado));
+
+    if (!data.success || !data.casos.length) return;
+
+    data.casos.forEach((caso, i) => {
+      const key = `${caso.caso_tipo}-${caso.id}`;
+      if (_toastsAutoMostrados.has(key)) return;
+
+      setTimeout(() => {
+        mostrarToastRecordatorio({
+          id: null,
+          caso_tipo: caso.caso_tipo,
+          caso_id: caso.id,
+          titulo: `Vencimiento hoy: ${caso.asunto || caso.expediente || "Sin nombre"}`,
+          descripcion: `Expediente: ${caso.expediente || "—"}`,
+          automatico: true
+        });
+        _toastsAutoMostrados.add(key);
+      }, i * 1500);
+    });
+
+  } catch (err) {
+    console.error("Error verificando recordatorios automáticos:", err);
+  }
+}
+
+// Form
+const formRecordatorio = document.getElementById("formRecordatorio");
+if (formRecordatorio) {
+  formRecordatorio.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const datos = {
+      titulo: document.getElementById("rec_titulo").value.trim(),
+      fecha_aviso: document.getElementById("rec_fecha").value,
+      caso_tipo: document.getElementById("rec_caso_tipo").value || null,
+      caso_id: document.getElementById("rec_caso_id").value || null,
+      descripcion: document.getElementById("rec_descripcion").value.trim(),
+      usuario_id: sessionUsuarioId,
+      destinatario_id: document.getElementById("rec_destinatario").value || sessionUsuarioId
+    };
+    if (!datos.titulo || !datos.fecha_aviso) {
+      alert("Título y fecha son obligatorios."); return;
+    }
+    try {
+      const res = await fetch("http://localhost:3000/api/recordatorios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datos)
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert("✅ Recordatorio guardado.");
+        formRecordatorio.reset();
+        cargarRecordatorios();
+      } else {
+        alert("❌ " + result.mensaje);
+      }
+    } catch (err) {
+      alert("❌ No se pudo conectar con el servidor.");
+    }
+  });
+}
+
+const btnLimpiarRecordatorio = document.getElementById("btnLimpiarRecordatorio");
+if (btnLimpiarRecordatorio) {
+  btnLimpiarRecordatorio.addEventListener("click", () => formRecordatorio.reset());
+}
+
+const btnNuevoRecordatorio = document.getElementById("btnNuevoRecordatorio");
+if (btnNuevoRecordatorio) {
+  btnNuevoRecordatorio.addEventListener("click", () => {
+    document.getElementById("recordatorioDetails").open = true;
+    document.getElementById("recordatorioDetails").scrollIntoView({ behavior: "smooth" });
+  });
+}
+
+cargarAbogadosSelect();
+cargarRecordatorios();
+verificarRecordatorios();
+verificarRecordatoriosAutomaticos();
+setInterval(verificarRecordatorios, 5 * 60 * 1000);
+setInterval(verificarRecordatoriosAutomaticos, 5 * 60 * 1000);

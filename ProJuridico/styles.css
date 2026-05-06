@@ -866,3 +866,12 @@ details:not([open]) > summary::before { content: '▸ '; }
 .details-btn > *:not(summary) {
   margin-top: 12px;
 }
+
+@keyframes slideIn {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; transform: translateX(120%); }
+}

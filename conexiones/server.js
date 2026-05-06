@@ -255,6 +255,7 @@ db.connect(err => {
     console.error('Error conectando a la base de datos:', err);
     return;
   }
+    db.query("SET time_zone = '-06:00'");
   console.log('¡Conectado exitosamente a MySQL!');
   asegurarCompatibilidadBD()
     .then(() => {
@@ -423,11 +424,11 @@ app.post('/api/nuevocaso', (req, res) => {
 //-----------------PRUEBA-------------------------
 app.get('/api/casos', (req, res) => {
   const tipoRecibido = req.query.tipo;
-  const busqueda     = (req.query.busqueda || "").trim();
-  const rol          = normalizarRol(req.query.rol);
-  const usuarioId    = normalizarUsuarioId(req.query.usuario_id);
+  const busqueda = (req.query.busqueda || "").trim();
+  const rol = normalizarRol(req.query.rol);
+  const usuarioId = normalizarUsuarioId(req.query.usuario_id);
 
-  let sql    = `SELECT * FROM (${construirSelectCasos()}) casos`;
+  let sql = `SELECT * FROM (${construirSelectCasos()}) casos`;
   let params = [];
   const condiciones = [];
 
@@ -490,21 +491,21 @@ app.get('/api/casos', (req, res) => {
       });
     }
     // ----------------- Modificacion echa por Fer el 18 -------------------------
-  const casos = results.map(caso => ({
-    id: caso.id,
-    id_display: `${caso.tipo.toUpperCase()}-${caso.id}`,
-    fecha: caso.fecha || caso.created_at || "Sin fecha",
-    nombre: caso.asunto || caso.actor || caso.expediente || "Sin nombre",
-    tipo: caso.tipo,
-    tipo_db: normalizarTipoCaso(caso.tipo) || caso.tipo,
-    prioridad: caso.prioridad || "Media",
-    estado: caso.estado_procesal || "—",
-    asignado: [caso.nombre_abogado, caso.nombre_abogado_colaborador].filter(Boolean).join(" + ") || "Sin asignar",
-    abogado_encargado: caso.abogado_encargado,
-    abogado_colaborador: caso.abogado_colaborador,
-    nombre_abogado: caso.nombre_abogado,
-    nombre_abogado_colaborador: caso.nombre_abogado_colaborador
-}));
+    const casos = results.map(caso => ({
+      id: caso.id,
+      id_display: `${caso.tipo.toUpperCase()}-${caso.id}`,
+      fecha: caso.fecha || caso.created_at || "Sin fecha",
+      nombre: caso.asunto || caso.actor || caso.expediente || "Sin nombre",
+      tipo: caso.tipo,
+      tipo_db: normalizarTipoCaso(caso.tipo) || caso.tipo,
+      prioridad: caso.prioridad || "Media",
+      estado: caso.estado_procesal || "—",
+      asignado: [caso.nombre_abogado, caso.nombre_abogado_colaborador].filter(Boolean).join(" + ") || "Sin asignar",
+      abogado_encargado: caso.abogado_encargado,
+      abogado_colaborador: caso.abogado_colaborador,
+      nombre_abogado: caso.nombre_abogado,
+      nombre_abogado_colaborador: caso.nombre_abogado_colaborador
+    }));
 
     res.json({
       success: true,
@@ -656,7 +657,7 @@ app.post('/api/documentos/:casoId', upload.single('archivo'), (req, res) => {
                  VALUES (?, ?, ?, ?, ?, ?, ?)`;
     db.query(sql,
       [req.params.casoId, tipoCaso, req.file.originalname, req.file.filename,
-       req.file.mimetype, req.file.size, req.body.subido_por || 'Sistema'],
+      req.file.mimetype, req.file.size, req.body.subido_por || 'Sistema'],
       (err, r) => {
         if (err) return res.status(500).json({ success: false, mensaje: err.message });
         res.json({ success: true, id: r.insertId });
@@ -908,30 +909,30 @@ app.put('/api/casos/:tipo/:id/editar', (req, res) => {
   }
 
   const mapaTablas = {
-  amparo: 'amparos',
-  amparos: 'amparos',
+    amparo: 'amparos',
+    amparos: 'amparos',
 
-  administrativo: 'administrativos',
-  administrativos: 'administrativos',
+    administrativo: 'administrativos',
+    administrativos: 'administrativos',
 
-  laboral: 'laborales',
-  laborales: 'laborales',
+    laboral: 'laborales',
+    laborales: 'laborales',
 
-  civil: 'civiles',
-  civiles: 'civiles',
+    civil: 'civiles',
+    civiles: 'civiles',
 
-  mercantil: 'mercantiles',
-  mercantiles: 'mercantiles',
+    mercantil: 'mercantiles',
+    mercantiles: 'mercantiles',
 
-  penal: 'penales',
-  penales: 'penales',
+    penal: 'penales',
+    penales: 'penales',
 
-  agrario: 'agrarios',
-  agrarios: 'agrarios',
+    agrario: 'agrarios',
+    agrarios: 'agrarios',
 
-  varios: 'exp_varios',
-  exp_varios: 'exp_varios'
-};
+    varios: 'exp_varios',
+    exp_varios: 'exp_varios'
+  };
 
   const tabla = mapaTablas[String(tipo).toLowerCase()];
 
@@ -943,71 +944,71 @@ app.put('/api/casos/:tipo/:id/editar', (req, res) => {
   }
 
   db.query(
-  `SELECT estado_procesal, abogado_colaborador FROM ${tabla} WHERE id = ?`,
-  [id],
-  (err, rows) => {
+    `SELECT estado_procesal, abogado_colaborador FROM ${tabla} WHERE id = ?`,
+    [id],
+    (err, rows) => {
 
-    if (err) {
-      console.error("Error verificando estado:", err);
-      return res.status(500).json({
-        success: false,
-        mensaje: err.message
-      });
-    }
+      if (err) {
+        console.error("Error verificando estado:", err);
+        return res.status(500).json({
+          success: false,
+          mensaje: err.message
+        });
+      }
 
-    if (!rows.length) {
-      return res.status(404).json({
-        success: false,
-        mensaje: "Caso no encontrado."
-      });
-    }
+      if (!rows.length) {
+        return res.status(404).json({
+          success: false,
+          mensaje: "Caso no encontrado."
+        });
+      }
 
-    if (String(rows[0].estado_procesal).toLowerCase() === "archivado") {
-      return res.status(403).json({
-        success: false,
-        mensaje: "Este caso está archivado y no se puede editar."
-      });
-    }
+      if (String(rows[0].estado_procesal).toLowerCase() === "archivado") {
+        return res.status(403).json({
+          success: false,
+          mensaje: "Este caso está archivado y no se puede editar."
+        });
+      }
 
-    if (
-      tieneAbogadoAsignado(abogado_encargado) &&
-      tieneAbogadoAsignado(rows[0].abogado_colaborador) &&
-      String(abogado_encargado) === String(rows[0].abogado_colaborador)
-    ) {
-      return res.status(400).json({
-        success: false,
-        mensaje: "El abogado principal no puede ser el mismo abogado extra."
-      });
-    }
+      if (
+        tieneAbogadoAsignado(abogado_encargado) &&
+        tieneAbogadoAsignado(rows[0].abogado_colaborador) &&
+        String(abogado_encargado) === String(rows[0].abogado_colaborador)
+      ) {
+        return res.status(400).json({
+          success: false,
+          mensaje: "El abogado principal no puede ser el mismo abogado extra."
+        });
+      }
 
-    const estadoProcesalFinal = estadoAutomaticoPorAsignacion(estado_procesal, abogado_encargado);
-    const sql = `
+      const estadoProcesalFinal = estadoAutomaticoPorAsignacion(estado_procesal, abogado_encargado);
+      const sql = `
       UPDATE ${tabla}
       SET prioridad = ?, estado_procesal = ?, abogado_encargado = ?
       WHERE id = ?
     `;
 
-    db.query(
-      sql,
-      [prioridad, estadoProcesalFinal, abogado_encargado || null, id],
-      (err) => {
+      db.query(
+        sql,
+        [prioridad, estadoProcesalFinal, abogado_encargado || null, id],
+        (err) => {
 
-        if (err) {
-          console.error("Error editando:", err);
-          return res.status(500).json({
-            success: false,
-            mensaje: err.message
+          if (err) {
+            console.error("Error editando:", err);
+            return res.status(500).json({
+              success: false,
+              mensaje: err.message
+            });
+          }
+
+          res.json({
+            success: true,
+            mensaje: "Caso actualizado correctamente"
           });
         }
-
-        res.json({
-          success: true,
-          mensaje: "Caso actualizado correctamente"
-        });
-      }
-    );
-  }
-);
+      );
+    }
+  );
 });
 
 app.put('/api/casos/:tipo/:id/reasignar', (req, res) => {
@@ -1098,7 +1099,7 @@ app.put('/api/casos/:tipo/:id/reasignar', (req, res) => {
     }
   );
 });
-  
+
 app.put('/api/casos/:tipo/:id/archivar', (req, res) => {
   const { tipo, id } = req.params;
   const { rol } = req.body;
@@ -1232,5 +1233,198 @@ app.put('/api/casos/:tipo/:id/desarchivar', (req, res) => {
       success: true,
       mensaje: "Caso desarchivado correctamente"
     });
+  });
+});
+
+// GET /api/recordatorios → lista según rol
+app.get('/api/recordatorios', (req, res) => {
+  const { usuario_id, rol } = req.query;
+  let sql, params;
+
+  if (rol === 'ADMIN') {
+    // Admin ve todos
+    sql = `SELECT r.*, 
+             u.nombre AS nombre_creador,
+             d.nombre AS nombre_destinatario
+           FROM recordatorios r
+           LEFT JOIN usuarios u ON r.usuario_id = u.id
+           LEFT JOIN usuarios d ON r.destinatario_id = d.id
+           ORDER BY r.fecha_aviso ASC`;
+    params = [];
+  } else {
+    // Abogado/Secretaria ve los que le mandaron a él
+    sql = `SELECT r.*,
+             u.nombre AS nombre_creador,
+             d.nombre AS nombre_destinatario
+           FROM recordatorios r
+           LEFT JOIN usuarios u ON r.usuario_id = u.id
+           LEFT JOIN usuarios d ON r.destinatario_id = d.id
+           WHERE r.destinatario_id = ?
+           ORDER BY r.fecha_aviso ASC`;
+    params = [usuario_id];
+  }
+
+  db.query(sql, params, (err, results) => {
+    if (err) return res.status(500).json({ success: false, mensaje: err.message });
+    res.json({ success: true, recordatorios: results });
+  });
+});
+
+// GET /api/recordatorios/hoy → toasts del día
+app.get('/api/recordatorios/hoy', (req, res) => {
+  const { usuario_id, rol } = req.query;
+  let sql, params;
+
+  if (rol === 'ADMIN') {
+    sql = `SELECT * FROM recordatorios
+           WHERE fecha_aviso <= CURDATE() AND visto = FALSE
+           ORDER BY fecha_aviso ASC`;
+    params = [];
+  } else {
+    sql = `SELECT * FROM recordatorios
+           WHERE fecha_aviso <= CURDATE() AND visto = FALSE 
+           AND destinatario_id = ?
+           ORDER BY fecha_aviso ASC`;
+    params = [usuario_id];
+  }
+
+  db.query(sql, params, (err, results) => {
+    if (err) return res.status(500).json({ success: false, mensaje: err.message });
+    res.json({ success: true, recordatorios: results });
+  });
+});
+
+// POST /api/recordatorios → crear
+app.post('/api/recordatorios', (req, res) => {
+  const { caso_tipo, caso_id, titulo, descripcion, fecha_aviso, usuario_id, destinatario_id } = req.body;
+  if (!titulo || !fecha_aviso) {
+    return res.status(400).json({ success: false, mensaje: "Título y fecha son obligatorios." });
+  }
+  db.query(
+    `INSERT INTO recordatorios 
+     (caso_tipo, caso_id, titulo, descripcion, fecha_aviso, usuario_id, destinatario_id) 
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [caso_tipo || null, caso_id || null, titulo, descripcion || '',
+      fecha_aviso, usuario_id || null, destinatario_id || null],
+    (err, result) => {
+      if (err) return res.status(500).json({ success: false, mensaje: err.message });
+      res.json({ success: true, id: result.insertId });
+    }
+  );
+});
+
+// PATCH /api/recordatorios/:id/visto
+app.patch('/api/recordatorios/:id/visto', (req, res) => {
+  db.query(`UPDATE recordatorios SET visto = TRUE WHERE id = ?`, [req.params.id], (err) => {
+    if (err) return res.status(500).json({ success: false, mensaje: err.message });
+    res.json({ success: true });
+  });
+});
+
+// DELETE /api/recordatorios/:id
+app.delete('/api/recordatorios/:id', (req, res) => {
+  db.query(`DELETE FROM recordatorios WHERE id = ?`, [req.params.id], (err) => {
+    if (err) return res.status(500).json({ success: false, mensaje: err.message });
+    res.json({ success: true });
+  });
+});
+
+// GET /api/recordatorios/automaticos → casos que vencen hoy
+app.get('/api/recordatorios/automaticos', (req, res) => {
+  const { usuario_id, rol } = req.query;
+
+  // Consulta todas las tablas buscando fecha = hoy
+  const tablas = [
+    { tabla: 'amparos', campoFecha: 'fecha_emplazamiento' },
+    { tabla: 'administrativos', campoFecha: 'fecha_emplazamiento' },
+    { tabla: 'laborales', campoFecha: 'emplazamiento' },
+    { tabla: 'civiles', campoFecha: 'fecha_inicio' },
+    { tabla: 'mercantiles', campoFecha: 'fecha' },
+    { tabla: 'agrarios', campoFecha: 'fecha_emplazamiento' },
+    { tabla: 'exp_varios', campoFecha: 'fecha_recibido' }
+  ];
+
+  // Construye un UNION de todas las tablas
+  const unionSQL = `
+  SELECT 'amparos' AS caso_tipo, id, expediente, asunto, 
+         fecha_emplazamiento AS fecha, abogado_encargado
+  FROM amparos
+  WHERE DATE(fecha_emplazamiento) = CURDATE()
+  AND (estado_procesal IS NULL OR estado_procesal != 'archivado')
+
+  UNION ALL
+
+  SELECT 'administrativos', id, expediente, asunto,
+         fecha_emplazamiento, NULL
+  FROM administrativos
+  WHERE DATE(fecha_emplazamiento) = CURDATE()
+  AND (estado_procesal IS NULL OR estado_procesal != 'archivado')
+
+  UNION ALL
+
+  SELECT 'laborales', id, expediente, actor,
+         emplazamiento, NULL
+  FROM laborales
+  WHERE DATE(emplazamiento) = CURDATE()
+  AND (estado_procesal IS NULL OR estado_procesal != 'archivado')
+
+  UNION ALL
+
+  SELECT 'civiles', id, expediente, asunto,
+         fecha_inicio, NULL
+  FROM civiles
+  WHERE DATE(fecha_inicio) = CURDATE()
+  AND (estado_procesal IS NULL OR estado_procesal != 'archivado')
+
+  UNION ALL
+
+  SELECT 'mercantiles', id, expediente, asunto,
+         fecha, NULL
+  FROM mercantiles
+  WHERE DATE(fecha) = CURDATE()
+  AND (estado_procesal IS NULL OR estado_procesal != 'archivado')
+
+  UNION ALL
+
+  SELECT 'penales', id, expediente, asunto,
+         NULL, NULL
+  FROM penales
+  WHERE (estado_procesal IS NULL OR estado_procesal != 'archivado')
+
+  UNION ALL
+
+  SELECT 'agrarios', id, expediente, asunto,
+         fecha_emplazamiento, NULL
+  FROM agrarios
+  WHERE DATE(fecha_emplazamiento) = CURDATE()
+  AND (estado_procesal IS NULL OR estado_procesal != 'archivado')
+
+  UNION ALL
+
+  SELECT 'exp_varios', id, expediente, asunto,
+         fecha_recibido, NULL
+  FROM exp_varios
+  WHERE DATE(fecha_recibido) = CURDATE()
+  AND (estado_procesal IS NULL OR estado_procesal != 'archivado')
+`;
+
+  db.query(unionSQL, (err, results) => {
+    if (err) return res.status(500).json({ success: false, mensaje: err.message });
+
+    // Si es abogado, filtra solo sus casos
+    // abogado_encargado guarda el username en tu BD
+    let casos = results;
+    if (rol !== 'ADMIN' && rol !== 'SECRETARIA') {
+      console.log("Filtrando por usuario_id:", usuario_id);
+      console.log("Casos antes del filtro:", results.map(c => ({ tipo: c.caso_tipo, id: c.id, abogado: c.abogado_encargado })));
+
+      casos = results.filter(c =>
+        c.abogado_encargado != null &&
+        String(c.abogado_encargado).trim() === String(usuario_id).trim()
+      );
+
+      console.log("Casos después del filtro:", casos.length);
+    }
+    res.json({ success: true, casos });
   });
 });
