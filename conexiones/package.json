@@ -5,7 +5,8 @@
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "multer": "^2.1.1",
-    "mysql2": "^3.20.0"
+    "mysql2": "^3.20.0",
+    "nodemailer": "^8.0.7"
   },
   "name": "conexiones",
   "version": "1.0.0",

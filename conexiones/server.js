@@ -6,6 +6,30 @@ require('dotenv').config();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const nodemailer = require('nodemailer');
+
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS
+  }
+});
+
+async function enviarCorreo({ para, asunto, html }) {
+  try {
+    await transporter.sendMail({
+      from: `"Sistema Jurídico" <${process.env.GMAIL_USER}>`,
+      to: para,
+      subject: asunto,
+      html
+    });
+    console.log(`✉️ Correo enviado a ${para}`);
+  } catch (err) {
+    console.error("Error enviando correo:", err.message);
+  }
+}
 
 const carpetaUploads = path.join(__dirname, 'uploads');
 if (!fs.existsSync(carpetaUploads)) fs.mkdirSync(carpetaUploads);
@@ -1300,17 +1324,56 @@ app.post('/api/recordatorios', (req, res) => {
   if (!titulo || !fecha_aviso) {
     return res.status(400).json({ success: false, mensaje: "Título y fecha son obligatorios." });
   }
-  db.query(
-    `INSERT INTO recordatorios 
-     (caso_tipo, caso_id, titulo, descripcion, fecha_aviso, usuario_id, destinatario_id) 
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [caso_tipo || null, caso_id || null, titulo, descripcion || '',
-      fecha_aviso, usuario_id || null, destinatario_id || null],
-    (err, result) => {
-      if (err) return res.status(500).json({ success: false, mensaje: err.message });
-      res.json({ success: true, id: result.insertId });
+ db.query(
+  `INSERT INTO recordatorios (caso_tipo, caso_id, titulo, descripcion, fecha_aviso, usuario_id, destinatario_id) 
+   VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  [caso_tipo || null, caso_id || null, titulo, descripcion || '',
+   fecha_aviso, usuario_id || null, destinatario_id || null],
+  (err, result) => {
+    if (err) return res.status(500).json({ success: false, mensaje: err.message });
+
+    // Manda correo al destinatario si tiene email
+    if (destinatario_id) {
+      db.query('SELECT email, nombre FROM usuarios WHERE id = ?',
+        [destinatario_id], async (err2, rows) => {
+          if (!err2 && rows.length && rows[0].email) {
+            await enviarCorreo({
+              para: rows[0].email,
+              asunto: `📌 Nuevo recordatorio: ${titulo}`,
+              html: `
+                <div style="font-family:sans-serif; max-width:500px; margin:0 auto;">
+                  <h2 style="color:#1e40af;">📌 Tienes un nuevo recordatorio</h2>
+                  <table style="width:100%; border-collapse:collapse;">
+                    <tr>
+                      <td style="padding:8px; font-weight:bold;">Título:</td>
+                      <td style="padding:8px;">${titulo}</td>
+                    </tr>
+                    <tr style="background:#f8fafc;">
+                      <td style="padding:8px; font-weight:bold;">Fecha de aviso:</td>
+                      <td style="padding:8px;">${fecha_aviso}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px; font-weight:bold;">Caso:</td>
+                      <td style="padding:8px;">${caso_tipo ? `${caso_tipo.toUpperCase()}-${caso_id}` : '—'}</td>
+                    </tr>
+                    <tr style="background:#f8fafc;">
+                      <td style="padding:8px; font-weight:bold;">Descripción:</td>
+                      <td style="padding:8px;">${descripcion || '—'}</td>
+                    </tr>
+                  </table>
+                  <br>
+                  <small style="color:#94a3b8;">Sistema Jurídico — Este es un mensaje automático.</small>
+                </div>
+              `
+            });
+          }
+        }
+      );
     }
-  );
+
+    res.json({ success: true, mensaje: "¡Recordatorio guardado!", id: result.insertId });
+  }
+);
 });
 
 // PATCH /api/recordatorios/:id/visto
