@@ -229,6 +229,35 @@ body {
   border-color: #dbeafe;
 }
 
+
+.actividad-container {
+  max-height: 300px;   /* 🔥 límite */
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+}
+
+.tabla-actividad {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tabla-actividad th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  z-index: 1;
+}
+
+.tabla-actividad td, .tabla-actividad th {
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tabla-actividad tbody tr:hover {
+  background: #f1f5ff;
+}
+
 /* ── Campos base ── */
 .fieldgrid {
   display: grid;

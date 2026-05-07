@@ -1635,45 +1635,84 @@ if (btnLimpiarNota) {
   });
 }
 
-// ========== ACTIVIDAD RECIENTE ==========
+
+// ========== ACTIVIDAD RECIENTE (HISTORIAL) ==========
 const ACTIVIDAD_KEY = "projuridico.actividad";
-const MAX_ACTIVIDAD = 20;
+const actividadTbody = document.getElementById("actividadTbody");
 
-function registrarActividad(mensaje, tag) {
-  const actividades = obtenerActividades();
+function obtenerActividad() {
+  return JSON.parse(localStorage.getItem(ACTIVIDAD_KEY) || "[]");
+}
+
+function renderActividad(filtro = "hoy") {
+  const actividades = obtenerActividad();
   const ahora = new Date();
-  const hora = ahora.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-  const fecha = ahora.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
-  actividades.unshift({ mensaje, tag: tag || "", hora, fecha, timestamp: ahora.getTime() });
-  if (actividades.length > MAX_ACTIVIDAD) actividades.pop();
-  localStorage.setItem(ACTIVIDAD_KEY, JSON.stringify(actividades));
-  renderActividad();
+
+  const filtradas = actividades.filter(act => {
+    const fecha = new Date(act.fecha);
+
+    if (filtro === "hoy") {
+      return fecha.toDateString() === ahora.toDateString();
+    }
+
+    if (filtro === "semana") {
+      const semana = new Date();
+      semana.setDate(ahora.getDate() - 7);
+      return fecha >= semana;
+    }
+
+    if (filtro === "mes") {
+      return (
+        fecha.getMonth() === ahora.getMonth() &&
+        fecha.getFullYear() === ahora.getFullYear()
+      );
+    }
+
+    return true;
+  });
+
+  // Ordenar por fecha descendente
+  filtradas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+  actividadTbody.innerHTML = filtradas.map(act => `
+    <tr>
+      <td>${new Date(act.fecha).toLocaleString()}</td>
+      <td>${act.descripcion}</td>
+      <td><span class="tag">${act.id || "-"}</span></td>
+    </tr>
+  `).join("");
 }
 
-function obtenerActividades() {
-  try { return JSON.parse(localStorage.getItem(ACTIVIDAD_KEY) || "[]"); }
-  catch { return []; }
-}
+// Registra una nueva actividad en el historial
 
-function renderActividad() {
-  const contenedor = document.querySelector("#v_dashboard .card:nth-child(2) .bd .row");
-  if (!contenedor) return;
-  const actividades = obtenerActividades();
-  if (!actividades.length) {
-    contenedor.innerHTML = `<div class="small muted">Sin actividad registrada.</div>`;
-    return;
+
+function registrarActividad(descripcion, id = "") {
+  const actividades = obtenerActividad();
+
+  actividades.unshift({
+    descripcion,
+    id,
+    fecha: new Date().toISOString()
+  });
+
+  //  límite de 50 registros
+  if (actividades.length > 50) {
+    actividades.pop();
   }
-  const hoy = new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
-  contenedor.innerHTML = actividades.map(a => {
-    const etiqueta = a.tag ? `<span class="tag">${escapeHtml(a.tag)}</span>` : "";
-    const cuandoFecha = a.fecha === hoy ? "Hoy" : a.fecha;
-    return `
-      <div class="field">
-        <div class="small">${escapeHtml(cuandoFecha)} ${escapeHtml(a.hora)}${a.tag ? " · " : ""}${etiqueta}</div>
-        <div style="margin-top: 6px;">${escapeHtml(a.mensaje)}</div>
-      </div>`;
-  }).join("");
+
+  localStorage.setItem(ACTIVIDAD_KEY, JSON.stringify(actividades));
 }
+
+
+document.querySelectorAll("[data-filtro]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("[data-filtro]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    renderActividad(btn.dataset.filtro);
+  });
+});
+
 
 // ========== INICIO ==========
 cargarCasos();

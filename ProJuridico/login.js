@@ -84,14 +84,15 @@ function mostrarToastPendiente() {
 }
 
 // ========== ACTIVIDAD RECIENTE (compartida con app.js via localStorage) ==========
-function registrarActividad(mensaje, tag) {
+function registrarActividad(descripcion, id) {
   try {
     const actividades = JSON.parse(localStorage.getItem(ACTIVIDAD_KEY) || "[]");
-    const ahora = new Date();
-    const hora = ahora.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-    const fecha = ahora.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
-    actividades.unshift({ mensaje, tag: tag || "", hora, fecha, timestamp: ahora.getTime() });
-    if (actividades.length > MAX_ACTIVIDAD) actividades.pop();
+    actividades.unshift({
+      descripcion,
+      id: id || "",
+      fecha: new Date().toISOString()
+    });
+    if (actividades.length > 50) actividades.pop();
     localStorage.setItem(ACTIVIDAD_KEY, JSON.stringify(actividades));
   } catch {
     // Si falla el localStorage no interrumpir el flujo de login

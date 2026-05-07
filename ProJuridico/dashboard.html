@@ -74,28 +74,36 @@
             </div>
           </div>
 
-          <div class="card">
-            <div class="hd">
-              <h2>Actividad reciente</h2>
-            </div>
-            <div class="bd">
-              <div class="row" style="flex-direction: column; align-items: stretch; gap: 10px;">
-                <div class="field">
-                  <div class="small">Hoy 09:14 · <span class="tag">CASO-1042</span></div>
-                  <div style="margin-top: 6px;">Se agregó una nota y se adjuntó un documento.</div>
-                </div>
-                <div class="field">
-                  <div class="small">Ayer 18:02 · <span class="tag">CASO-0998</span></div>
-                  <div style="margin-top: 6px;">Reasignación y ajuste de prioridad.</div>
-                </div>
-                <div class="field">
-                  <div class="small">Ayer 11:40 · <span class="tag">USR-0007</span></div>
-                  <div style="margin-top: 6px;">Actualización de usuario y permisos.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+
+
+         <div class="card">
+  <div class="hd">
+    <h2>Actividad reciente</h2>
+
+    <!-- filtros -->
+    <div class="row">
+      <button class="btn active" data-filtro="hoy">Hoy</button>
+      <button class="btn" data-filtro="semana">Semana</button>
+      <button class="btn" data-filtro="mes">Mes</button>
+    </div>
+  </div>
+
+  <div class="bd actividad-container">
+    <table class="tabla-actividad">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Actividad</th>
+          <th>ID</th>
+        </tr>
+      </thead>
+      <tbody id="actividadTbody">
+        <!-- dinámico -->
+      </tbody>
+    </table>
+  </div>
+</div>
+        
       </section>
 
       <!-- ===== CASOS ===== -->
