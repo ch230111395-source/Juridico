@@ -130,10 +130,21 @@ async function login(event) {
     }
 
     if (data.success) {
-      localStorage.setItem("usuario", JSON.stringify(data.usuario));
+      const usuarioSesion = {
+        ...(data.usuario || {}),
+        token: data.token || data.usuario?.token || "",
+        expiresAt: data.expiresAt || data.usuario?.expiresAt || ""
+      };
+
+      if (!usuarioSesion.token) {
+        showToast("El servidor no devolvió una sesión válida.", "error");
+        return;
+      }
+
+      localStorage.setItem("usuario", JSON.stringify(usuarioSesion));
 
       // ← ACTIVIDAD: registrar inicio de sesión
-      const nombreUsuario = data.usuario?.nombre || data.usuario?.username || usuario;
+      const nombreUsuario = usuarioSesion.nombre || usuarioSesion.username || usuario;
       registrarActividad(`Inicio de sesión: ${nombreUsuario}.`, "");
 
       sessionStorage.setItem(DASHBOARD_TOAST_KEY, JSON.stringify({
