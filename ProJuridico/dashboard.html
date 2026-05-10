@@ -31,9 +31,15 @@
       <div class="topbar">
         <div class="search">
           <span class="muted">⌕</span>
-          <input id="inputBusqueda" placeholder="Búsqueda rápida (caso por nombre, ID o usuario)" autocomplete="off">
+          <input id="inputBusqueda" placeholder="Buscar por expediente, caso o abogado asignado" autocomplete="off">
+          <span id="searchStatus" class="searchStatus" aria-live="polite"></span>
         </div>
         <div class="actions">
+          <div class="sessionBadge" id="sessionBadge" aria-label="Sesión activa">
+            <span class="sessionDot" aria-hidden="true"></span>
+            <span id="sessionUserName">Usuario</span>
+            <span class="sessionRole" id="sessionUserRole">ROL</span>
+          </div>
           <button class="btn primary" id="btnNuevoGlobal">Nuevo</button>
         </div>
       </div>
@@ -55,19 +61,19 @@
             <div class="bd">
               <div class="kpis">
                 <div class="kpi">
-                  <div class="v">24</div>
+                  <div class="v" id="kpiCasosActivos">...</div>
                   <div class="l">Casos activos</div>
                 </div>
                 <div class="kpi">
-                  <div class="v">7</div>
+                  <div class="v" id="kpiAltaPrioridad">...</div>
                   <div class="l">Alta prioridad</div>
                 </div>
                 <div class="kpi">
-                  <div class="v">3</div>
+                  <div class="v" id="kpiPorReasignar">...</div>
                   <div class="l">Por reasignar</div>
                 </div>
                 <div class="kpi">
-                  <div class="v">12</div>
+                  <div class="v" id="kpiRecordatorios">...</div>
                   <div class="l">Recordatorios</div>
                 </div>
               </div>
@@ -76,7 +82,7 @@
 
 
 
-         <div class="card">
+         <div class="card" id="actividadCard">
   <div class="hd">
     <h2>Actividad reciente</h2>
 
@@ -103,6 +109,7 @@
     </table>
   </div>
 </div>
+        </div>
         
       </section>
 
@@ -176,6 +183,7 @@
                   <thead>
                     <tr>
                       <th>Fecha</th>
+                      <th>Expediente</th>
                       <th>Nombre</th>
                       <th>Tipo</th>
                       <th>Prioridad</th>
@@ -185,7 +193,7 @@
                   </thead>
                   <tbody id="casosTbody">
                     <tr>
-                      <td colspan="6" class="muted" style="text-align:center; padding: 24px;">
+                      <td colspan="7" class="muted" style="text-align:center; padding: 24px;">
                         Cargando casos...
                       </td>
                     </tr>
@@ -355,7 +363,19 @@
 
             <div class="divider"></div>
 
-            <div class="fieldgrid" style="padding: 0;">
+            <div class="drawerTabs" aria-label="Secciones del caso">
+              <button type="button" class="btn drawerTab active" data-drawer-target="drawerSectionDetalles">Detalles</button>
+              <button type="button" class="btn drawerTab" data-drawer-target="drawerSectionNotas">Notas</button>
+              <button type="button" class="btn drawerTab" data-drawer-target="drawerSectionDocumentos">Documentos</button>
+              <button type="button" class="btn drawerTab" data-drawer-target="drawerSectionHistorial">Historial</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="fieldgrid drawerSection" id="drawerSectionDetalles" style="padding: 0;">
+              <div class="field"><label>Expediente</label>
+                <div class="in" id="d_expediente"></div>
+              </div>
               <div class="field"><label>Tipo</label>
                 <div class="in" id="d_tipo"></div>
               </div>
@@ -380,7 +400,7 @@
             <div class="divider"></div>
 
             <!-- ── NOTAS DEL CASO ── -->
-            <div class="card" style="box-shadow: none;">
+            <div class="card drawerSection" id="drawerSectionNotas" style="box-shadow: none;">
               <div class="hd">
                 <h2>Notas del caso</h2>
                 <div class="sub">Notas específicas del caso</div>
@@ -404,7 +424,7 @@
             <div class="divider"></div>
 
             <!-- ── DOCUMENTOS ── -->
-            <div class="card" style="box-shadow: none;">
+            <div class="card drawerSection" id="drawerSectionDocumentos" style="box-shadow: none;">
               <div class="hd">
                 <h2>Documentos</h2>
                 <div class="sub">Carga y descarga de archivos del caso</div>
@@ -439,7 +459,7 @@
             <div class="divider"></div>
 
             <!-- ── HISTORIAL ── -->
-            <div class="card" style="box-shadow: none;">
+            <div class="card drawerSection" id="drawerSectionHistorial" style="box-shadow: none;">
               <div class="hd">
                 <h2>Historial</h2>
                 <div class="sub">Actividad del caso</div>
@@ -532,6 +552,14 @@
                     <option value="varios">Varios</option>
                   </select>
                 </div>
+                <div class="field">
+                  <label for="prioridadModal">Prioridad</label>
+                  <select id="prioridadModal" name="prioridad" required>
+                    <option value="Alta">Alta</option>
+                    <option value="Media" selected>Media</option>
+                    <option value="Baja">Baja</option>
+                  </select>
+                </div>
               </div>
               <div class="fieldgrid" id="camposRelevantesModal"></div>
             </form>
@@ -607,7 +635,25 @@
         </div>
       </div>
 
-      <script src="app.js"></script>
+      <!-- MODAL PARA VISUALIZAR DOCUMENTOS -->
+      <div id="documentPreviewMask" class="modalMask documentPreviewMask">
+        <div class="documentPreview" role="dialog" aria-modal="true" aria-labelledby="documentPreviewTitle">
+          <div class="modalHeader">
+            <h2 id="documentPreviewTitle">Documento</h2>
+            <button type="button" class="closeBtn" id="btnCloseDocumentPreview">×</button>
+          </div>
+          <div class="documentPreviewBody">
+            <iframe id="documentPreviewFrame" title="Vista previa del documento"></iframe>
+          </div>
+          <div class="modalFooter">
+            <button type="button" class="btn secondary" id="btnDownloadDocumentPreview">Descargar</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 
 </html>
