@@ -88,7 +88,10 @@ const btnRolForm = document.getElementById("btnRolForm");
 const permDetails = document.getElementById("permDetails");
 const btnLogout = document.getElementById("btnLogout");
 const btnFiltroPrioridad = document.getElementById("btnFiltroPrioridad");
+const btnFiltroArchivados = document.getElementById("btnFiltroArchivados");
+
 let ordenarPrioridadAltaBaja = false;
+let mostrarArchivados = false;
 
 function authQueryParams() {
   return {
@@ -999,6 +1002,7 @@ async function renderTable(pagina = 1) {
     pagina: pagina,
     tipo: tipo,
     busqueda: busquedaActual,
+    archivados: mostrarArchivados ? "1" : "0",
     ...authQueryParams()
   });
   if (ordenarPrioridadAltaBaja) params.set("orden", "prioridad_desc");
@@ -1513,11 +1517,13 @@ if (tipoSelect) {
   });
 }
 
-if (btnFiltroPrioridad) {
-  btnFiltroPrioridad.addEventListener("click", () => {
-    ordenarPrioridadAltaBaja = !ordenarPrioridadAltaBaja;
-    btnFiltroPrioridad.classList.toggle("active", ordenarPrioridadAltaBaja);
-    btnFiltroPrioridad.textContent = ordenarPrioridadAltaBaja ? "Prioridad alta-baja" : "Prioridad";
+if (btnFiltroArchivados) {
+  btnFiltroArchivados.addEventListener("click", () => {
+    mostrarArchivados = !mostrarArchivados;
+
+    btnFiltroArchivados.classList.toggle("active", mostrarArchivados);
+    btnFiltroArchivados.textContent = mostrarArchivados ? "Activos" : "Archivados";
+
     paginaActual = 1;
     renderTable(1);
   });

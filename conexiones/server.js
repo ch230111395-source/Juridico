@@ -569,6 +569,7 @@ app.post('/api/nuevocaso', (req, res) => {
 app.get('/api/casos', (req, res) => {
   const tipoRecibido = req.query.tipo;
   const busqueda = (req.query.busqueda || "").trim();
+  const archivados = String(req.query.archivados || "0");
   const rol = req.auth?.rol || normalizarRol(req.query.rol);
   const usuarioId = normalizarUsuarioId(req.auth?.id || req.query.usuario_id);
 
@@ -584,6 +585,13 @@ app.get('/api/casos', (req, res) => {
     }
     condiciones.push("tipo = ?");
     params.push(tipoBD);
+  }
+
+  // Filtro por archivados / activos
+  if (archivados === "1") {
+  condiciones.push("LOWER(COALESCE(estado_procesal, '')) = 'archivado'");
+  } else {
+  condiciones.push("LOWER(COALESCE(estado_procesal, '')) != 'archivado'");
   }
 
   // Filtro por búsqueda: expediente, partes, asunto y abogados asignados
