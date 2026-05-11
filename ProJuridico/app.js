@@ -1,10 +1,76 @@
-const usuarioGuardado = localStorage.getItem("usuario");
+const API_BASE = "http://localhost:3000";
+const USER_STORAGE_KEY = "usuario";
+const STORAGE_KEYS = {
+  activeView: "projuridico.activeView",
+  activeCase: "projuridico.activeCase",
+  dashboardToast: "projuridico.dashboardToast",
+  loginToast: "projuridico.loginToast"
+};
 
-if (!usuarioGuardado) {
+function guardarToastLogin(message, type = "info") {
+  sessionStorage.setItem(STORAGE_KEYS.loginToast, JSON.stringify({ message, type }));
+}
+
+function leerUsuarioSesion() {
+  try {
+    return JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || "null");
+  } catch {
+    localStorage.removeItem(USER_STORAGE_KEY);
+    return null;
+  }
+}
+
+function redirigirAlLogin(message) {
+  if (message) guardarToastLogin(message, "info");
   window.location.href = "index.html";
 }
 
-const usuarioSesion = JSON.parse(usuarioGuardado || "{}");
+const usuarioSesion = leerUsuarioSesion();
+
+if (!usuarioSesion?.token) {
+  localStorage.removeItem(USER_STORAGE_KEY);
+  redirigirAlLogin("Inicia sesión para continuar.");
+  throw new Error("SESSION_REQUIRED");
+}
+
+const sessionExpiresAtMs = Date.parse(usuarioSesion.expiresAt || "");
+
+if (Number.isFinite(sessionExpiresAtMs) && sessionExpiresAtMs <= Date.now()) {
+  localStorage.removeItem(USER_STORAGE_KEY);
+  redirigirAlLogin("Tu sesión expiró. Inicia sesión de nuevo.");
+  throw new Error("SESSION_EXPIRED");
+}
+
+let redirigiendoPorSesion = false;
+const nativeFetch = window.fetch.bind(window);
+
+function limpiarSesionLocal(message = "Tu sesión expiró. Inicia sesión de nuevo.") {
+  if (redirigiendoPorSesion) return;
+  redirigiendoPorSesion = true;
+  sessionStorage.removeItem(STORAGE_KEYS.activeView);
+  sessionStorage.removeItem(STORAGE_KEYS.activeCase);
+  guardarToastLogin(message, "info");
+  localStorage.removeItem(USER_STORAGE_KEY);
+  window.location.href = "index.html";
+}
+
+window.fetch = async (input, options = {}) => {
+  const url = new URL(typeof input === "string" ? input : input.url, window.location.href);
+  const headers = new Headers(options.headers || {});
+
+  if (url.href.startsWith(`${API_BASE}/api/`)) {
+    headers.set("Authorization", `Bearer ${usuarioSesion.token}`);
+  }
+
+  const response = await nativeFetch(input, { ...options, headers });
+
+  if (url.href.startsWith(`${API_BASE}/api/`) && response.status === 401) {
+    limpiarSesionLocal("Tu sesión expiró. Inicia sesión de nuevo.");
+  }
+
+  return response;
+};
+
 const sessionRol = (usuarioSesion.rol || "").toUpperCase();
 const sessionUsuarioId = usuarioSesion.id ? String(usuarioSesion.id) : "";
 const sessionUsername = usuarioSesion.username || "";
@@ -22,7 +88,10 @@ const btnRolForm = document.getElementById("btnRolForm");
 const permDetails = document.getElementById("permDetails");
 const btnLogout = document.getElementById("btnLogout");
 const btnFiltroPrioridad = document.getElementById("btnFiltroPrioridad");
+const btnFiltroArchivados = document.getElementById("btnFiltroArchivados");
+
 let ordenarPrioridadAltaBaja = false;
+let mostrarArchivados = false;
 
 function authQueryParams() {
   return {
@@ -32,8 +101,42 @@ function authQueryParams() {
   };
 }
 
+function puedeCrearCasos() {
+  return ["ADMIN", "SECRETARIA"].includes(sessionRol);
+}
+
+function puedeGestionarUsuarios() {
+  return sessionRol === "ADMIN";
+}
+
+function actualizarIndicadorSesion() {
+  if (!sessionBadge) return;
+  const nombre = sessionNombre || sessionUsername || "Usuario";
+  if (sessionUserName) sessionUserName.textContent = nombre;
+  if (sessionUserRole) sessionUserRole.textContent = sessionRol || "SESIÓN";
+  sessionBadge.title = Number.isFinite(sessionExpiresAtMs)
+    ? `Sesión activa hasta ${new Date(sessionExpiresAtMs).toLocaleString()}`
+    : "Sesión activa";
+}
+
+function verificarExpiracionLocal() {
+  if (Number.isFinite(sessionExpiresAtMs) && sessionExpiresAtMs <= Date.now()) {
+    limpiarSesionLocal("Tu sesión expiró. Inicia sesión de nuevo.");
+  }
+}
+
+function setSearchStatus(message = "", state = "") {
+  if (!searchStatus) return;
+  searchStatus.textContent = message;
+  searchStatus.dataset.state = state;
+}
+
 // ── Búsqueda global ──
 const inputBusqueda = document.getElementById("inputBusqueda");
+const searchStatus = document.getElementById("searchStatus");
+const sessionBadge = document.getElementById("sessionBadge");
+const sessionUserName = document.getElementById("sessionUserName");
+const sessionUserRole = document.getElementById("sessionUserRole");
 let busquedaActual = "";
 let debounceTimer = null;
 
@@ -79,13 +182,6 @@ const btnGuardarUsuario = document.getElementById("btnGuardarUsuario");
 const inputUsuarioId = document.getElementById("usuario_id");
 const inputUsuarioNombre = document.getElementById("usuario_nombre");
 
-const STORAGE_KEYS = {
-  activeView: "projuridico.activeView",
-  activeCase: "projuridico.activeCase",
-  dashboardToast: "projuridico.dashboardToast",
-  loginToast: "projuridico.loginToast"
-};
-
 function guardarVistaActiva(vista) {
   if (!vista) return;
   sessionStorage.setItem(STORAGE_KEYS.activeView, vista);
@@ -99,6 +195,7 @@ function guardarCasoActivo(item) {
   if (!item?._numId) return;
   sessionStorage.setItem(STORAGE_KEYS.activeCase, JSON.stringify({
     id: item.id,
+    expediente: item.expediente || "",
     tipo: item.tipo,
     tipoDb: item.tipoDb || "",
     prioridad: item.prioridad,
@@ -146,6 +243,10 @@ function mostrarToastPendiente(key) {
 
 function setActiveView(vista, { scroll = true } = {}) {
   if (!vista) return;
+  if (vista === "v_usuarios" && !puedeGestionarUsuarios()) {
+    showToast("No tienes permisos para ver usuarios.", "error");
+    vista = "v_dashboard";
+  }
   const existeVista = Array.from(views).some(view => view.id === vista);
   if (!existeVista) return;
 
@@ -162,6 +263,27 @@ function setActiveView(vista, { scroll = true } = {}) {
   if (vista === "v_usuarios") cargarUsuarios();
   if (scroll) {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
+
+function aplicarPermisosInterfaz() {
+  const navUsuarios = document.querySelector('.nav button[data-view="v_usuarios"]');
+  const detallesNuevoCaso = document.getElementById("detallesNuevoCaso");
+  const actividadCard = document.getElementById("actividadCard");
+  const drawerHistorialTab = document.querySelector('[data-drawer-target="drawerSectionHistorial"]');
+  const drawerHistorial = document.getElementById("drawerSectionHistorial");
+  const ocultarHistorial = sessionRol === "ABOGADO";
+
+  if (navUsuarios) navUsuarios.style.display = puedeGestionarUsuarios() ? "" : "none";
+  if (btnNuevoUsuario) btnNuevoUsuario.style.display = puedeGestionarUsuarios() ? "" : "none";
+  if (btnNuevoGlobal) btnNuevoGlobal.style.display = puedeCrearCasos() ? "" : "none";
+  if (detallesNuevoCaso) detallesNuevoCaso.style.display = puedeCrearCasos() ? "" : "none";
+  if (actividadCard) actividadCard.style.display = ocultarHistorial ? "none" : "";
+  if (drawerHistorialTab) drawerHistorialTab.style.display = ocultarHistorial ? "none" : "";
+  if (drawerHistorial) drawerHistorial.style.display = ocultarHistorial ? "none" : "";
+
+  if (!puedeGestionarUsuarios() && obtenerVistaActiva() === "v_usuarios") {
+    guardarVistaActiva("v_dashboard");
   }
 }
 
@@ -446,6 +568,7 @@ function normalizarCaso(raw) {
       return tipo ? `${tipo}-${num}` : String(num);
     })(),
     fecha: raw.fecha || raw.created_at || "Sin fecha",
+    expediente: raw.expediente || "—",
     nombre: raw.nombre || raw.asunto || raw.nombre_caso || "",
     tipo: mapTipo(raw.tipo || raw.tipo_caso || ""),
     tipoDb: normalizarTipoCasoDb(raw.tipo_db || raw.tipo || raw.tipo_caso),
@@ -462,8 +585,9 @@ function normalizarCaso(raw) {
   };
 }
 
-function cargarCasos() {
-  renderTable(1);
+async function cargarCasos() {
+  await renderTable(1);
+  cargarDashboardKpis();
 }
 
 // ========== CAMPOS POR TIPO ==========
@@ -616,6 +740,10 @@ async function renderCampos(campos, contenedor, idPrefix = "") {
 
 // ========== FUNCIONES PARA MODAL ==========
 function abrirModalNuevoCaso() {
+  if (!puedeCrearCasos()) {
+    showToast("No tienes permisos para crear casos.", "error");
+    return;
+  }
   if (!modalMask || !modalNuevoCaso) return;
   modalMask.classList.add("show");
   modalNuevoCaso.classList.add("show");
@@ -641,6 +769,10 @@ function limpiarFormularioUsuario() {
 }
 
 function abrirModalNuevoUsuario() {
+  if (!puedeGestionarUsuarios()) {
+    showToast("No tienes permisos para crear usuarios.", "error");
+    return;
+  }
   if (!modalUsuarioMask || !modalNuevoUsuario) return;
   limpiarFormularioUsuario();
   modalUsuarioMask.classList.add("show");
@@ -683,6 +815,10 @@ if (modalMask) {
 if (formNuevoCaso) {
   formNuevoCaso.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (!puedeCrearCasos()) {
+      showToast("No tienes permisos para crear casos.", "error");
+      return;
+    }
     const tipo = tipoSelectModal.value;
     const formData = new FormData(formNuevoCaso);
     const datos = Object.fromEntries(formData);
@@ -734,6 +870,11 @@ if (modalUsuarioMask) {
 if (formNuevoUsuario) {
   formNuevoUsuario.addEventListener("submit", async (e) => {
     e.preventDefault();
+
+    if (!puedeGestionarUsuarios()) {
+      showToast("No tienes permisos para crear usuarios.", "error");
+      return;
+    }
 
     const formData = new FormData(formNuevoUsuario);
     const datos = Object.fromEntries(formData);
@@ -810,6 +951,10 @@ const formInline = document.getElementById("formNuevoCaso");
 if (formInline) {
   formInline.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (!puedeCrearCasos()) {
+      showToast("No tienes permisos para crear casos.", "error");
+      return;
+    }
     const tipo = document.getElementById("tipo_caso").value;
     const formData = new FormData(formInline);
     const datos = Object.fromEntries(formData);
@@ -857,18 +1002,49 @@ async function renderTable(pagina = 1) {
     pagina: pagina,
     tipo: tipo,
     busqueda: busquedaActual,
+    archivados: mostrarArchivados ? "1" : "0",
     ...authQueryParams()
   });
   if (ordenarPrioridadAltaBaja) params.set("orden", "prioridad_desc");
   const url = `http://localhost:3000/api/casos?${params}`;
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="7" class="muted" style="text-align:center; padding:24px;">
+        ${busquedaActual ? `Buscando casos para "${escapeHtml(busquedaActual)}"...` : "Cargando casos..."}
+      </td>
+    </tr>
+  `;
+  setSearchStatus(busquedaActual ? "Buscando..." : "", busquedaActual ? "loading" : "");
   try {
     const res = await fetch(url);
     const data = await res.json();
-    if (!data.success) return;
+    if (!data.success) {
+      tbody.innerHTML = `<tr><td colspan="7" class="muted" style="text-align:center; padding:24px;">No se pudieron cargar los casos.</td></tr>`;
+      setSearchStatus("", "");
+      return;
+    }
     casos = (data.casos || []).map(normalizarCaso);
+
+    if (!casos.length) {
+      const mensaje = busquedaActual
+        ? `No se encontraron casos para "${busquedaActual}".`
+        : "Sin casos registrados.";
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="muted" style="text-align:center; padding:24px;">
+            ${escapeHtml(mensaje)}
+          </td>
+        </tr>
+      `;
+      renderPaginacion(pagina, 0);
+      setSearchStatus(busquedaActual ? "Sin resultados" : "", busquedaActual ? "empty" : "");
+      return;
+    }
+
     tbody.innerHTML = casos.map(caso => `
       <tr data-id="${caso._numId}" data-tipo="${caso.tipo}">
         <td><span class="tag">${escapeHtml(caso.fecha)}</span></td>
+        <td>${escapeHtml(caso.expediente || "—")}</td>
         <td>${escapeHtml(caso.nombre)}</td>
         <td class="muted">${escapeHtml(caso.tipo)}</td>
         <td>${renderPrioridadBadge(caso.prioridad)}</td>
@@ -885,15 +1061,18 @@ async function renderTable(pagina = 1) {
     });
     renderPaginacion(pagina, casos.length);
     resaltarTermino(busquedaActual);
+    setSearchStatus(busquedaActual ? `${casos.length} resultado(s)` : "", busquedaActual ? "done" : "");
   } catch (err) {
     console.error("Error cargando casos:", err);
+    tbody.innerHTML = `<tr><td colspan="7" class="muted" style="text-align:center; padding:24px;">No se pudieron cargar los casos.</td></tr>`;
+    setSearchStatus("", "");
   }
 }
 
 function resaltarTermino(termino) {
   if (!termino || !tbody) return;
   const regex = new RegExp(`(${termino.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
-  tbody.querySelectorAll("td:nth-child(2)").forEach(td => {
+  tbody.querySelectorAll("td:nth-child(2), td:nth-child(3), td:nth-child(7)").forEach(td => {
     td.innerHTML = td.textContent.replace(regex,
       '<mark style="background:#fef08a; border-radius:3px; padding:0 2px;">$1</mark>'
     );
@@ -952,6 +1131,8 @@ function openDrawer(item) {
   setActiveView("v_casos", { scroll: false });
   document.getElementById("drawerTitle").textContent = item.id;
   document.getElementById("drawerSubtitle").textContent = `· ${item.tipo}`;
+  const expedienteEl = document.getElementById("d_expediente");
+  if (expedienteEl) expedienteEl.textContent = item.expediente || "—";
   document.getElementById("d_tipo").textContent = item.tipo;
   document.getElementById("d_prioridad").innerHTML = renderPrioridadBadge(item.prioridad);
   document.getElementById("d_estado").textContent = item.estado;
@@ -987,6 +1168,7 @@ function openDrawer(item) {
 
   guardarCasoActivo({
     id: item.id,
+    expediente: item.expediente,
     tipo: item.tipo,
     tipoDb: casoActivoTipo,
     prioridad: item.prioridad,
@@ -1003,9 +1185,29 @@ function openDrawer(item) {
   cargarNotas(casoActivoId);
   cargarDocumentos(casoActivoId);
   iniciarEventosUpload();
+  activarDrawerTab("drawerSectionDetalles", { scroll: false });
 
   mask.classList.add("show");
 }
+
+function activarDrawerTab(sectionId, { scroll = true } = {}) {
+  const tabs = document.querySelectorAll("[data-drawer-target]");
+  tabs.forEach(tab => {
+    tab.classList.toggle("active", tab.dataset.drawerTarget === sectionId);
+  });
+
+  if (!scroll) return;
+  const section = document.getElementById(sectionId);
+  const drawer = mask?.querySelector(".drawer");
+  if (!section || !drawer) return;
+
+  const targetTop = section.offsetTop - 112;
+  drawer.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" });
+}
+
+document.querySelectorAll("[data-drawer-target]").forEach(tab => {
+  tab.addEventListener("click", () => activarDrawerTab(tab.dataset.drawerTarget));
+});
 
 const btnEditarCaso = document.getElementById("drawerBtnEditar");
 const btnGuardarCambios = document.getElementById("drawerBtnGuardarCambios");
@@ -1315,11 +1517,13 @@ if (tipoSelect) {
   });
 }
 
-if (btnFiltroPrioridad) {
-  btnFiltroPrioridad.addEventListener("click", () => {
-    ordenarPrioridadAltaBaja = !ordenarPrioridadAltaBaja;
-    btnFiltroPrioridad.classList.toggle("active", ordenarPrioridadAltaBaja);
-    btnFiltroPrioridad.textContent = ordenarPrioridadAltaBaja ? "Prioridad alta-baja" : "Prioridad";
+if (btnFiltroArchivados) {
+  btnFiltroArchivados.addEventListener("click", () => {
+    mostrarArchivados = !mostrarArchivados;
+
+    btnFiltroArchivados.classList.toggle("active", mostrarArchivados);
+    btnFiltroArchivados.textContent = mostrarArchivados ? "Activos" : "Archivados";
+
     paginaActual = 1;
     renderTable(1);
   });
@@ -1344,6 +1548,10 @@ window.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   if (confirmDialogState) {
     obtenerConfirmDialog().cerrar(false);
+    return;
+  }
+  if (documentPreviewMask && documentPreviewMask.classList.contains("show")) {
+    cerrarPreviewDocumento();
     return;
   }
   if (modalUsuarioMask && modalUsuarioMask.classList.contains("show")) {
@@ -1385,6 +1593,11 @@ if (btnLogout) {
       cancelText: "Cancelar"
     });
     if (!confirmar) return;
+    try {
+      await fetch(`${API_BASE}/api/logout`, { method: "POST" });
+    } catch {
+      // El cierre local debe continuar aunque el backend no responda.
+    }
     sessionStorage.removeItem(STORAGE_KEYS.activeView);
     limpiarCasoActivoGuardado();
     guardarToastPendiente(STORAGE_KEYS.loginToast, {
@@ -1635,50 +1848,117 @@ if (btnLimpiarNota) {
   });
 }
 
-// ========== ACTIVIDAD RECIENTE ==========
+
+// ========== ACTIVIDAD RECIENTE (HISTORIAL) ==========
 const ACTIVIDAD_KEY = "projuridico.actividad";
-const MAX_ACTIVIDAD = 20;
+const actividadTbody = document.getElementById("actividadTbody");
 
-function registrarActividad(mensaje, tag) {
-  const actividades = obtenerActividades();
+function obtenerActividad() {
+  return JSON.parse(localStorage.getItem(ACTIVIDAD_KEY) || "[]");
+}
+
+function renderActividad(filtro = "hoy") {
+  const actividades = obtenerActividad();
   const ahora = new Date();
-  const hora = ahora.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-  const fecha = ahora.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
-  actividades.unshift({ mensaje, tag: tag || "", hora, fecha, timestamp: ahora.getTime() });
-  if (actividades.length > MAX_ACTIVIDAD) actividades.pop();
-  localStorage.setItem(ACTIVIDAD_KEY, JSON.stringify(actividades));
-  renderActividad();
+
+  const filtradas = actividades.filter(act => {
+    const fecha = new Date(act.fecha);
+
+    if (filtro === "hoy") {
+      return fecha.toDateString() === ahora.toDateString();
+    }
+
+    if (filtro === "semana") {
+      const semana = new Date();
+      semana.setDate(ahora.getDate() - 7);
+      return fecha >= semana;
+    }
+
+    if (filtro === "mes") {
+      return (
+        fecha.getMonth() === ahora.getMonth() &&
+        fecha.getFullYear() === ahora.getFullYear()
+      );
+    }
+
+    return true;
+  });
+
+  // Ordenar por fecha descendente
+  filtradas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+  actividadTbody.innerHTML = filtradas.map(act => `
+    <tr>
+      <td>${new Date(act.fecha).toLocaleString()}</td>
+      <td>${act.descripcion}</td>
+      <td><span class="tag">${act.id || "-"}</span></td>
+    </tr>
+  `).join("");
 }
 
-function obtenerActividades() {
-  try { return JSON.parse(localStorage.getItem(ACTIVIDAD_KEY) || "[]"); }
-  catch { return []; }
-}
+// Registra una nueva actividad en el historial
 
-function renderActividad() {
-  const contenedor = document.querySelector("#v_dashboard .card:nth-child(2) .bd .row");
-  if (!contenedor) return;
-  const actividades = obtenerActividades();
-  if (!actividades.length) {
-    contenedor.innerHTML = `<div class="small muted">Sin actividad registrada.</div>`;
-    return;
+
+function registrarActividad(descripcion, id = "") {
+  const actividades = obtenerActividad();
+
+  actividades.unshift({
+    descripcion,
+    id,
+    fecha: new Date().toISOString()
+  });
+
+  //  límite de 50 registros
+  if (actividades.length > 50) {
+    actividades.pop();
   }
-  const hoy = new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
-  contenedor.innerHTML = actividades.map(a => {
-    const etiqueta = a.tag ? `<span class="tag">${escapeHtml(a.tag)}</span>` : "";
-    const cuandoFecha = a.fecha === hoy ? "Hoy" : a.fecha;
-    return `
-      <div class="field">
-        <div class="small">${escapeHtml(cuandoFecha)} ${escapeHtml(a.hora)}${a.tag ? " · " : ""}${etiqueta}</div>
-        <div style="margin-top: 6px;">${escapeHtml(a.mensaje)}</div>
-      </div>`;
-  }).join("");
+
+  localStorage.setItem(ACTIVIDAD_KEY, JSON.stringify(actividades));
 }
+
+function setKpiValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = String(value);
+}
+
+async function cargarDashboardKpis() {
+  try {
+    const res = await fetch(`${API_BASE}/api/dashboard/kpis`);
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.mensaje || "Error");
+
+    setKpiValue("kpiCasosActivos", data.kpis?.casosActivos ?? 0);
+    setKpiValue("kpiAltaPrioridad", data.kpis?.altaPrioridad ?? 0);
+    setKpiValue("kpiPorReasignar", data.kpis?.porReasignar ?? 0);
+    setKpiValue("kpiRecordatorios", data.kpis?.recordatorios ?? 0);
+  } catch (error) {
+    console.error("Error cargando KPIs:", error);
+    setKpiValue("kpiCasosActivos", "0");
+    setKpiValue("kpiAltaPrioridad", "0");
+    setKpiValue("kpiPorReasignar", "0");
+    setKpiValue("kpiRecordatorios", "0");
+  }
+}
+
+
+document.querySelectorAll("[data-filtro]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("[data-filtro]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    renderActividad(btn.dataset.filtro);
+  });
+});
+
 
 // ========== INICIO ==========
+actualizarIndicadorSesion();
+aplicarPermisosInterfaz();
 cargarCasos();
-cargarUsuarios();
-renderActividad(); // ← carga el historial guardado al abrir la app
+if (puedeGestionarUsuarios()) cargarUsuarios();
+if (sessionRol !== "ABOGADO") renderActividad(); // ← carga el historial guardado al abrir la app
+cargarDashboardKpis();
+setInterval(verificarExpiracionLocal, 60 * 1000);
 
 // ========== DOCUMENTOS DEL CASO ==========
 let listaDocumentos = document.getElementById("listaDocumentos");
@@ -1688,6 +1968,13 @@ let btnSeleccionarArch = document.getElementById("btnSeleccionarArchivo");
 let uploadProgress = document.getElementById("uploadProgress");
 let uploadBar = document.getElementById("uploadBar");
 let uploadStatus = document.getElementById("uploadStatus");
+const documentPreviewMask = document.getElementById("documentPreviewMask");
+const documentPreviewFrame = document.getElementById("documentPreviewFrame");
+const documentPreviewTitle = document.getElementById("documentPreviewTitle");
+const btnCloseDocumentPreview = document.getElementById("btnCloseDocumentPreview");
+const btnDownloadDocumentPreview = document.getElementById("btnDownloadDocumentPreview");
+let documentPreviewUrl = null;
+let documentPreviewDownload = null;
 
 function formatBytes(bytes) {
   if (!bytes) return "";
@@ -1696,10 +1983,49 @@ function formatBytes(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
+function escapeJsString(value) {
+  return String(value ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/\r?\n/g, " ");
+}
+
 function iconoArchivo(nombre) {
   const ext = (nombre || "").split(".").pop().toLowerCase();
   return ({ pdf: "📄", doc: "📝", docx: "📝", jpg: "🖼️", jpeg: "🖼️", png: "🖼️", xlsx: "📊", xls: "📊" })[ext] || "📎";
 }
+
+function cerrarPreviewDocumento() {
+  if (documentPreviewFrame) documentPreviewFrame.src = "about:blank";
+  if (documentPreviewMask) documentPreviewMask.classList.remove("show");
+  if (documentPreviewUrl) URL.revokeObjectURL(documentPreviewUrl);
+  documentPreviewUrl = null;
+  documentPreviewDownload = null;
+}
+
+async function visualizarDocumento(docId, nombre) {
+  try {
+    const params = new URLSearchParams(authQueryParams());
+    const res = await fetch(`${API_BASE}/api/documentos/ver/${docId}?${params}`);
+    if (!res.ok) {
+      showToast("No se pudo visualizar el archivo.", "error");
+      return;
+    }
+
+    const blob = await res.blob();
+    cerrarPreviewDocumento();
+    documentPreviewUrl = URL.createObjectURL(blob);
+    documentPreviewDownload = { id: docId, nombre };
+
+    if (documentPreviewTitle) documentPreviewTitle.textContent = nombre || "Documento";
+    if (documentPreviewFrame) documentPreviewFrame.src = documentPreviewUrl;
+    if (documentPreviewMask) documentPreviewMask.classList.add("show");
+  } catch {
+    showToast("Error al visualizar el archivo.", "error");
+  }
+}
+
+window.visualizarDocumento = visualizarDocumento;
 
 function renderDocumentos(docs) {
   listaDocumentos = document.getElementById("listaDocumentos");
@@ -1723,13 +2049,18 @@ function renderDocumentos(docs) {
       </div>
       <button class="btn" style="padding:6px 12px; font-size:12px;"
               type="button"
-              onclick="event.stopPropagation(); descargarDocumento(${doc.id}, '${doc.nombre_original.replace(/'/g, "\\'")}')">
-        ⬇ Descargar
+              onclick="event.stopPropagation(); visualizarDocumento(${doc.id}, '${escapeJsString(doc.nombre_original)}')">
+        Ver
+      </button>
+      <button class="btn" style="padding:6px 12px; font-size:12px;"
+              type="button"
+              onclick="event.stopPropagation(); descargarDocumento(${doc.id}, '${escapeJsString(doc.nombre_original)}')">
+        Descargar
       </button>
       <button class="btn" style="padding:6px 12px; font-size:12px; color:#dc2626; border-color:#fecaca;"
               type="button"
               onclick="event.stopPropagation(); eliminarDocumento(${doc.id})">
-        🗑
+        Eliminar
       </button>
     </div>
   `).join("");
@@ -1752,6 +2083,23 @@ async function descargarDocumento(docId, nombre) {
   } catch {
     showToast("Error al descargar el archivo.", "error");
   }
+}
+
+if (btnCloseDocumentPreview) {
+  btnCloseDocumentPreview.addEventListener("click", cerrarPreviewDocumento);
+}
+
+if (documentPreviewMask) {
+  documentPreviewMask.addEventListener("click", e => {
+    if (e.target === documentPreviewMask) cerrarPreviewDocumento();
+  });
+}
+
+if (btnDownloadDocumentPreview) {
+  btnDownloadDocumentPreview.addEventListener("click", () => {
+    if (!documentPreviewDownload) return;
+    descargarDocumento(documentPreviewDownload.id, documentPreviewDownload.nombre);
+  });
 }
 
 async function eliminarDocumento(docId) {

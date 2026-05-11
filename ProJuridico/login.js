@@ -84,14 +84,15 @@ function mostrarToastPendiente() {
 }
 
 // ========== ACTIVIDAD RECIENTE (compartida con app.js via localStorage) ==========
-function registrarActividad(mensaje, tag) {
+function registrarActividad(descripcion, id) {
   try {
     const actividades = JSON.parse(localStorage.getItem(ACTIVIDAD_KEY) || "[]");
-    const ahora = new Date();
-    const hora = ahora.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-    const fecha = ahora.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
-    actividades.unshift({ mensaje, tag: tag || "", hora, fecha, timestamp: ahora.getTime() });
-    if (actividades.length > MAX_ACTIVIDAD) actividades.pop();
+    actividades.unshift({
+      descripcion,
+      id: id || "",
+      fecha: new Date().toISOString()
+    });
+    if (actividades.length > 50) actividades.pop();
     localStorage.setItem(ACTIVIDAD_KEY, JSON.stringify(actividades));
   } catch {
     // Si falla el localStorage no interrumpir el flujo de login
@@ -129,10 +130,21 @@ async function login(event) {
     }
 
     if (data.success) {
-      localStorage.setItem("usuario", JSON.stringify(data.usuario));
+      const usuarioSesion = {
+        ...(data.usuario || {}),
+        token: data.token || data.usuario?.token || "",
+        expiresAt: data.expiresAt || data.usuario?.expiresAt || ""
+      };
+
+      if (!usuarioSesion.token) {
+        showToast("El servidor no devolvió una sesión válida.", "error");
+        return;
+      }
+
+      localStorage.setItem("usuario", JSON.stringify(usuarioSesion));
 
       // ← ACTIVIDAD: registrar inicio de sesión
-      const nombreUsuario = data.usuario?.nombre || data.usuario?.username || usuario;
+      const nombreUsuario = usuarioSesion.nombre || usuarioSesion.username || usuario;
       registrarActividad(`Inicio de sesión: ${nombreUsuario}.`, "");
 
       sessionStorage.setItem(DASHBOARD_TOAST_KEY, JSON.stringify({

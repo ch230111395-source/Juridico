@@ -6,6 +6,30 @@ require('dotenv').config();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const nodemailer = require('nodemailer');
+
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS
+  }
+});
+
+async function enviarCorreo({ para, asunto, html }) {
+  try {
+    await transporter.sendMail({
+      from: `"Sistema Jurídico" <${process.env.GMAIL_USER}>`,
+      to: para,
+      subject: asunto,
+      html
+    });
+    console.log(`✉️ Correo enviado a ${para}`);
+  } catch (err) {
+    console.error("Error enviando correo:", err.message);
+  }
+}
 
 const carpetaUploads = path.join(__dirname, 'uploads');
 if (!fs.existsSync(carpetaUploads)) fs.mkdirSync(carpetaUploads);
@@ -33,6 +57,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const PORT = 3000;
+const SESSION_TTL_MINUTES = Number(process.env.SESSION_TTL_MINUTES || 480);
+const SESSION_TTL_MS = Math.max(5, SESSION_TTL_MINUTES) * 60 * 1000;
+const sesiones = new Map();
 
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
@@ -144,6 +171,10 @@ function esAdmin(rol) {
   return normalizarRol(rol) === 'ADMIN';
 }
 
+function puedeGestionarCasos(rol) {
+  return ['ADMIN', 'SECRETARIA'].includes(normalizarRol(rol));
+}
+
 function esGestorNotas(rol) {
   return ['ADMIN', 'SECRETARIA'].includes(normalizarRol(rol));
 }
@@ -165,6 +196,72 @@ function tieneAbogadoAsignado(abogado) {
 function estadoAutomaticoPorAsignacion(estado, abogado) {
   if (tieneAbogadoAsignado(abogado)) return 'asignado';
   return estado || 'sin_asignar';
+}
+
+function crearSesion(usuario) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = Date.now() + SESSION_TTL_MS;
+  const usuarioSesion = {
+    id: usuario.id,
+    username: usuario.username,
+    nombre: usuario.nombre,
+    rol: normalizarRol(usuario.rol)
+  };
+
+  sesiones.set(token, { usuario: usuarioSesion, expiresAt });
+  return { token, expiresAt, usuario: usuarioSesion };
+}
+
+function limpiarSesionesExpiradas() {
+  const ahora = Date.now();
+  for (const [token, sesion] of sesiones.entries()) {
+    if (!sesion || sesion.expiresAt <= ahora) sesiones.delete(token);
+  }
+}
+
+function obtenerTokenSesion(req) {
+  const auth = req.get('authorization') || '';
+  const match = auth.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : '';
+}
+
+function autenticarSesion(req, res, next) {
+  limpiarSesionesExpiradas();
+  const token = obtenerTokenSesion(req);
+
+  if (!token || !sesiones.has(token)) {
+    return res.status(401).json({
+      success: false,
+      code: 'SESSION_REQUIRED',
+      mensaje: 'Inicia sesión para continuar.'
+    });
+  }
+
+  const sesion = sesiones.get(token);
+  if (sesion.expiresAt <= Date.now()) {
+    sesiones.delete(token);
+    return res.status(401).json({
+      success: false,
+      code: 'SESSION_EXPIRED',
+      mensaje: 'Tu sesión expiró. Inicia sesión de nuevo.'
+    });
+  }
+
+  req.authToken = token;
+  req.auth = sesion.usuario;
+  req.sessionExpiresAt = sesion.expiresAt;
+
+  req.query.rol = req.auth.rol;
+  req.query.usuario_id = String(req.auth.id);
+  req.query.usuario = req.auth.username || req.auth.nombre || '';
+
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+    req.body.rol = req.auth.rol;
+    req.body.usuario_id = String(req.auth.id);
+  }
+
+  res.set('X-Session-Expires-At', new Date(sesion.expiresAt).toISOString());
+  next();
 }
 
 function construirSelectCasos() {
@@ -273,6 +370,13 @@ db.connect(err => {
 app.post('/api/login', (req, res) => {
   const { usuario, password } = req.body;
 
+  if (!usuario || !password) {
+    return res.status(400).json({
+      success: false,
+      mensaje: "Usuario y contraseña son obligatorios"
+    });
+  }
+
   const passwordHash = crypto
     .createHash('sha256')
     .update(password)
@@ -292,16 +396,34 @@ app.post('/api/login', (req, res) => {
     if (results.length > 0) {
       const usuarioEncontrado = results[0];
       const rolesPermitidos = ["ADMIN", "ABOGADO", "SECRETARIA"];
+      const rolNormalizado = normalizarRol(usuarioEncontrado.rol);
 
-      if (rolesPermitidos.includes(usuarioEncontrado.rol)) {
+      if (!Number(usuarioEncontrado.activo)) {
+        return res.status(403).json({
+          success: false,
+          mensaje: "Tu usuario está inactivo."
+        });
+      }
+
+      if (rolesPermitidos.includes(rolNormalizado)) {
+        const sesion = crearSesion({
+          ...usuarioEncontrado,
+          rol: rolNormalizado
+        });
+        const expiresAt = new Date(sesion.expiresAt).toISOString();
+
         return res.json({
           success: true,
           mensaje: "¡Bienvenido!",
+          token: sesion.token,
+          expiresAt,
           usuario: {
             id: usuarioEncontrado.id,
             username: usuarioEncontrado.username,
             nombre: usuarioEncontrado.nombre,
-            rol: usuarioEncontrado.rol
+            rol: rolNormalizado,
+            token: sesion.token,
+            expiresAt
           }
         });
       } else {
@@ -319,9 +441,31 @@ app.post('/api/login', (req, res) => {
   });
 });
 
+app.use('/api', autenticarSesion);
+
+app.get('/api/session', (req, res) => {
+  res.json({
+    success: true,
+    usuario: req.auth,
+    expiresAt: new Date(req.sessionExpiresAt).toISOString()
+  });
+});
+
+app.post('/api/logout', (req, res) => {
+  if (req.authToken) sesiones.delete(req.authToken);
+  res.json({ success: true });
+});
+
 // Agregar casos
 // Ruta para agregar un nuevo caso
 app.post('/api/nuevocaso', (req, res) => {
+  if (!puedeGestionarCasos(req.auth?.rol)) {
+    return res.status(403).json({
+      success: false,
+      mensaje: "No tienes permisos para crear casos."
+    });
+  }
+
   //console.log("BODY:", req.body);
   const {
     tipo_caso,
@@ -425,8 +569,9 @@ app.post('/api/nuevocaso', (req, res) => {
 app.get('/api/casos', (req, res) => {
   const tipoRecibido = req.query.tipo;
   const busqueda = (req.query.busqueda || "").trim();
-  const rol = normalizarRol(req.query.rol);
-  const usuarioId = normalizarUsuarioId(req.query.usuario_id);
+  const archivados = String(req.query.archivados || "0");
+  const rol = req.auth?.rol || normalizarRol(req.query.rol);
+  const usuarioId = normalizarUsuarioId(req.auth?.id || req.query.usuario_id);
 
   let sql = `SELECT * FROM (${construirSelectCasos()}) casos`;
   let params = [];
@@ -442,13 +587,29 @@ app.get('/api/casos', (req, res) => {
     params.push(tipoBD);
   }
 
-  // Filtro por búsqueda: busca en expediente, actor, demandado y asunto
+  // Filtro por archivados / activos
+  if (archivados === "1") {
+  condiciones.push("LOWER(COALESCE(estado_procesal, '')) = 'archivado'");
+  } else {
+  condiciones.push("LOWER(COALESCE(estado_procesal, '')) != 'archivado'");
+  }
+
+  // Filtro por búsqueda: expediente, partes, asunto y abogados asignados
   if (busqueda) {
     condiciones.push(
-      "(expediente LIKE ? OR actor LIKE ? OR demandado LIKE ? OR asunto LIKE ?)"
+      `(
+        expediente LIKE ?
+        OR actor LIKE ?
+        OR demandado LIKE ?
+        OR asunto LIKE ?
+        OR nombre_abogado LIKE ?
+        OR nombre_abogado_colaborador LIKE ?
+        OR CAST(abogado_encargado AS CHAR) LIKE ?
+        OR CAST(abogado_colaborador AS CHAR) LIKE ?
+      )`
     );
     const termino = `%${busqueda}%`;
-    params.push(termino, termino, termino, termino);
+    params.push(termino, termino, termino, termino, termino, termino, termino, termino);
   }
 
   aplicarAccesoCaso(condiciones, params, rol, usuarioId);
@@ -495,6 +656,7 @@ app.get('/api/casos', (req, res) => {
       id: caso.id,
       id_display: `${caso.tipo.toUpperCase()}-${caso.id}`,
       fecha: caso.fecha || caso.created_at || "Sin fecha",
+      expediente: caso.expediente || "",
       nombre: caso.asunto || caso.actor || caso.expediente || "Sin nombre",
       tipo: caso.tipo,
       tipo_db: normalizarTipoCaso(caso.tipo) || caso.tipo,
@@ -516,6 +678,67 @@ app.get('/api/casos', (req, res) => {
   });
 });
 
+app.get('/api/dashboard/kpis', (req, res) => {
+  const rol = req.auth?.rol || normalizarRol(req.query.rol);
+  const usuarioId = normalizarUsuarioId(req.auth?.id || req.query.usuario_id);
+  const condiciones = [];
+  const params = [];
+  const estadoActivo = "LOWER(COALESCE(estado_procesal, '')) NOT IN ('archivado', 'finalizado')";
+  const sinAbogado = `
+    (
+      abogado_encargado IS NULL
+      OR TRIM(CAST(abogado_encargado AS CHAR)) = ''
+      OR TRIM(CAST(abogado_encargado AS CHAR)) = '0'
+      OR LOWER(TRIM(CAST(abogado_encargado AS CHAR))) IN ('sin asignar', 'por asignar', 'por reasignar')
+      OR LOWER(COALESCE(estado_procesal, '')) IN ('sin_asignar', 'sin asignar')
+    )
+  `;
+
+  aplicarAccesoCaso(condiciones, params, rol, usuarioId);
+
+  let sql = `
+    SELECT
+      COALESCE(SUM(CASE WHEN ${estadoActivo} THEN 1 ELSE 0 END), 0) AS casos_activos,
+      COALESCE(SUM(CASE WHEN ${estadoActivo} AND LOWER(COALESCE(prioridad, '')) = 'alta' THEN 1 ELSE 0 END), 0) AS alta_prioridad,
+      COALESCE(SUM(CASE WHEN ${estadoActivo} AND ${sinAbogado} THEN 1 ELSE 0 END), 0) AS por_reasignar
+    FROM (${construirSelectCasos()}) casos
+  `;
+
+  if (condiciones.length > 0) {
+    sql += " WHERE " + condiciones.join(" AND ");
+  }
+
+  db.query(sql, params, (err, rows) => {
+    if (err) {
+      console.error("Error consultando KPIs:", err);
+      return res.status(500).json({ success: false, mensaje: "Error al consultar KPIs" });
+    }
+
+    const recordatorioSql = rol === 'ADMIN'
+      ? "SELECT COUNT(*) AS total FROM recordatorios WHERE visto = FALSE"
+      : "SELECT COUNT(*) AS total FROM recordatorios WHERE visto = FALSE AND destinatario_id = ?";
+    const recordatorioParams = rol === 'ADMIN' ? [] : [usuarioId];
+
+    db.query(recordatorioSql, recordatorioParams, (recErr, recRows) => {
+      if (recErr) {
+        console.error("Error consultando recordatorios KPI:", recErr);
+        return res.status(500).json({ success: false, mensaje: "Error al consultar recordatorios" });
+      }
+
+      const kpis = rows[0] || {};
+      res.json({
+        success: true,
+        kpis: {
+          casosActivos: Number(kpis.casos_activos || 0),
+          altaPrioridad: Number(kpis.alta_prioridad || 0),
+          porReasignar: Number(kpis.por_reasignar || 0),
+          recordatorios: Number(recRows?.[0]?.total || 0)
+        }
+      });
+    });
+  });
+});
+
 // GET /api/usuarios → lista de usuarios
 app.get('/api/usuarios', (req, res) => {
   const sql = `SELECT id, nombre, username, rol, email, activo FROM usuarios ORDER BY id ASC`;
@@ -526,6 +749,10 @@ app.get('/api/usuarios', (req, res) => {
 });
 
 app.post('/api/usuarios', (req, res) => {
+  if (!esAdmin(req.auth?.rol)) {
+    return res.status(403).json({ success: false, mensaje: "No tienes permisos para crear usuarios." });
+  }
+
   const { nombre, username, email, rol, password, activo } = req.body;
 
   if (!username || !password) {
@@ -555,6 +782,10 @@ app.post('/api/usuarios', (req, res) => {
 });
 // PUT /api/usuarios/:id → editar usuario
 app.put('/api/usuarios/:id', (req, res) => {
+  if (!esAdmin(req.auth?.rol)) {
+    return res.status(403).json({ success: false, mensaje: "No tienes permisos para editar usuarios." });
+  }
+
   const { id } = req.params;
   const { nombre, username, email, rol, activo, password } = req.body;
 
@@ -642,7 +873,7 @@ app.post('/api/documentos/:casoId', upload.single('archivo'), (req, res) => {
     return res.status(400).json({ success: false, mensaje: 'tipo_caso es obligatorio.' });
   }
 
-  verificarAccesoCaso(tipoCaso, req.params.casoId, req.body.rol, req.body.usuario_id, (accessErr, permitido) => {
+  verificarAccesoCaso(tipoCaso, req.params.casoId, req.auth?.rol, req.auth?.id, (accessErr, permitido) => {
     if (accessErr) return res.status(500).json({ success: false, mensaje: accessErr.message });
     if (!permitido) {
       if (req.file?.filename) {
@@ -657,7 +888,7 @@ app.post('/api/documentos/:casoId', upload.single('archivo'), (req, res) => {
                  VALUES (?, ?, ?, ?, ?, ?, ?)`;
     db.query(sql,
       [req.params.casoId, tipoCaso, req.file.originalname, req.file.filename,
-      req.file.mimetype, req.file.size, req.body.subido_por || 'Sistema'],
+      req.file.mimetype, req.file.size, req.auth?.nombre || req.auth?.username || 'Sistema'],
       (err, r) => {
         if (err) return res.status(500).json({ success: false, mensaje: err.message });
         res.json({ success: true, id: r.insertId });
@@ -682,6 +913,29 @@ app.get('/api/documentos/descargar/:docId', (req, res) => {
         if (!fs.existsSync(ruta))
           return res.status(404).json({ success: false, mensaje: 'Archivo eliminado del servidor' });
         res.download(ruta, doc.nombre_original);
+      });
+    });
+});
+
+// GET  /api/documentos/ver/:docId  → visualización inline
+app.get('/api/documentos/ver/:docId', (req, res) => {
+  db.query('SELECT caso_id, tipo_caso, nombre_original, nombre_archivo, mimetype FROM documentos WHERE id = ?',
+    [req.params.docId], (err, rows) => {
+      if (err || !rows.length)
+        return res.status(404).json({ success: false, mensaje: 'No encontrado' });
+
+      const doc = rows[0];
+      verificarAccesoCaso(doc.tipo_caso, doc.caso_id, req.query.rol, req.query.usuario_id, (accessErr, permitido) => {
+        if (accessErr) return res.status(500).json({ success: false, mensaje: accessErr.message });
+        if (!permitido) return res.status(403).json({ success: false, mensaje: 'No tienes acceso a este documento.' });
+
+        const ruta = path.join(__dirname, 'uploads', doc.nombre_archivo);
+        if (!fs.existsSync(ruta))
+          return res.status(404).json({ success: false, mensaje: 'Archivo eliminado del servidor' });
+
+        res.setHeader('Content-Type', doc.mimetype || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.nombre_original)}"`);
+        res.sendFile(ruta);
       });
     });
 });
@@ -1238,7 +1492,8 @@ app.put('/api/casos/:tipo/:id/desarchivar', (req, res) => {
 
 // GET /api/recordatorios → lista según rol
 app.get('/api/recordatorios', (req, res) => {
-  const { usuario_id, rol } = req.query;
+  const usuario_id = String(req.auth?.id || req.query.usuario_id || '');
+  const rol = req.auth?.rol || normalizarRol(req.query.rol);
   let sql, params;
 
   if (rol === 'ADMIN') {
@@ -1272,7 +1527,8 @@ app.get('/api/recordatorios', (req, res) => {
 
 // GET /api/recordatorios/hoy → toasts del día
 app.get('/api/recordatorios/hoy', (req, res) => {
-  const { usuario_id, rol } = req.query;
+  const usuario_id = String(req.auth?.id || req.query.usuario_id || '');
+  const rol = req.auth?.rol || normalizarRol(req.query.rol);
   let sql, params;
 
   if (rol === 'ADMIN') {
@@ -1296,42 +1552,102 @@ app.get('/api/recordatorios/hoy', (req, res) => {
 
 // POST /api/recordatorios → crear
 app.post('/api/recordatorios', (req, res) => {
-  const { caso_tipo, caso_id, titulo, descripcion, fecha_aviso, usuario_id, destinatario_id } = req.body;
+  const { caso_tipo, caso_id, titulo, descripcion, fecha_aviso, destinatario_id } = req.body;
+  const usuario_id = String(req.auth?.id || '');
+  const destinatarioFinal = destinatario_id || usuario_id;
+
   if (!titulo || !fecha_aviso) {
     return res.status(400).json({ success: false, mensaje: "Título y fecha son obligatorios." });
   }
-  db.query(
-    `INSERT INTO recordatorios 
-     (caso_tipo, caso_id, titulo, descripcion, fecha_aviso, usuario_id, destinatario_id) 
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [caso_tipo || null, caso_id || null, titulo, descripcion || '',
-      fecha_aviso, usuario_id || null, destinatario_id || null],
-    (err, result) => {
-      if (err) return res.status(500).json({ success: false, mensaje: err.message });
-      res.json({ success: true, id: result.insertId });
+
+  if (!puedeGestionarCasos(req.auth?.rol) && String(destinatarioFinal) !== usuario_id) {
+    return res.status(403).json({ success: false, mensaje: "No puedes crear recordatorios para otros usuarios." });
+  }
+
+ db.query(
+  `INSERT INTO recordatorios (caso_tipo, caso_id, titulo, descripcion, fecha_aviso, usuario_id, destinatario_id) 
+   VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  [caso_tipo || null, caso_id || null, titulo, descripcion || '',
+   fecha_aviso, usuario_id || null, destinatarioFinal || null],
+  (err, result) => {
+    if (err) return res.status(500).json({ success: false, mensaje: err.message });
+
+    // Manda correo al destinatario si tiene email
+    if (destinatarioFinal) {
+      db.query('SELECT email, nombre FROM usuarios WHERE id = ?',
+        [destinatarioFinal], async (err2, rows) => {
+          if (!err2 && rows.length && rows[0].email) {
+            await enviarCorreo({
+              para: rows[0].email,
+              asunto: `📌 Nuevo recordatorio: ${titulo}`,
+              html: `
+                <div style="font-family:sans-serif; max-width:500px; margin:0 auto;">
+                  <h2 style="color:#1e40af;">📌 Tienes un nuevo recordatorio</h2>
+                  <table style="width:100%; border-collapse:collapse;">
+                    <tr>
+                      <td style="padding:8px; font-weight:bold;">Título:</td>
+                      <td style="padding:8px;">${titulo}</td>
+                    </tr>
+                    <tr style="background:#f8fafc;">
+                      <td style="padding:8px; font-weight:bold;">Fecha de aviso:</td>
+                      <td style="padding:8px;">${fecha_aviso}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px; font-weight:bold;">Caso:</td>
+                      <td style="padding:8px;">${caso_tipo ? `${caso_tipo.toUpperCase()}-${caso_id}` : '—'}</td>
+                    </tr>
+                    <tr style="background:#f8fafc;">
+                      <td style="padding:8px; font-weight:bold;">Descripción:</td>
+                      <td style="padding:8px;">${descripcion || '—'}</td>
+                    </tr>
+                  </table>
+                  <br>
+                  <small style="color:#94a3b8;">Sistema Jurídico — Este es un mensaje automático.</small>
+                </div>
+              `
+            });
+          }
+        }
+      );
     }
-  );
+
+    res.json({ success: true, mensaje: "¡Recordatorio guardado!", id: result.insertId });
+  }
+);
 });
 
 // PATCH /api/recordatorios/:id/visto
 app.patch('/api/recordatorios/:id/visto', (req, res) => {
-  db.query(`UPDATE recordatorios SET visto = TRUE WHERE id = ?`, [req.params.id], (err) => {
+  const sql = req.auth?.rol === 'ADMIN'
+    ? `UPDATE recordatorios SET visto = TRUE WHERE id = ?`
+    : `UPDATE recordatorios SET visto = TRUE WHERE id = ? AND destinatario_id = ?`;
+  const params = req.auth?.rol === 'ADMIN' ? [req.params.id] : [req.params.id, req.auth?.id];
+
+  db.query(sql, params, (err, result) => {
     if (err) return res.status(500).json({ success: false, mensaje: err.message });
+    if (!result.affectedRows) return res.status(404).json({ success: false, mensaje: 'Recordatorio no encontrado.' });
     res.json({ success: true });
   });
 });
 
 // DELETE /api/recordatorios/:id
 app.delete('/api/recordatorios/:id', (req, res) => {
-  db.query(`DELETE FROM recordatorios WHERE id = ?`, [req.params.id], (err) => {
+  const sql = req.auth?.rol === 'ADMIN'
+    ? `DELETE FROM recordatorios WHERE id = ?`
+    : `DELETE FROM recordatorios WHERE id = ? AND (usuario_id = ? OR destinatario_id = ?)`;
+  const params = req.auth?.rol === 'ADMIN' ? [req.params.id] : [req.params.id, req.auth?.id, req.auth?.id];
+
+  db.query(sql, params, (err, result) => {
     if (err) return res.status(500).json({ success: false, mensaje: err.message });
+    if (!result.affectedRows) return res.status(404).json({ success: false, mensaje: 'Recordatorio no encontrado.' });
     res.json({ success: true });
   });
 });
 
 // GET /api/recordatorios/automaticos → casos que vencen hoy
 app.get('/api/recordatorios/automaticos', (req, res) => {
-  const { usuario_id, rol } = req.query;
+  const usuario_id = String(req.auth?.id || req.query.usuario_id || '');
+  const rol = req.auth?.rol || normalizarRol(req.query.rol);
 
   // Consulta todas las tablas buscando fecha = hoy
   const tablas = [
