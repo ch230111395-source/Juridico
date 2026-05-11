@@ -44,74 +44,66 @@
         </div>
       </div>
 
-      <!-- ===== DASHBOARD ===== -->
-      <section id="v_dashboard" class="view active">
-        <div class="grid">
-          <div class="card">
-            <div class="hd">
-              <div>
-                <h2>Panel general</h2>
-              </div>
-              <div class="row">
-                <span class="chip">Filtro: Hoy</span>
-                <span class="chip">Abogado: Todos</span>
-                <span class="chip">Estado: Todos</span>
-              </div>
-            </div>
-            <div class="bd">
-              <div class="kpis">
-                <div class="kpi">
-                  <div class="v" id="kpiCasosActivos">...</div>
-                  <div class="l">Casos activos</div>
-                </div>
-                <div class="kpi">
-                  <div class="v" id="kpiAltaPrioridad">...</div>
-                  <div class="l">Alta prioridad</div>
-                </div>
-                <div class="kpi">
-                  <div class="v" id="kpiPorReasignar">...</div>
-                  <div class="l">Por reasignar</div>
-                </div>
-                <div class="kpi">
-                  <div class="v" id="kpiRecordatorios">...</div>
-                  <div class="l">Recordatorios</div>
-                </div>
-              </div>
-            </div>
-          </div>
+<!-- ===== DASHBOARD ===== -->
+<section id="v_dashboard" class="view active">
+  <div class="grid">
+    <div class="card">
+      <div class="hd">
+        <div>
+          <h2>Panel general</h2>
+        </div>
+        <div class="row">
+          <span class="chip">Filtro: Hoy</span>
+          <span class="chip">Abogado: Todos</span>
+          <span class="chip">Estado: Todos</span>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="kpis">
+  <button class="kpi kpi-btn" id="kpiBtnCasosActivos">
+    <div class="v" id="kpiCasosActivos">...</div>
+    <div class="l">Casos activos</div>
+  </button>
+  <button class="kpi kpi-btn" id="kpiBtnAltaPrioridad">
+    <div class="v" id="kpiAltaPrioridad">...</div>
+    <div class="l">Alta prioridad</div>
+  </button>
+  <button class="kpi kpi-btn" id="kpiBtnPorReasignar">
+    <div class="v" id="kpiPorReasignar">...</div>
+    <div class="l">Por reasignar</div>
+  </button>
+  <button class="kpi kpi-btn" id="kpiBtnRecordatorios">
+    <div class="v" id="kpiRecordatorios">...</div>
+    <div class="l">Recordatorios</div>
+  </button>
+</div>
+      </div>
+    </div>
 
-
-
-         <div class="card" id="actividadCard">
-  <div class="hd">
-    <h2>Actividad reciente</h2>
-
-    <!-- filtros -->
-    <div class="row">
-      <button class="btn active" data-filtro="hoy">Hoy</button>
-      <button class="btn" data-filtro="semana">Semana</button>
-      <button class="btn" data-filtro="mes">Mes</button>
+    <div class="card" id="actividadCard">
+      <div class="hd">
+        <h2>Actividad reciente</h2>
+        <div class="row">
+          <button class="btn active" data-filtro="hoy">Hoy</button>
+          <button class="btn" data-filtro="semana">Semana</button>
+          <button class="btn" data-filtro="mes">Mes</button>
+        </div>
+      </div>
+      <div class="bd actividad-container">
+        <table class="tabla-actividad">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Actividad</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody id="actividadTbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
-
-  <div class="bd actividad-container">
-    <table class="tabla-actividad">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Actividad</th>
-          <th>ID</th>
-        </tr>
-      </thead>
-      <tbody id="actividadTbody">
-        <!-- dinámico -->
-      </tbody>
-    </table>
-  </div>
-</div>
-        </div>
-        
-      </section>
+</section>
 
       <!-- ===== CASOS ===== -->
       <section id="v_casos" class="view">
@@ -242,7 +234,6 @@
       <section id="v_recordatorios" class="view">
         <div class="grid cols2">
 
-          <!-- Lista de recordatorios -->
           <div class="card">
             <div class="hd">
               <div>

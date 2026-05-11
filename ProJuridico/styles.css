@@ -1019,3 +1019,127 @@ details:not([open]) > summary::before { content: '▸ '; }
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* KPI como botón */
+.kpi-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  padding: 16px;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  position: relative;
+  outline: none;
+}
+
+.kpi-btn:hover {
+  background: var(--hover, rgba(0, 0, 0, 0.04));
+  box-shadow: 0 0 0 2px var(--primary, #3b6ff6);
+  transform: translateY(-1px);
+}
+
+.kpi-btn:active {
+  transform: translateY(0px);
+  box-shadow: 0 0 0 3px var(--primary, #3b6ff6);
+}
+
+.kpi-btn:focus-visible {
+  box-shadow: 0 0 0 3px var(--primary, #3b6ff6);
+}
+
+.kpi-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  padding: 16px;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.kpi-btn:hover {
+  background: var(--hover, rgba(0, 0, 0, 0.04));
+  box-shadow: 0 0 0 2px var(--primary);
+  transform: translateY(-1px);
+}
+
+.kpi-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 0 0 3px var(--primary);
+}
+
+/* ── Autocomplete ── */
+.searchSuggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--bg, #fff);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.searchSuggestions:empty { display: none; }
+
+.searchSuggestionItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.1s;
+  border-bottom: 1px solid var(--line);
+}
+
+.searchSuggestionItem:last-child { border-bottom: none; }
+
+.searchSuggestionItem:hover,
+.searchSuggestionItem.focused {
+  background: var(--chip, #f0f4ff);
+}
+
+.suggestionIcon { font-size: 15px; flex-shrink: 0; }
+
+.suggestionMain {
+  flex: 1;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestionMain mark {
+  background: #fef08a;
+  border-radius: 3px;
+  padding: 0 1px;
+  font-weight: 700;
+}
+
+.suggestionSub {
+  font-size: 11px;
+  color: var(--muted, #888);
+  flex-shrink: 0;
+}
+
+.suggestionTag {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--line);
+  color: var(--muted, #888);
+  flex-shrink: 0;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}

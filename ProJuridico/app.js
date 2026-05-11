@@ -2724,3 +2724,269 @@ verificarRecordatorios();
 verificarRecordatoriosAutomaticos();
 setInterval(verificarRecordatorios, 5 * 60 * 1000);
 setInterval(verificarRecordatoriosAutomaticos, 5 * 60 * 1000);
+
+document.getElementById("kpiBtnCasosActivos")?.addEventListener("click", () => {
+  mostrarArchivados = false;
+  ordenarPrioridadAltaBaja = false;
+  btnFiltroArchivados?.classList.remove("active");
+  if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
+  document.getElementById("btnFiltroPrioridad")?.classList.remove("active");
+  if (tipoSelect) tipoSelect.value = "Todos";
+  busquedaActual = "";
+  if (inputBusqueda) inputBusqueda.value = "";
+
+  paginaActual = 1;
+  setActiveView("v_casos");
+  renderTable(1);
+});
+
+document.getElementById("kpiBtnAltaPrioridad")?.addEventListener("click", () => {
+  mostrarArchivados = false;
+  btnFiltroArchivados?.classList.remove("active");
+  if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
+  ordenarPrioridadAltaBaja = true;
+  document.getElementById("btnFiltroPrioridad")?.classList.add("active");
+  if (tipoSelect) tipoSelect.value = "Todos";
+  busquedaActual = "";
+  if (inputBusqueda) inputBusqueda.value = "";
+
+  paginaActual = 1;
+  setActiveView("v_casos");
+  renderTable(1);
+});
+
+document.getElementById("kpiBtnPorReasignar")?.addEventListener("click", () => {
+  mostrarArchivados = false;
+  ordenarPrioridadAltaBaja = false;
+  btnFiltroArchivados?.classList.remove("active");
+  if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
+  document.getElementById("btnFiltroPrioridad")?.classList.remove("active");
+  if (tipoSelect) tipoSelect.value = "Todos";
+  busquedaActual = "Sin asignar";
+  if (inputBusqueda) inputBusqueda.value = "Sin asignar";
+
+  paginaActual = 1;
+  setActiveView("v_casos");
+  renderTable(1);
+});
+
+document.getElementById("kpiBtnRecordatorios")?.addEventListener("click", () => {
+  setActiveView("v_recordatorios");
+});
+
+let sugerenciasContainer = null;
+let indiceSugerencia = -1;
+
+function crearSugerenciasContainer() {
+  if (sugerenciasContainer && document.body.contains(sugerenciasContainer)) return;
+  sugerenciasContainer = document.createElement("div");
+  sugerenciasContainer.className = "searchSuggestions";
+  sugerenciasContainer.setAttribute("role", "listbox");
+  sugerenciasContainer.setAttribute("aria-label", "Sugerencias de búsqueda");
+  
+  const wrapper = inputBusqueda?.parentElement;
+  if (wrapper) {
+    wrapper.style.position = "relative";
+    wrapper.appendChild(sugerenciasContainer);
+  }
+}
+
+function cerrarSugerencias() {
+  if (sugerenciasContainer) sugerenciasContainer.innerHTML = "";
+  indiceSugerencia = -1;
+}
+
+function normalizarBusqueda(str) {
+  return String(str || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, ""); 
+}
+
+async function obtenerSugerencias(termino) {
+  if (!termino || termino.length < 1) return [];
+
+  try {
+    const params = new URLSearchParams({
+      limite: 50,
+      pagina: 1,
+      tipo: "Todos",
+      busqueda: termino,
+      archivados: "0",
+      ...authQueryParams()
+    });
+    const res = await fetch(`${API_BASE}/api/casos?${params}`);
+    const data = await res.json();
+    if (!data.success) return [];
+
+    const norm = normalizarBusqueda(termino);
+    const resultados = (data.casos || []).map(normalizarCaso);
+
+    const sugerencias = new Map();
+    resultados.forEach(caso => {
+      const campos = [
+        { valor: caso.expediente,  subtexto: caso.nombre,  tipo: "Expediente" },
+        { valor: caso.nombre,      subtexto: caso.tipo,    tipo: "Caso"       },
+        { valor: caso.asignado,    subtexto: caso.tipo,    tipo: "Abogado"    },
+        { valor: caso.tipo,        subtexto: null,         tipo: "Tipo"       },
+        { valor: caso.estado,      subtexto: null,         tipo: "Estado"     },
+      ];
+
+      campos.forEach(({ valor, subtexto, tipo }) => {
+        if (!valor || valor === "—" || valor === "Sin asignar") return;
+        if (!normalizarBusqueda(valor).includes(norm)) return;
+        if (!sugerencias.has(valor)) {
+          sugerencias.set(valor, { texto: valor, subtexto, tipo });
+        }
+      });
+    });
+
+    return [...sugerencias.values()].slice(0, 7);
+  } catch {
+    return [];
+  }
+}
+
+function resaltarMatch(texto, termino) {
+  if (!termino) return escapeHtml(texto);
+  const norm = normalizarBusqueda(texto);
+  const normTerm = normalizarBusqueda(termino);
+  const idx = norm.indexOf(normTerm);
+  if (idx === -1) return escapeHtml(texto);
+  return (
+    escapeHtml(texto.slice(0, idx)) +
+    `<mark>${escapeHtml(texto.slice(idx, idx + termino.length))}</mark>` +
+    escapeHtml(texto.slice(idx + termino.length))
+  );
+}
+
+function renderSugerencias(sugerencias, termino) {
+  if (!sugerenciasContainer) return;
+  cerrarSugerencias();
+
+  if (!sugerencias.length) return;
+
+  const iconos = {
+    Expediente: "🗂",
+    Caso:       "📋",
+    Abogado:    "👤",
+    Tipo:       "🏷",
+    Estado:     "📌"
+  };
+
+  sugerencias.forEach((s, i) => {
+    const item = document.createElement("div");
+    item.className = "searchSuggestionItem";
+    item.setAttribute("role", "option");
+    item.dataset.index = i;
+    item.innerHTML = `
+      <span class="suggestionIcon">${iconos[s.tipo] || "🔍"}</span>
+      <span class="suggestionMain">${resaltarMatch(s.texto, termino)}</span>
+      ${s.subtexto ? `<span class="suggestionSub">${escapeHtml(s.subtexto)}</span>` : ""}
+      <span class="suggestionTag">${escapeHtml(s.tipo)}</span>
+    `;
+
+    item.addEventListener("mousedown", e => {
+      e.preventDefault(); 
+    seleccionarSugerencia(s.texto);
+    });
+
+    sugerenciasContainer.appendChild(item);
+  });
+}
+
+function seleccionarSugerencia(texto) {
+  if (!inputBusqueda) return;
+  inputBusqueda.value = texto;
+  busquedaActual = texto;
+  paginaActual = 1;
+  cerrarSugerencias();
+  renderTable(1);
+  const vistaActiva = document.querySelector(".view.active");
+  if (vistaActiva?.id !== "v_casos") setActiveView("v_casos");
+}
+
+function moverSugerencia(direccion) {
+  if (!sugerenciasContainer) return;
+  const items = sugerenciasContainer.querySelectorAll(".searchSuggestionItem");
+  if (!items.length) return;
+
+  items[indiceSugerencia]?.classList.remove("focused");
+  indiceSugerencia = (indiceSugerencia + direccion + items.length) % items.length;
+  const activo = items[indiceSugerencia];
+  activo.classList.add("focused");
+  if (inputBusqueda) inputBusqueda.value = activo.querySelector(".suggestionMain")?.textContent || "";
+}
+
+if (inputBusqueda) {
+  const nuevoInput = inputBusqueda.cloneNode(true);
+  inputBusqueda.parentNode.replaceChild(nuevoInput, inputBusqueda);
+
+  window.inputBusqueda = nuevoInput;
+  const inp = nuevoInput;
+
+  crearSugerenciasContainer();
+
+  inp.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    const termino = inp.value.trim();
+
+    if (!termino) {
+      cerrarSugerencias();
+      if (busquedaActual !== "") {
+        busquedaActual = "";
+        paginaActual = 1;
+        renderTable(1);
+      }
+      return;
+    }
+
+    debounceTimer = setTimeout(async () => {
+      const sugerencias = await obtenerSugerencias(termino);
+      renderSugerencias(sugerencias, termino);
+    }, 200);
+
+    clearTimeout(inp._searchTimer);
+    inp._searchTimer = setTimeout(() => {
+      if (termino === busquedaActual) return;
+      busquedaActual = termino;
+      paginaActual = 1;
+      renderTable(1);
+    }, 400);
+  });
+
+  inp.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown") { e.preventDefault(); moverSugerencia(1); return; }
+    if (e.key === "ArrowUp")   { e.preventDefault(); moverSugerencia(-1); return; }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const focused = sugerenciasContainer?.querySelector(".focused");
+      if (focused) {
+        seleccionarSugerencia(focused.querySelector(".suggestionMain")?.textContent || "");
+      } else {
+        cerrarSugerencias();
+        busquedaActual = inp.value.trim();
+        paginaActual = 1;
+        renderTable(1);
+      }
+      return;
+    }
+    if (e.key === "Escape") {
+      cerrarSugerencias();
+      inp.value = "";
+      busquedaActual = "";
+      paginaActual = 1;
+      renderTable(1);
+    }
+  });
+
+  inp.addEventListener("blur", () => {
+    setTimeout(cerrarSugerencias, 150);
+  });
+
+  inp.addEventListener("focus", () => {
+    if (inp.value.trim()) {
+      obtenerSugerencias(inp.value.trim()).then(s => renderSugerencias(s, inp.value.trim()));
+    }
+  });
+}
