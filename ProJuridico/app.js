@@ -2763,6 +2763,7 @@ document.getElementById("kpiBtnPorReasignar")?.addEventListener("click", () => {
   document.getElementById("btnFiltroPrioridad")?.classList.remove("active");
   if (tipoSelect) tipoSelect.value = "Todos";
   busquedaActual = "Sin asignar";
+
   if (inputBusqueda) inputBusqueda.value = "Sin asignar";
 
   paginaActual = 1;
