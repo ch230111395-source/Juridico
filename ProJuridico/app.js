@@ -2746,6 +2746,14 @@ document.getElementById("kpiBtnAltaPrioridad")?.addEventListener("click", () => 
   if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
   ordenarPrioridadAltaBaja = true;
   document.getElementById("btnFiltroPrioridad")?.classList.add("active");
+  if (btnFiltroPrioridad) {
+  btnFiltroPrioridad.addEventListener("click", () => {
+    ordenarPrioridadAltaBaja = !ordenarPrioridadAltaBaja;
+    btnFiltroPrioridad.classList.toggle("active", ordenarPrioridadAltaBaja);
+    paginaActual = 1;
+    renderTable(1);
+  });
+}
   if (tipoSelect) tipoSelect.value = "Todos";
   busquedaActual = "";
   if (inputBusqueda) inputBusqueda.value = "";
@@ -2784,7 +2792,6 @@ function crearSugerenciasContainer() {
   sugerenciasContainer.className = "searchSuggestions";
   sugerenciasContainer.setAttribute("role", "listbox");
   sugerenciasContainer.setAttribute("aria-label", "Sugerencias de búsqueda");
-  
   const wrapper = inputBusqueda?.parentElement;
   if (wrapper) {
     wrapper.style.position = "relative";
@@ -2801,12 +2808,11 @@ function normalizarBusqueda(str) {
   return String(str || "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, ""); 
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 async function obtenerSugerencias(termino) {
   if (!termino || termino.length < 1) return [];
-
   try {
     const params = new URLSearchParams({
       limite: 50,
@@ -2822,23 +2828,20 @@ async function obtenerSugerencias(termino) {
 
     const norm = normalizarBusqueda(termino);
     const resultados = (data.casos || []).map(normalizarCaso);
-
     const sugerencias = new Map();
+
     resultados.forEach(caso => {
       const campos = [
-        { valor: caso.expediente,  subtexto: caso.nombre,  tipo: "Expediente" },
-        { valor: caso.nombre,      subtexto: caso.tipo,    tipo: "Caso"       },
-        { valor: caso.asignado,    subtexto: caso.tipo,    tipo: "Abogado"    },
-        { valor: caso.tipo,        subtexto: null,         tipo: "Tipo"       },
-        { valor: caso.estado,      subtexto: null,         tipo: "Estado"     },
+        { valor: caso.expediente, subtexto: caso.nombre,  tipo: "Expediente" },
+        { valor: caso.nombre,     subtexto: caso.tipo,    tipo: "Caso"       },
+        { valor: caso.asignado,   subtexto: caso.tipo,    tipo: "Abogado"    },
+        { valor: caso.tipo,       subtexto: null,         tipo: "Tipo"       },
+        { valor: caso.estado,     subtexto: null,         tipo: "Estado"     },
       ];
-
       campos.forEach(({ valor, subtexto, tipo }) => {
         if (!valor || valor === "—" || valor === "Sin asignar") return;
         if (!normalizarBusqueda(valor).includes(norm)) return;
-        if (!sugerencias.has(valor)) {
-          sugerencias.set(valor, { texto: valor, subtexto, tipo });
-        }
+        if (!sugerencias.has(valor)) sugerencias.set(valor, { texto: valor, subtexto, tipo });
       });
     });
 
@@ -2864,16 +2867,9 @@ function resaltarMatch(texto, termino) {
 function renderSugerencias(sugerencias, termino) {
   if (!sugerenciasContainer) return;
   cerrarSugerencias();
-
   if (!sugerencias.length) return;
 
-  const iconos = {
-    Expediente: "🗂",
-    Caso:       "📋",
-    Abogado:    "👤",
-    Tipo:       "🏷",
-    Estado:     "📌"
-  };
+  const iconos = { Expediente: "🗂", Caso: "📋", Abogado: "👤", Tipo: "🏷", Estado: "📌" };
 
   sugerencias.forEach((s, i) => {
     const item = document.createElement("div");
@@ -2886,12 +2882,10 @@ function renderSugerencias(sugerencias, termino) {
       ${s.subtexto ? `<span class="suggestionSub">${escapeHtml(s.subtexto)}</span>` : ""}
       <span class="suggestionTag">${escapeHtml(s.tipo)}</span>
     `;
-
     item.addEventListener("mousedown", e => {
-      e.preventDefault(); 
-    seleccionarSugerencia(s.texto);
+      e.preventDefault();
+      seleccionarSugerencia(s.texto);
     });
-
     sugerenciasContainer.appendChild(item);
   });
 }
@@ -2911,7 +2905,6 @@ function moverSugerencia(direccion) {
   if (!sugerenciasContainer) return;
   const items = sugerenciasContainer.querySelectorAll(".searchSuggestionItem");
   if (!items.length) return;
-
   items[indiceSugerencia]?.classList.remove("focused");
   indiceSugerencia = (indiceSugerencia + direccion + items.length) % items.length;
   const activo = items[indiceSugerencia];
@@ -2919,75 +2912,80 @@ function moverSugerencia(direccion) {
   if (inputBusqueda) inputBusqueda.value = activo.querySelector(".suggestionMain")?.textContent || "";
 }
 
+// ── Listeners sobre el input original, sin clonarlo ──
 if (inputBusqueda) {
-  const nuevoInput = inputBusqueda.cloneNode(true);
-  inputBusqueda.parentNode.replaceChild(nuevoInput, inputBusqueda);
-
-  window.inputBusqueda = nuevoInput;
-  const inp = nuevoInput;
-
   crearSugerenciasContainer();
 
-  inp.addEventListener("input", () => {
-    clearTimeout(debounceTimer);
-    const termino = inp.value.trim();
+  // Reemplaza el listener de "input" original usando un flag para no duplicar
+  if (!inputBusqueda._autocompleteAttached) {
+    inputBusqueda._autocompleteAttached = true;
 
-    if (!termino) {
-      cerrarSugerencias();
-      if (busquedaActual !== "") {
+    // Elimina el debounce original sobreescribiendo con el nuestro
+    // (el original usaba la variable debounceTimer que compartimos)
+    inputBusqueda.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      const termino = inputBusqueda.value.trim();
+
+      if (!termino) {
+        cerrarSugerencias();
+        if (busquedaActual !== "") {
+          busquedaActual = "";
+          paginaActual = 1;
+          renderTable(1);
+        }
+        return;
+      }
+
+      // Sugerencias: 200ms
+      debounceTimer = setTimeout(async () => {
+        const sugerencias = await obtenerSugerencias(termino);
+        renderSugerencias(sugerencias, termino);
+      }, 200);
+
+      // Búsqueda real: 400ms
+      clearTimeout(inputBusqueda._searchTimer);
+      inputBusqueda._searchTimer = setTimeout(() => {
+        if (termino === busquedaActual) return;
+        busquedaActual = termino;
+        paginaActual = 1;
+        renderTable(1);
+      }, 400);
+    });
+
+    inputBusqueda.addEventListener("keydown", e => {
+      if (e.key === "ArrowDown") { e.preventDefault(); moverSugerencia(1); return; }
+      if (e.key === "ArrowUp")   { e.preventDefault(); moverSugerencia(-1); return; }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const focused = sugerenciasContainer?.querySelector(".focused");
+        if (focused) {
+          seleccionarSugerencia(focused.querySelector(".suggestionMain")?.textContent || "");
+        } else {
+          cerrarSugerencias();
+          busquedaActual = inputBusqueda.value.trim();
+          paginaActual = 1;
+          renderTable(1);
+        }
+        return;
+      }
+      if (e.key === "Escape") {
+        cerrarSugerencias();
+        inputBusqueda.value = "";
         busquedaActual = "";
         paginaActual = 1;
         renderTable(1);
       }
-      return;
-    }
+    });
 
-    debounceTimer = setTimeout(async () => {
-      const sugerencias = await obtenerSugerencias(termino);
-      renderSugerencias(sugerencias, termino);
-    }, 200);
+    inputBusqueda.addEventListener("blur", () => {
+      setTimeout(cerrarSugerencias, 150);
+    });
 
-    clearTimeout(inp._searchTimer);
-    inp._searchTimer = setTimeout(() => {
-      if (termino === busquedaActual) return;
-      busquedaActual = termino;
-      paginaActual = 1;
-      renderTable(1);
-    }, 400);
-  });
-
-  inp.addEventListener("keydown", e => {
-    if (e.key === "ArrowDown") { e.preventDefault(); moverSugerencia(1); return; }
-    if (e.key === "ArrowUp")   { e.preventDefault(); moverSugerencia(-1); return; }
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const focused = sugerenciasContainer?.querySelector(".focused");
-      if (focused) {
-        seleccionarSugerencia(focused.querySelector(".suggestionMain")?.textContent || "");
-      } else {
-        cerrarSugerencias();
-        busquedaActual = inp.value.trim();
-        paginaActual = 1;
-        renderTable(1);
+    inputBusqueda.addEventListener("focus", () => {
+      if (inputBusqueda.value.trim()) {
+        obtenerSugerencias(inputBusqueda.value.trim())
+          .then(s => renderSugerencias(s, inputBusqueda.value.trim()));
       }
-      return;
-    }
-    if (e.key === "Escape") {
-      cerrarSugerencias();
-      inp.value = "";
-      busquedaActual = "";
-      paginaActual = 1;
-      renderTable(1);
-    }
-  });
-
-  inp.addEventListener("blur", () => {
-    setTimeout(cerrarSugerencias, 150);
-  });
-
-  inp.addEventListener("focus", () => {
-    if (inp.value.trim()) {
-      obtenerSugerencias(inp.value.trim()).then(s => renderSugerencias(s, inp.value.trim()));
-    }
-  });
+    });
+  }
 }
