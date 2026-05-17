@@ -88,10 +88,12 @@ const btnRolForm = document.getElementById("btnRolForm");
 const permDetails = document.getElementById("permDetails");
 const btnLogout = document.getElementById("btnLogout");
 const btnFiltroPrioridad = document.getElementById("btnFiltroPrioridad");
+const btnFiltroEstado = document.getElementById("btnFiltroEstado");
 const btnFiltroArchivados = document.getElementById("btnFiltroArchivados");
 
 let ordenarPrioridadAltaBaja = false;
 let mostrarArchivados = false;
+let filtroEstadoActual = "";
 
 function authQueryParams() {
   return {
@@ -1003,13 +1005,14 @@ async function renderTable(pagina = 1) {
     tipo: tipo,
     busqueda: busquedaActual,
     archivados: mostrarArchivados ? "1" : "0",
+    estado: filtroEstadoActual,
     ...authQueryParams()
   });
   if (ordenarPrioridadAltaBaja) params.set("orden", "prioridad_desc");
   const url = `http://localhost:3000/api/casos?${params}`;
   tbody.innerHTML = `
     <tr>
-      <td colspan="7" class="muted" style="text-align:center; padding:24px;">
+      <td colspan="6" class="muted" style="text-align:center; padding:24px;">
         ${busquedaActual ? `Buscando casos para "${escapeHtml(busquedaActual)}"...` : "Cargando casos..."}
       </td>
     </tr>
@@ -1019,7 +1022,7 @@ async function renderTable(pagina = 1) {
     const res = await fetch(url);
     const data = await res.json();
     if (!data.success) {
-      tbody.innerHTML = `<tr><td colspan="7" class="muted" style="text-align:center; padding:24px;">No se pudieron cargar los casos.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="muted" style="text-align:center; padding:24px;">No se pudieron cargar los casos.</td></tr>`;
       setSearchStatus("", "");
       return;
     }
@@ -1031,7 +1034,7 @@ async function renderTable(pagina = 1) {
         : "Sin casos registrados.";
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" class="muted" style="text-align:center; padding:24px;">
+          <td colspan="6" class="muted" style="text-align:center; padding:24px;">
             ${escapeHtml(mensaje)}
           </td>
         </tr>
@@ -1045,7 +1048,6 @@ async function renderTable(pagina = 1) {
       <tr data-id="${caso._numId}" data-tipo="${caso.tipo}">
         <td><span class="tag">${escapeHtml(caso.fecha)}</span></td>
         <td>${escapeHtml(caso.expediente || "—")}</td>
-        <td>${escapeHtml(caso.nombre)}</td>
         <td class="muted">${escapeHtml(caso.tipo)}</td>
         <td>${renderPrioridadBadge(caso.prioridad)}</td>
         <td>${escapeHtml(caso.estado)}</td>
@@ -1064,7 +1066,7 @@ async function renderTable(pagina = 1) {
     setSearchStatus(busquedaActual ? `${casos.length} resultado(s)` : "", busquedaActual ? "done" : "");
   } catch (err) {
     console.error("Error cargando casos:", err);
-    tbody.innerHTML = `<tr><td colspan="7" class="muted" style="text-align:center; padding:24px;">No se pudieron cargar los casos.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="muted" style="text-align:center; padding:24px;">No se pudieron cargar los casos.</td></tr>`;
     setSearchStatus("", "");
   }
 }
@@ -1072,7 +1074,7 @@ async function renderTable(pagina = 1) {
 function resaltarTermino(termino) {
   if (!termino || !tbody) return;
   const regex = new RegExp(`(${termino.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
-  tbody.querySelectorAll("td:nth-child(2), td:nth-child(3), td:nth-child(7)").forEach(td => {
+  tbody.querySelectorAll("td:nth-child(2), td:nth-child(3), td:nth-child(6)").forEach(td => {
     td.innerHTML = td.textContent.replace(regex,
       '<mark style="background:#fef08a; border-radius:3px; padding:0 2px;">$1</mark>'
     );
@@ -2728,9 +2730,17 @@ setInterval(verificarRecordatoriosAutomaticos, 5 * 60 * 1000);
 document.getElementById("kpiBtnCasosActivos")?.addEventListener("click", () => {
   mostrarArchivados = false;
   ordenarPrioridadAltaBaja = false;
+  filtroEstadoActual = "";
+
   btnFiltroArchivados?.classList.remove("active");
   if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
-  document.getElementById("btnFiltroPrioridad")?.classList.remove("active");
+
+  btnFiltroPrioridad?.classList.remove("active");
+  if (btnFiltroPrioridad) btnFiltroPrioridad.textContent = "Prioridad";
+
+  btnFiltroEstado?.classList.remove("active");
+  if (btnFiltroEstado) btnFiltroEstado.textContent = "Estado";
+
   if (tipoSelect) tipoSelect.value = "Todos";
   busquedaActual = "";
   if (inputBusqueda) inputBusqueda.value = "";
@@ -2742,18 +2752,18 @@ document.getElementById("kpiBtnCasosActivos")?.addEventListener("click", () => {
 
 document.getElementById("kpiBtnAltaPrioridad")?.addEventListener("click", () => {
   mostrarArchivados = false;
+  ordenarPrioridadAltaBaja = true;
+  filtroEstadoActual = "";
+
   btnFiltroArchivados?.classList.remove("active");
   if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
-  ordenarPrioridadAltaBaja = true;
-  document.getElementById("btnFiltroPrioridad")?.classList.add("active");
-  if (btnFiltroPrioridad) {
-  btnFiltroPrioridad.addEventListener("click", () => {
-    ordenarPrioridadAltaBaja = !ordenarPrioridadAltaBaja;
-    btnFiltroPrioridad.classList.toggle("active", ordenarPrioridadAltaBaja);
-    paginaActual = 1;
-    renderTable(1);
-  });
-}
+
+  btnFiltroPrioridad?.classList.add("active");
+  if (btnFiltroPrioridad) btnFiltroPrioridad.textContent = "Prioridad alta-baja";
+
+  btnFiltroEstado?.classList.remove("active");
+  if (btnFiltroEstado) btnFiltroEstado.textContent = "Estado";
+
   if (tipoSelect) tipoSelect.value = "Todos";
   busquedaActual = "";
   if (inputBusqueda) inputBusqueda.value = "";
@@ -2763,6 +2773,66 @@ document.getElementById("kpiBtnAltaPrioridad")?.addEventListener("click", () => 
   renderTable(1);
 });
 
+document.getElementById("kpiBtnPorReasignar")?.addEventListener("click", () => {
+  mostrarArchivados = false;
+  ordenarPrioridadAltaBaja = false;
+  filtroEstadoActual = "sin_asignar";
+
+  btnFiltroArchivados?.classList.remove("active");
+  if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
+
+  btnFiltroPrioridad?.classList.remove("active");
+  if (btnFiltroPrioridad) btnFiltroPrioridad.textContent = "Prioridad";
+
+  btnFiltroEstado?.classList.add("active");
+  if (btnFiltroEstado) btnFiltroEstado.textContent = "Sin asignar";
+
+  if (tipoSelect) tipoSelect.value = "Todos";
+  busquedaActual = "";
+  if (inputBusqueda) inputBusqueda.value = "";
+
+  paginaActual = 1;
+  setActiveView("v_casos");
+  renderTable(1);
+});
+
+if (btnFiltroPrioridad) {
+  btnFiltroPrioridad.addEventListener("click", () => {
+    ordenarPrioridadAltaBaja = !ordenarPrioridadAltaBaja;
+
+    btnFiltroPrioridad.classList.toggle("active", ordenarPrioridadAltaBaja);
+    btnFiltroPrioridad.textContent = ordenarPrioridadAltaBaja ? "Prioridad alta-baja" : "Prioridad";
+
+    paginaActual = 1;
+    renderTable(1);
+  });
+}
+
+if (btnFiltroEstado) {
+  const estadosFiltro = [
+    { texto: "Estado", valor: "" },
+    { texto: "Asignado", valor: "asignado" },
+    { texto: "En proceso", valor: "en_proceso" },
+    { texto: "Sin asignar", valor: "sin_asignar" },
+    { texto: "Finalizado", valor: "finalizado" }
+  ];
+
+  let indiceEstadoFiltro = 0;
+
+  btnFiltroEstado.addEventListener("click", () => {
+    indiceEstadoFiltro = (indiceEstadoFiltro + 1) % estadosFiltro.length;
+
+    const estado = estadosFiltro[indiceEstadoFiltro];
+    filtroEstadoActual = estado.valor;
+
+    btnFiltroEstado.textContent = estado.texto;
+    btnFiltroEstado.classList.toggle("active", Boolean(filtroEstadoActual));
+
+    paginaActual = 1;
+    renderTable(1);
+  });
+}
+  
 document.getElementById("kpiBtnPorReasignar")?.addEventListener("click", () => {
   mostrarArchivados = false;
   ordenarPrioridadAltaBaja = false;
