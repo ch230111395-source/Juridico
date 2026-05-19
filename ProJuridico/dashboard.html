@@ -42,7 +42,7 @@
           </div>
         
           <button class="btn primary" id="btnNuevoGlobal">Nuevo</button>
-          <button class="btn primary" id="btnNuevoGlobal">Filtrar</button>
+          <button class="btn primary" id="btnFiltroFechas">Filtrar</button>
         </div>
       </div>
 
@@ -538,6 +538,38 @@
           <div class="modalFooter">
             <button type="button" id="btnCancelarModal" class="btn secondary">Cancelar</button>
             <button type="submit" form="formNuevoCasoModal" class="btn primary">Guardar Caso</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="modalFiltroFechasMask" class="modalMask">
+        <div id="modalFiltroFechas" class="modalNuevoCaso modalFiltroFechas" role="dialog" aria-modal="true"
+          aria-labelledby="modalFiltroFechasTitle">
+          <div class="modalHeader">
+            <div>
+              <h2 id="modalFiltroFechasTitle">Filtrar casos</h2>
+              <div class="sub">Rango de fechas</div>
+            </div>
+            <button type="button" class="closeBtn" id="btnCloseFiltroFechasModal">✕</button>
+          </div>
+          <div class="modalBody">
+            <form id="formFiltroFechas">
+              <div class="fieldgrid">
+                <div class="field">
+                  <label for="filtro_fecha_desde">Fecha inicial</label>
+                  <input type="date" id="filtro_fecha_desde" name="fecha_desde">
+                </div>
+                <div class="field">
+                  <label for="filtro_fecha_hasta">Fecha final</label>
+                  <input type="date" id="filtro_fecha_hasta" name="fecha_hasta">
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modalFooter">
+            <button type="button" id="btnLimpiarFiltroFechas" class="btn secondary">Limpiar</button>
+            <button type="button" id="btnCancelarFiltroFechasModal" class="btn secondary">Cancelar</button>
+            <button type="submit" form="formFiltroFechas" class="btn primary">Aplicar filtro</button>
           </div>
         </div>
       </div>

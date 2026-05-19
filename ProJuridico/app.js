@@ -94,6 +94,11 @@ const btnFiltroArchivados = document.getElementById("btnFiltroArchivados");
 let ordenarPrioridadAltaBaja = false;
 let mostrarArchivados = false;
 let filtroEstadoActual = "";
+let filtroPorReasignar = false;
+let filtroSoloActivos = false;
+let filtroPrioridadActual = "";
+let filtroFechaDesde = "";
+let filtroFechaHasta = "";
 
 function authQueryParams() {
   return {
@@ -166,6 +171,7 @@ if (inputBusqueda) {
 
 // ========== VARIABLES PARA MODAL ==========
 const btnNuevoGlobal = document.getElementById("btnNuevoGlobal");
+const btnFiltroFechas = document.getElementById("btnFiltroFechas");
 const modalNuevoCaso = document.getElementById("modalNuevoCaso");
 const modalMask = document.getElementById("modalMask");
 const formNuevoCaso = document.getElementById("formNuevoCasoModal");
@@ -173,6 +179,14 @@ const btnCancelarModal = document.getElementById("btnCancelarModal");
 const btnCloseModal = document.getElementById("btnCloseModal");
 const tipoSelectModal = document.getElementById("tipoSelectModal");
 const camposRelevantesModal = document.getElementById("camposRelevantesModal");
+const modalFiltroFechasMask = document.getElementById("modalFiltroFechasMask");
+const modalFiltroFechas = document.getElementById("modalFiltroFechas");
+const formFiltroFechas = document.getElementById("formFiltroFechas");
+const btnCancelarFiltroFechasModal = document.getElementById("btnCancelarFiltroFechasModal");
+const btnCloseFiltroFechasModal = document.getElementById("btnCloseFiltroFechasModal");
+const btnLimpiarFiltroFechas = document.getElementById("btnLimpiarFiltroFechas");
+const inputFiltroFechaDesde = document.getElementById("filtro_fecha_desde");
+const inputFiltroFechaHasta = document.getElementById("filtro_fecha_hasta");
 const btnNuevoUsuario = document.getElementById("btnNuevoUsuario");
 const modalUsuarioMask = document.getElementById("modalUsuarioMask");
 const modalNuevoUsuario = document.getElementById("modalNuevoUsuario");
@@ -274,15 +288,16 @@ function aplicarPermisosInterfaz() {
   const actividadCard = document.getElementById("actividadCard");
   const drawerHistorialTab = document.querySelector('[data-drawer-target="drawerSectionHistorial"]');
   const drawerHistorial = document.getElementById("drawerSectionHistorial");
-  const ocultarHistorial = sessionRol === "ABOGADO";
+  const mostrarHistorial = sessionRol === "ADMIN";
 
   if (navUsuarios) navUsuarios.style.display = puedeGestionarUsuarios() ? "" : "none";
   if (btnNuevoUsuario) btnNuevoUsuario.style.display = puedeGestionarUsuarios() ? "" : "none";
   if (btnNuevoGlobal) btnNuevoGlobal.style.display = puedeCrearCasos() ? "" : "none";
+  if (btnFiltroFechas) btnFiltroFechas.style.display = "";
   if (detallesNuevoCaso) detallesNuevoCaso.style.display = puedeCrearCasos() ? "" : "none";
-  if (actividadCard) actividadCard.style.display = ocultarHistorial ? "none" : "";
-  if (drawerHistorialTab) drawerHistorialTab.style.display = ocultarHistorial ? "none" : "";
-  if (drawerHistorial) drawerHistorial.style.display = ocultarHistorial ? "none" : "";
+  if (actividadCard) actividadCard.style.display = mostrarHistorial ? "" : "none";
+  if (drawerHistorialTab) drawerHistorialTab.style.display = mostrarHistorial ? "" : "none";
+  if (drawerHistorial) drawerHistorial.style.display = mostrarHistorial ? "" : "none";
 
   if (!puedeGestionarUsuarios() && obtenerVistaActiva() === "v_usuarios") {
     guardarVistaActiva("v_dashboard");
@@ -765,6 +780,44 @@ function mostrarCamposModal(tipo) {
   renderCampos(camposPorTipo[tipo] || [], camposRelevantesModal);
 }
 
+function hayFiltroFechasActivo() {
+  return Boolean(filtroFechaDesde && filtroFechaHasta);
+}
+
+function actualizarBotonFiltroFechas() {
+  if (!btnFiltroFechas) return;
+  btnFiltroFechas.classList.toggle("active", hayFiltroFechasActivo());
+  btnFiltroFechas.textContent = hayFiltroFechasActivo() ? "Fechas" : "Filtrar";
+}
+
+function abrirModalFiltroFechas() {
+  if (!modalFiltroFechasMask || !modalFiltroFechas) return;
+  if (inputFiltroFechaDesde) inputFiltroFechaDesde.value = filtroFechaDesde;
+  if (inputFiltroFechaHasta) inputFiltroFechaHasta.value = filtroFechaHasta;
+  modalFiltroFechasMask.classList.add("show");
+  modalFiltroFechas.classList.add("show");
+  window.requestAnimationFrame(() => inputFiltroFechaDesde?.focus());
+}
+
+function cerrarModalFiltroFechas() {
+  if (!modalFiltroFechasMask || !modalFiltroFechas) return;
+  modalFiltroFechasMask.classList.remove("show");
+  modalFiltroFechas.classList.remove("show");
+}
+
+function limpiarFiltroFechas({ cerrar = false, render = true } = {}) {
+  filtroFechaDesde = "";
+  filtroFechaHasta = "";
+  if (inputFiltroFechaDesde) inputFiltroFechaDesde.value = "";
+  if (inputFiltroFechaHasta) inputFiltroFechaHasta.value = "";
+  actualizarBotonFiltroFechas();
+  if (cerrar) cerrarModalFiltroFechas();
+  if (render) {
+    paginaActual = 1;
+    renderTable(1);
+  }
+}
+
 function limpiarFormularioUsuario() {
   if (formNuevoUsuario) formNuevoUsuario.reset();
   if (inputUsuarioId) inputUsuarioId.value = "";
@@ -794,6 +847,10 @@ if (btnNuevoGlobal) {
   btnNuevoGlobal.addEventListener("click", abrirModalNuevoCaso);
 }
 
+if (btnFiltroFechas) {
+  btnFiltroFechas.addEventListener("click", abrirModalFiltroFechas);
+}
+
 if (tipoSelectModal) {
   tipoSelectModal.addEventListener("change", (e) => {
     mostrarCamposModal(e.target.value);
@@ -811,6 +868,66 @@ if (btnCloseModal) {
 if (modalMask) {
   modalMask.addEventListener("click", (e) => {
     if (e.target === modalMask) cerrarModalNuevoCaso();
+  });
+}
+
+if (btnCancelarFiltroFechasModal) {
+  btnCancelarFiltroFechasModal.addEventListener("click", cerrarModalFiltroFechas);
+}
+
+if (btnCloseFiltroFechasModal) {
+  btnCloseFiltroFechasModal.addEventListener("click", cerrarModalFiltroFechas);
+}
+
+if (btnLimpiarFiltroFechas) {
+  btnLimpiarFiltroFechas.addEventListener("click", () => limpiarFiltroFechas({ cerrar: true }));
+}
+
+if (modalFiltroFechasMask) {
+  modalFiltroFechasMask.addEventListener("click", (e) => {
+    if (e.target === modalFiltroFechasMask) cerrarModalFiltroFechas();
+  });
+}
+
+if (formFiltroFechas) {
+  formFiltroFechas.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const desde = inputFiltroFechaDesde?.value || "";
+    const hasta = inputFiltroFechaHasta?.value || "";
+
+    if (!desde || !hasta) {
+      showToast("Selecciona fecha inicial y fecha final.", "error");
+      return;
+    }
+
+    if (desde > hasta) {
+      showToast("La fecha inicial no puede ser posterior a la fecha final.", "error");
+      return;
+    }
+
+    mostrarArchivados = false;
+    ordenarPrioridadAltaBaja = false;
+    filtroEstadoActual = "";
+    filtroPorReasignar = false;
+    filtroSoloActivos = false;
+    filtroPrioridadActual = "";
+    if (tipoSelect) tipoSelect.value = "Todos";
+    busquedaActual = "";
+    if (inputBusqueda) inputBusqueda.value = "";
+    btnFiltroArchivados?.classList.remove("active");
+    if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
+    btnFiltroPrioridad?.classList.remove("active");
+    if (btnFiltroPrioridad) btnFiltroPrioridad.textContent = "Prioridad";
+    btnFiltroEstado?.classList.remove("active");
+    if (btnFiltroEstado) btnFiltroEstado.textContent = "Estado";
+
+    filtroFechaDesde = desde;
+    filtroFechaHasta = hasta;
+    actualizarBotonFiltroFechas();
+    cerrarModalFiltroFechas();
+    paginaActual = 1;
+    setActiveView("v_casos");
+    renderTable(1);
   });
 }
 
@@ -1006,6 +1123,11 @@ async function renderTable(pagina = 1) {
     busqueda: busquedaActual,
     archivados: mostrarArchivados ? "1" : "0",
     estado: filtroEstadoActual,
+    por_reasignar: filtroPorReasignar ? "1" : "0",
+    solo_activos: filtroSoloActivos ? "1" : "0",
+    prioridad: filtroPrioridadActual,
+    fecha_desde: filtroFechaDesde,
+    fecha_hasta: filtroFechaHasta,
     ...authQueryParams()
   });
   if (ordenarPrioridadAltaBaja) params.set("orden", "prioridad_desc");
@@ -1013,11 +1135,26 @@ async function renderTable(pagina = 1) {
   tbody.innerHTML = `
     <tr>
       <td colspan="6" class="muted" style="text-align:center; padding:24px;">
-        ${busquedaActual ? `Buscando casos para "${escapeHtml(busquedaActual)}"...` : "Cargando casos..."}
+        ${busquedaActual
+      ? `Buscando casos para "${escapeHtml(busquedaActual)}"...`
+      : filtroPorReasignar
+        ? "Cargando casos por reasignar..."
+        : hayFiltroFechasActivo()
+          ? "Cargando casos del rango de fechas..."
+        : "Cargando casos..."}
       </td>
     </tr>
   `;
-  setSearchStatus(busquedaActual ? "Buscando..." : "", busquedaActual ? "loading" : "");
+  setSearchStatus(
+    busquedaActual
+      ? "Buscando..."
+      : filtroPorReasignar
+        ? "Filtrando por reasignar"
+        : hayFiltroFechasActivo()
+          ? "Filtrando fechas"
+          : "",
+    busquedaActual || filtroPorReasignar || hayFiltroFechasActivo() ? "loading" : ""
+  );
   try {
     const res = await fetch(url);
     const data = await res.json();
@@ -1031,6 +1168,10 @@ async function renderTable(pagina = 1) {
     if (!casos.length) {
       const mensaje = busquedaActual
         ? `No se encontraron casos para "${busquedaActual}".`
+        : filtroPorReasignar
+          ? "Sin casos por reasignar."
+          : hayFiltroFechasActivo()
+            ? "Sin casos en ese rango de fechas."
         : "Sin casos registrados.";
       tbody.innerHTML = `
         <tr>
@@ -1040,7 +1181,16 @@ async function renderTable(pagina = 1) {
         </tr>
       `;
       renderPaginacion(pagina, 0);
-      setSearchStatus(busquedaActual ? "Sin resultados" : "", busquedaActual ? "empty" : "");
+      setSearchStatus(
+        busquedaActual
+          ? "Sin resultados"
+          : filtroPorReasignar
+            ? "Sin casos por reasignar"
+            : hayFiltroFechasActivo()
+              ? "Sin casos en el rango"
+              : "",
+        busquedaActual || filtroPorReasignar || hayFiltroFechasActivo() ? "empty" : ""
+      );
       return;
     }
 
@@ -1063,7 +1213,16 @@ async function renderTable(pagina = 1) {
     });
     renderPaginacion(pagina, casos.length);
     resaltarTermino(busquedaActual);
-    setSearchStatus(busquedaActual ? `${casos.length} resultado(s)` : "", busquedaActual ? "done" : "");
+    setSearchStatus(
+      busquedaActual
+        ? `${casos.length} resultado(s)`
+        : filtroPorReasignar
+          ? `${casos.length} por reasignar`
+          : hayFiltroFechasActivo()
+            ? `${casos.length} en rango`
+          : "",
+      busquedaActual || filtroPorReasignar || hayFiltroFechasActivo() ? "done" : ""
+    );
   } catch (err) {
     console.error("Error cargando casos:", err);
     tbody.innerHTML = `<tr><td colspan="6" class="muted" style="text-align:center; padding:24px;">No se pudieron cargar los casos.</td></tr>`;
@@ -1522,9 +1681,16 @@ if (tipoSelect) {
 if (btnFiltroArchivados) {
   btnFiltroArchivados.addEventListener("click", () => {
     mostrarArchivados = !mostrarArchivados;
+    filtroPorReasignar = false;
+    filtroSoloActivos = false;
 
     btnFiltroArchivados.classList.toggle("active", mostrarArchivados);
     btnFiltroArchivados.textContent = mostrarArchivados ? "Activos" : "Archivados";
+
+    if (btnFiltroEstado && btnFiltroEstado.textContent === "Por reasignar") {
+      btnFiltroEstado.textContent = "Estado";
+      btnFiltroEstado.classList.remove("active");
+    }
 
     paginaActual = 1;
     renderTable(1);
@@ -1558,6 +1724,10 @@ window.addEventListener("keydown", e => {
   }
   if (modalUsuarioMask && modalUsuarioMask.classList.contains("show")) {
     cerrarModalNuevoUsuario();
+    return;
+  }
+  if (modalFiltroFechasMask && modalFiltroFechasMask.classList.contains("show")) {
+    cerrarModalFiltroFechas();
     return;
   }
   if (modalMask && modalMask.classList.contains("show")) {
@@ -1956,9 +2126,10 @@ document.querySelectorAll("[data-filtro]").forEach(btn => {
 // ========== INICIO ==========
 actualizarIndicadorSesion();
 aplicarPermisosInterfaz();
+actualizarBotonFiltroFechas();
 cargarCasos();
 if (puedeGestionarUsuarios()) cargarUsuarios();
-if (sessionRol !== "ABOGADO") renderActividad(); // ← carga el historial guardado al abrir la app
+if (sessionRol === "ADMIN") renderActividad(); // ← carga el historial guardado al abrir la app
 cargarDashboardKpis();
 setInterval(verificarExpiracionLocal, 60 * 1000);
 
@@ -2731,6 +2902,10 @@ document.getElementById("kpiBtnCasosActivos")?.addEventListener("click", () => {
   mostrarArchivados = false;
   ordenarPrioridadAltaBaja = false;
   filtroEstadoActual = "";
+  filtroPorReasignar = false;
+  filtroSoloActivos = true;
+  filtroPrioridadActual = "";
+  limpiarFiltroFechas({ render: false });
 
   btnFiltroArchivados?.classList.remove("active");
   if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
@@ -2752,14 +2927,18 @@ document.getElementById("kpiBtnCasosActivos")?.addEventListener("click", () => {
 
 document.getElementById("kpiBtnAltaPrioridad")?.addEventListener("click", () => {
   mostrarArchivados = false;
-  ordenarPrioridadAltaBaja = true;
+  ordenarPrioridadAltaBaja = false;
   filtroEstadoActual = "";
+  filtroPorReasignar = false;
+  filtroSoloActivos = true;
+  filtroPrioridadActual = "alta";
+  limpiarFiltroFechas({ render: false });
 
   btnFiltroArchivados?.classList.remove("active");
   if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
 
   btnFiltroPrioridad?.classList.add("active");
-  if (btnFiltroPrioridad) btnFiltroPrioridad.textContent = "Prioridad";
+  if (btnFiltroPrioridad) btnFiltroPrioridad.textContent = "Alta prioridad";
 
   btnFiltroEstado?.classList.remove("active");
   if (btnFiltroEstado) btnFiltroEstado.textContent = "Estado";
@@ -2776,7 +2955,11 @@ document.getElementById("kpiBtnAltaPrioridad")?.addEventListener("click", () => 
 document.getElementById("kpiBtnPorReasignar")?.addEventListener("click", () => {
   mostrarArchivados = false;
   ordenarPrioridadAltaBaja = false;
-  filtroEstadoActual = "sin_asignar";
+  filtroEstadoActual = "";
+  filtroPorReasignar = true;
+  filtroSoloActivos = true;
+  filtroPrioridadActual = "";
+  limpiarFiltroFechas({ render: false });
 
   btnFiltroArchivados?.classList.remove("active");
   if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
@@ -2785,7 +2968,7 @@ document.getElementById("kpiBtnPorReasignar")?.addEventListener("click", () => {
   if (btnFiltroPrioridad) btnFiltroPrioridad.textContent = "Prioridad";
 
   btnFiltroEstado?.classList.add("active");
-  if (btnFiltroEstado) btnFiltroEstado.textContent = "Sin asignar";
+  if (btnFiltroEstado) btnFiltroEstado.textContent = "Por reasignar";
 
   if (tipoSelect) tipoSelect.value = "Todos";
   busquedaActual = "";
@@ -2798,6 +2981,8 @@ document.getElementById("kpiBtnPorReasignar")?.addEventListener("click", () => {
 
 if (btnFiltroPrioridad) {
   btnFiltroPrioridad.addEventListener("click", () => {
+    filtroPrioridadActual = "";
+    filtroSoloActivos = false;
     ordenarPrioridadAltaBaja = !ordenarPrioridadAltaBaja;
 
     btnFiltroPrioridad.classList.toggle("active", ordenarPrioridadAltaBaja);
@@ -2820,6 +3005,13 @@ if (btnFiltroEstado) {
   let indiceEstadoFiltro = 0;
 
   btnFiltroEstado.addEventListener("click", () => {
+    filtroPorReasignar = false;
+    filtroSoloActivos = false;
+    filtroPrioridadActual = "";
+    if (btnFiltroPrioridad) {
+      btnFiltroPrioridad.textContent = "Prioridad";
+      btnFiltroPrioridad.classList.toggle("active", ordenarPrioridadAltaBaja);
+    }
     indiceEstadoFiltro = (indiceEstadoFiltro + 1) % estadosFiltro.length;
 
     const estado = estadosFiltro[indiceEstadoFiltro];
@@ -2832,22 +3024,6 @@ if (btnFiltroEstado) {
     renderTable(1);
   });
 }
-  
-document.getElementById("kpiBtnPorReasignar")?.addEventListener("click", () => {
-  mostrarArchivados = false;
-  ordenarPrioridadAltaBaja = false;
-  btnFiltroArchivados?.classList.remove("active");
-  if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
-  document.getElementById("btnFiltroPrioridad")?.classList.remove("active");
-  if (tipoSelect) tipoSelect.value = "Todos";
-  busquedaActual = "Sin asignar";
-
-  if (inputBusqueda) inputBusqueda.value = "Sin asignar";
-
-  paginaActual = 1;
-  setActiveView("v_casos");
-  renderTable(1);
-});
 
 document.getElementById("kpiBtnRecordatorios")?.addEventListener("click", () => {
   setActiveView("v_recordatorios");
