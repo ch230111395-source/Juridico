@@ -845,6 +845,10 @@ details:not([open]) > summary::before { content: '▸ '; }
   opacity: 1;
 }
 
+.modalFiltroFechas {
+  max-width: 520px;
+}
+
 .modalHeader {
   padding: 24px 28px;
   border-bottom: 1px solid var(--line);
