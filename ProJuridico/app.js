@@ -2759,7 +2759,7 @@ document.getElementById("kpiBtnAltaPrioridad")?.addEventListener("click", () => 
   if (btnFiltroArchivados) btnFiltroArchivados.textContent = "Archivados";
 
   btnFiltroPrioridad?.classList.add("active");
-  if (btnFiltroPrioridad) btnFiltroPrioridad.textContent = "Prioridad alta-baja";
+  if (btnFiltroPrioridad) btnFiltroPrioridad.textContent = "Prioridad";
 
   btnFiltroEstado?.classList.remove("active");
   if (btnFiltroEstado) btnFiltroEstado.textContent = "Estado";
@@ -2801,7 +2801,7 @@ if (btnFiltroPrioridad) {
     ordenarPrioridadAltaBaja = !ordenarPrioridadAltaBaja;
 
     btnFiltroPrioridad.classList.toggle("active", ordenarPrioridadAltaBaja);
-    btnFiltroPrioridad.textContent = ordenarPrioridadAltaBaja ? "Prioridad alta-baja" : "Prioridad";
+    btnFiltroPrioridad.textContent = ordenarPrioridadAltaBaja ? "Prioridad" : "Prioridad";
 
     paginaActual = 1;
     renderTable(1);
